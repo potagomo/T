@@ -50,11 +50,13 @@ jobs:
       - name: ตรวจว่าไฟล์ที่ต้องมีครบ
         run: |
           set -euo pipefail
-          for f in index.html manifest.webmanifest sw.js .nojekyll \
+          for f in index.html manifest.webmanifest sw.js \
                    icons/icon-512.png icons/apple-touch-icon.png \
                    fonts/ibm-plex-sans-thai.css; do
             test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
           done
+          # .nojekyll ตั้งใจให้เป็นไฟล์ว่าง จึงเช็คแค่ว่ามีอยู่ ไม่เช็คขนาด
+          test -f .nojekyll || { echo "ขาดไฟล์: .nojekyll"; exit 1; }
           # กันพลาด: ไม่ควรเหลือลิงก์ไป Google Fonts อีก
           ! grep -q 'fonts.googleapis.com' index.html || { echo "index.html ยังเรียก Google Fonts อยู่"; exit 1; }
           echo "ครบ"

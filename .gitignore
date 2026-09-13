@@ -1,0 +1,4 @@
+# ของที่ลงไว้ชั่วคราวตอนรัน tools/smoke-test.js
+node_modules/
+package-lock.json
+package.json

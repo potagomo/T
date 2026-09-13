@@ -12,14 +12,16 @@
 
 ไปที่ **Settings → Pages** ของ repo นี้ แล้วเลือกอย่างใดอย่างหนึ่ง
 
-**แบบที่แนะนำ — GitHub Actions (ไม่ต้องตั้งอะไรเลย)**
+**แบบที่แนะนำ — GitHub Actions**
 
-* workflow เปิด Pages ให้เองตั้งแต่ deploy ครั้งแรก (`enablement: true`)
-  ปกติจึงไม่ต้องเข้าไปกดอะไรที่หน้า Settings
-* ทุกครั้งที่ push จะ deploy ให้เองด้วย `.github/workflows/pages.yml`
+* Build and deployment → Source = **GitHub Actions**
+* จากนั้นทุกครั้งที่ push จะ deploy ให้เองด้วย `.github/workflows/pages.yml`
   ซึ่งจะประทับเลข commit ลงใน `sw.js` และตรวจว่าไฟล์ที่จำเป็นครบก่อนเผยแพร่
-* ถ้า workflow ฟ้องว่าเปิด Pages ไม่ได้ (บางบัญชี/บาง org ปิดสิทธิ์นี้ไว้)
-  ค่อยไปตั้งเองที่ Settings → Pages → Source = **GitHub Actions** แล้วสั่ง re-run
+
+> ขั้นตอนนี้ต้องกดเองครั้งเดียว ให้ workflow ทำแทนไม่ได้ —
+> GITHUB_TOKEN ของ Actions ไม่มีสิทธิ์สร้าง Pages site ครั้งแรก
+> (ลองแล้วได้ `Create Pages site failed: Resource not accessible by integration`)
+> พอเปิดเสร็จ สั่ง re-run ที่หน้า Actions หรือ push อะไรก็ได้อีกครั้ง แล้วจะ deploy ผ่าน
 
 **แบบง่าย — Deploy from a branch**
 

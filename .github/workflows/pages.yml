@@ -61,12 +61,13 @@ jobs:
           ! grep -q 'fonts.googleapis.com' index.html || { echo "index.html ยังเรียก Google Fonts อยู่"; exit 1; }
           echo "ครบ"
 
+      # หมายเหตุ: เคยลองใส่ enablement: true ให้ action เปิด Pages ให้เองแล้ว
+      # แต่ GITHUB_TOKEN ของ workflow ไม่มีสิทธิ์สร้าง Pages site ครั้งแรก
+      # ("Create Pages site failed: Resource not accessible by integration")
+      # การเปิด Pages ครั้งแรกจึงต้องทำที่หน้า Settings เองครั้งเดียว
+      # ปล่อยเป็นค่าเริ่มต้นไว้ เพราะข้อความ error ที่ได้ชี้ทางแก้ชัดกว่า
       - name: ตั้งค่า Pages
         uses: actions/configure-pages@v5
-        with:
-          # enablement: true = ถ้า repo ยังไม่ได้เปิด Pages ให้เปิดให้เลย
-          # จะได้ไม่ต้องไปกดเองที่ Settings → Pages ก่อน deploy ครั้งแรก
-          enablement: true
 
       - name: อัปโหลด
         uses: actions/upload-pages-artifact@v3

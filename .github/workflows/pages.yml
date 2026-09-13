@@ -63,6 +63,10 @@ jobs:
 
       - name: ตั้งค่า Pages
         uses: actions/configure-pages@v5
+        with:
+          # enablement: true = ถ้า repo ยังไม่ได้เปิด Pages ให้เปิดให้เลย
+          # จะได้ไม่ต้องไปกดเองที่ Settings → Pages ก่อน deploy ครั้งแรก
+          enablement: true
 
       - name: อัปโหลด
         uses: actions/upload-pages-artifact@v3

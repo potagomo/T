@@ -1,0 +1,21 @@
+{
+  "name": "กลอง → MIDI",
+  "short_name": "กลอง→MIDI",
+  "description": "ถอดจังหวะกลองจากไฟล์เสียงออกมาเป็นโน้ตและไฟล์ MIDI แก้บนกริด ฟังเทียบ แล้วส่งออก — ประมวลผลในเครื่องทั้งหมด",
+  "lang": "th",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#1F1B19",
+  "theme_color": "#1F1B19",
+  "categories": ["music", "productivity", "utilities"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

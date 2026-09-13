@@ -1,0 +1,72 @@
+# ส่งเว็บแอปขึ้น GitHub Pages อัตโนมัติทุกครั้งที่ push
+#
+# ต้องตั้งค่าครั้งเดียวที่ Settings → Pages → Build and deployment
+#   Source = GitHub Actions
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/web-app-html-file-bicwtc
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ให้ deploy ทีละอันเรียงกัน ไม่ยกเลิกอันที่กำลังทำอยู่
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: ดึงโค้ด
+        uses: actions/checkout@v4
+
+      - name: ประทับเลขรุ่นลงใน Service Worker
+        run: |
+          set -euo pipefail
+          BUILD_ID="${GITHUB_SHA:0:12}"
+          # ใช้ผลลัพธ์ของ python เพื่อเลี่ยงปัญหาอักขระพิเศษใน sed
+          python3 - "$BUILD_ID" <<'PY'
+          import io, sys
+          build = sys.argv[1]
+          p = "sw.js"
+          s = io.open(p, encoding="utf-8").read()
+          if "__BUILD_ID__" not in s:
+              sys.exit("ไม่พบ __BUILD_ID__ ใน sw.js")
+          io.open(p, "w", encoding="utf-8").write(s.replace("__BUILD_ID__", build))
+          print("BUILD =", build)
+          PY
+
+      - name: ตรวจว่าไฟล์ที่ต้องมีครบ
+        run: |
+          set -euo pipefail
+          for f in index.html manifest.webmanifest sw.js .nojekyll \
+                   icons/icon-512.png icons/apple-touch-icon.png \
+                   fonts/ibm-plex-sans-thai.css; do
+            test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
+          done
+          # กันพลาด: ไม่ควรเหลือลิงก์ไป Google Fonts อีก
+          ! grep -q 'fonts.googleapis.com' index.html || { echo "index.html ยังเรียก Google Fonts อยู่"; exit 1; }
+          echo "ครบ"
+
+      - name: ตั้งค่า Pages
+        uses: actions/configure-pages@v5
+
+      - name: อัปโหลด
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: เผยแพร่
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -2,11 +2,38 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>กลอง → MIDI · ตัวเต็ม</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ==================== ชั้นเว็บแอป ====================
+     ส่วนนี้เพิ่มเข้ามาเพื่อให้ไฟล์เดียวกลายเป็นเว็บแอปที่ติดตั้งลงหน้าโฮมของ
+     iPad/มือถือได้ ใช้ตอนไม่มีเน็ตได้ และปิดทางให้หน้านี้โหลดของจากที่อื่น
+     ตรรกะของโปรแกรมไม่ถูกแตะเลย
+     ==================================================== -->
+<script>/* กันเอาหน้านี้ไปฝังใน iframe ของเว็บอื่น (clickjacking) */
+if(self!==top){try{top.location=self.location}catch(e){document.documentElement.innerHTML=""}}</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<!-- ไม่ให้เสิร์ชเอนจินเก็บหน้านี้ไปทำดัชนี (robots.txt ใช้ไม่ได้กับ project page
+     เพราะมันอ่านที่รากโดเมนเท่านั้น จึงต้องสั่งที่ meta) -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="ถอดจังหวะกลองจากไฟล์เสียงออกมาเป็นโน้ตและไฟล์ MIDI แก้บนกริด ฟังเทียบ แล้วส่งออก — ประมวลผลในเครื่องทั้งหมด ไม่ส่งไฟล์ออกไปไหน">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1F1B19">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="กลอง→MIDI">
+<meta name="format-detection" content="telephone=no">
+<!-- ฟอนต์เก็บไว้ในโปรเจกต์เอง ไม่เรียก Google แล้ว: เปิดได้ตอนไม่มีเน็ต เร็วกว่า
+     และไม่มีใครนอกเครื่องรู้ว่าเราเปิดหน้านี้ (สัญญาอนุญาต SIL OFL 1.1) -->
+<link rel="preload" href="./fonts/ibm-plex-sans-thai-thai-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/ibm-plex-sans-thai-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./fonts/ibm-plex-sans-thai.css">
 <style>
 :root{
   --bg:#1F1B19; --panel:#2A2422; --panel2:#332B28; --line:#453B37; --line2:#5A4C46;
@@ -225,6 +252,51 @@ label.chk{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--d
   font-size:12.5px;color:#C6B8AE;flex-wrap:wrap}
 .srow em{color:#8A7A70;font-style:normal;flex:1;min-width:60px}
 #slist{max-height:240px;overflow:auto}
+
+/* ==================== ชั้นเว็บแอป: จอ iPad และมือถือ ====================
+   1) รอยบาก/ขีดโฮมของ iPhone·iPad กินพื้นที่จอจริง เวลาเปิดจากหน้าโฮม
+      แถบล่าง (#tp) จะไปอยู่ใต้ขีดโฮมถ้าไม่เผื่อไว้ จึงเผื่อด้วย env(safe-area-*)
+   2) Safari จะซูมหน้าเข้าเองเมื่อแตะช่องกรอกที่ตัวอักษรเล็กกว่า 16px
+      พอซูมแล้วกริดเลื่อนหลุดมือ จึงบังคับ 16px เฉพาะบนจอสัมผัส
+      (ช่องรหัสในประตูหน้าใช้ 16px อยู่แล้วด้วยเหตุผลเดียวกัน)
+   ====================================================================== */
+:root{
+  --sat:env(safe-area-inset-top,0px);  --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+}
+html{-webkit-text-size-adjust:100%}
+header{padding-top:calc(18px + var(--sat))}
+main{padding-left:calc(18px + var(--sal)); padding-right:calc(18px + var(--sar));
+     padding-bottom:calc(132px + var(--sab))}
+body.locked main.wrap{padding-top:calc(8px + var(--sat))}
+#tp{padding-left:calc(12px + var(--sal)); padding-right:calc(12px + var(--sar));
+    padding-bottom:calc(8px + var(--sab))}
+#tp.min{padding-bottom:calc(6px + var(--sab))}
+#gate{padding:calc(20px + var(--sat)) calc(20px + var(--sar)) calc(20px + var(--sab)) calc(20px + var(--sal))}
+@media (max-width:700px){
+  main{padding-left:calc(10px + var(--sal)); padding-right:calc(10px + var(--sar));
+       padding-bottom:calc(190px + var(--sab))}
+}
+/* แถบล่างสูงตามจอจริง ไม่ใช่จอที่รวมแถบเครื่องมือของ Safari ที่ยุบ ๆ ยืด ๆ */
+@supports (height:1dvh){ #tp{max-height:52dvh} }
+@media (pointer:coarse){
+  input[type=number],input[type=text],input[type=password],select{font-size:16px}
+  input[type=number]{width:86px}
+  /* กันไฮไลต์ข้อความ/เมนูค้างไว้ตอนลากนิ้วบนปุ่มและบนกริด */
+  button,.seg,.valwrap,#labels,#zwheel,canvas{
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none}
+  button{-webkit-tap-highlight-color:transparent}
+}
+
+/* แถบแจ้งว่ามีรุ่นใหม่ — ขึ้นเมื่อ Service Worker โหลดรุ่นใหม่เสร็จเท่านั้น */
+#swbar{position:fixed; left:0; right:0; top:0; z-index:9998;
+  padding:calc(9px + var(--sat)) calc(12px + var(--sar)) 9px calc(12px + var(--sal));
+  background:var(--panel2); border-bottom:1px solid var(--ok); color:var(--ink);
+  font-size:13px; display:flex; gap:10px; align-items:center; justify-content:center;
+  flex-wrap:wrap; box-shadow:0 6px 20px rgba(0,0,0,.45)}
+#swbar button{background:var(--ok); color:#10201F; border:0; font-weight:600;
+  padding:6px 14px; border-radius:7px; font-size:13px}
+#swbar .x{background:transparent; color:var(--dim); font-weight:400; padding:6px 8px}
 </style>
 </head>
 <body>
@@ -4728,6 +4800,56 @@ function init(){
 }
 document.addEventListener("DOMContentLoaded", init);
 if(document.readyState !== "loading") init();
+})();
+</script>
+<script>
+/* ==================== ชั้นเว็บแอป: Service Worker ====================
+   ทำให้เปิดใช้ได้ตอนไม่มีเน็ต และติดตั้งลงหน้าโฮมได้
+
+   ตั้งใจ "ไม่" รีโหลดเองเมื่อมีรุ่นใหม่ เพราะงานที่ยังไม่ได้บันทึกบนกริด
+   จะหายไปกลางคัน จึงขึ้นแถบให้กดเองแทน
+   ==================================================================== */
+(function(){
+"use strict";
+if(location.protocol !== "http:" && location.protocol !== "https:") return;  // เปิดจาก file:// ก็ยังใช้ได้ แค่ไม่มีโหมดออฟไลน์
+if(!("serviceWorker" in navigator)) return;
+
+function showBar(waiting){
+  if(document.getElementById("swbar")) return;
+  var bar = document.createElement("div");
+  bar.id = "swbar";
+  bar.innerHTML = '<span>มีรุ่นใหม่พร้อมแล้ว</span>' +
+                  '<button type="button" id="swgo">อัปเดตเดี๋ยวนี้</button>' +
+                  '<button type="button" class="x" id="swno">ไว้ก่อน</button>';
+  document.body.appendChild(bar);
+  document.getElementById("swno").onclick = function(){ bar.remove(); };
+  document.getElementById("swgo").onclick = function(){
+    bar.remove();
+    navigator.serviceWorker.addEventListener("controllerchange", function once(){
+      navigator.serviceWorker.removeEventListener("controllerchange", once);
+      location.reload();
+    });
+    waiting.postMessage({type:"SKIP_WAITING"});
+  };
+}
+
+addEventListener("load", function(){
+  navigator.serviceWorker.register("./sw.js", {scope:"./"}).then(function(reg){
+    if(reg.waiting && navigator.serviceWorker.controller) showBar(reg.waiting);
+    reg.addEventListener("updatefound", function(){
+      var sw = reg.installing;
+      if(!sw) return;
+      sw.addEventListener("statechange", function(){
+        // มี controller อยู่แล้ว = ครั้งนี้เป็นการอัปเดต ไม่ใช่การติดตั้งครั้งแรก
+        if(sw.state === "installed" && navigator.serviceWorker.controller) showBar(sw);
+      });
+    });
+    // เช็ครุ่นใหม่ทุกครั้งที่กลับมาที่หน้านี้ เผื่อเปิดค้างไว้เป็นวัน ๆ
+    document.addEventListener("visibilitychange", function(){
+      if(!document.hidden) reg.update().catch(function(){});
+    });
+  }).catch(function(){ /* ไม่มีโหมดออฟไลน์ก็ใช้งานได้ตามปกติ */ });
+});
 })();
 </script>
 </body>

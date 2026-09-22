@@ -39,11 +39,11 @@ jobs:
           python3 - "$BUILD_ID" <<'PY'
           import io, sys
           build = sys.argv[1]
-          p = "sw.js"
-          s = io.open(p, encoding="utf-8").read()
-          if "__BUILD_ID__" not in s:
-              sys.exit("ไม่พบ __BUILD_ID__ ใน sw.js")
-          io.open(p, "w", encoding="utf-8").write(s.replace("__BUILD_ID__", build))
+          for p in ["sw.js", "lesson/sw.js"]:
+              s = io.open(p, encoding="utf-8").read()
+              if "__BUILD_ID__" not in s:
+                  sys.exit("ไม่พบ __BUILD_ID__ ใน " + p)
+              io.open(p, "w", encoding="utf-8").write(s.replace("__BUILD_ID__", build))
           print("BUILD =", build)
           PY
 
@@ -52,13 +52,18 @@ jobs:
           set -euo pipefail
           for f in index.html manifest.webmanifest sw.js \
                    icons/icon-512.png icons/apple-touch-icon.png \
-                   fonts/ibm-plex-sans-thai.css; do
+                   fonts/ibm-plex-sans-thai.css \
+                   lesson/index.html lesson/manifest.webmanifest lesson/sw.js \
+                   lesson/icons/icon-512.png lesson/icons/icon-maskable-512.png \
+                   lesson/icons/apple-touch-icon.png; do
             test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
           done
           # .nojekyll ตั้งใจให้เป็นไฟล์ว่าง จึงเช็คแค่ว่ามีอยู่ ไม่เช็คขนาด
           test -f .nojekyll || { echo "ขาดไฟล์: .nojekyll"; exit 1; }
           # กันพลาด: ไม่ควรเหลือลิงก์ไป Google Fonts อีก
           ! grep -q 'fonts.googleapis.com' index.html || { echo "index.html ยังเรียก Google Fonts อยู่"; exit 1; }
+          # แอปครูต้าต้องถูกเติมชั้นเว็บแอปแล้ว (ไม่ใช่ไฟล์ต้นฉบับที่ถูกก๊อบมาวางตรง ๆ)
+          grep -q 'serviceWorker.register' lesson/index.html || { echo "lesson/index.html ยังไม่ได้เติมชั้นเว็บแอป — รัน tools/apply-lesson-layer.py"; exit 1; }
           echo "ครบ"
 
       # หมายเหตุ: เคยลองใส่ enablement: true ให้ action เปิด Pages ให้เองแล้ว

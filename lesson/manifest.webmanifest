@@ -1,0 +1,21 @@
+{
+  "name": "ครูต้า — Drum Lesson Log",
+  "short_name": "ครูต้า",
+  "description": "บันทึกคาบสอนกลอง นักเรียน คอร์ส และรายได้ — เก็บข้อมูลในเครื่อง ใช้ได้แม้ไม่มีเน็ต",
+  "lang": "th",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#080808",
+  "theme_color": "#0b0b0d",
+  "categories": ["education", "productivity", "business"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

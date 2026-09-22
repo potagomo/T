@@ -88,6 +88,9 @@ self.addEventListener("fetch", (e) => {
   try { url = new URL(req.url); } catch (_) { return; }
   if (url.origin !== self.location.origin) return;
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
+  /* โฟลเดอร์ lesson/ เป็นอีกแอปหนึ่ง (ครูต้า) มี Service Worker ของตัวเอง
+     ถ้าไม่ข้ามตรงนี้ หน้าแอปนั้นจะถูกเก็บทับเป็นตัวโปรแกรมของแอปนี้ */
+  if (url.pathname.startsWith(ROOT + "lesson/")) return;
 
   if (isAppDoc(req, url)) {
     e.respondWith((async () => {

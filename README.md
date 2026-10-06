@@ -184,7 +184,8 @@ index.html                 ตัวโปรแกรมทั้งหมด (
 manifest.webmanifest       ข้อมูลสำหรับติดตั้งลงหน้าโฮม
 sw.js                      Service Worker — ทำให้ใช้ได้ตอนไม่มีเน็ต
 404.html                   หน้าที่ขึ้นเมื่อเปิดที่อยู่ผิด
-fonts/                     IBM Plex Sans Thai (ไทย + ละติน, 12 ไฟล์ ~100 KB)
+fonts/                     IBM Plex Sans Thai (~100 KB) + Prompt สำหรับตัวเลขใหญ่ (~53 KB)
+theme/                     ธีมมิดเซนจูรี่ กลางวัน/กลางคืน (ดูข้อ 9)
 icons/                     ไอคอนแอปสำหรับหน้าโฮมและแท็บเบราว์เซอร์
 .nojekyll                  บอก GitHub Pages ว่าไม่ต้องเอา Jekyll มาประมวลผล
 .github/workflows/pages.yml  deploy อัตโนมัติเมื่อ push
@@ -236,6 +237,12 @@ tools/smoke-test.js          ตรวจเว็บแอปด้วยเบ
 ```bash
 python3 .claude/skills/ui-ux-pro-max/scripts/search.py "touch target" --domain ux
 ```
+
+### ธีมที่ใช้อยู่
+
+มิดเซนจูรี่ (แถบไม้วอลนัท ขอบทองเหลือง ปุ่มกดลงได้จริง) มีโหมดกลางวันและกลางคืน
+สลับได้ที่แถบล่างหัวข้อ "แสงหน้าจอ" ค่าเริ่มต้นตามที่ตั้งไว้ในเครื่อง ไฟล์อยู่ใน `theme/`
+ถ้ารับรุ่นใหม่แล้วชุดทดสอบฟ้องสีหลุดธีม ดูวิธีแก้ใน `drum-pro-ui` ข้อ 0.5
 
 `drum-pro-ui` เก็บสิ่งที่คลังทั่วไปไม่มีทางรู้:
 

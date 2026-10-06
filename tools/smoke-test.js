@@ -162,13 +162,74 @@ async function suite(label, ctxOpts, exe) {
     await clickFirst(page, ["#exBack", "#exClose", "#backEdit", '#exportScreen button:has-text("กลับ")']);
     await page.waitForTimeout(400);
   }
+  /* รอจนนาฬิกาเดินเกิน 1 วินาที (ไม่เกิน 5 วินาที) แทนการรอตายตัว
+     เครื่องเสียงของเบราว์เซอร์เปิดช้าเร็วไม่เท่ากัน รอตายตัว 1.2 วินาทีเคยตกทั้งที่โปรแกรมเล่นได้ */
+  const t0 = Date.now();
   await page.click("#play").catch(() => {});
-  await page.waitForTimeout(1200);
+  const playStarted = await page.waitForFunction(() => {
+    const el = document.querySelector(".clock"); return el && /0:0[1-9]|0:[1-9]/.test(el.textContent);
+  }, null, { timeout: 5000, polling: 50 }).then(() => true).catch(() => false);
   const clock = await page.evaluate(() => {
     const el = document.querySelector(".clock"); return el ? el.textContent.trim() : ""; });
-  say(`หลังกดเล่น: ${clock.replace(/\s+/g, " ")}`);
-  if (!/0:0[1-9]|0:[1-9]/.test(clock)) fail.push(`${label}: กดเล่นแล้วเวลาไม่เดิน`);
+  say(`หลังกดเล่น: ${clock.replace(/\s+/g, " ")} · นาฬิกาเดินถึง 1 วินาทีใน ${Date.now() - t0}ms`);
+  if (!playStarted) fail.push(`${label}: กดเล่นแล้วเวลาไม่เดินภายใน 5 วินาที`);
   await clickFirst(page, ["#stopb", "#stop"]);
+
+  /* ---- หัวอ่าน: ลากไปวางแล้วกดเล่น ต้องเล่นต่อจากจุดนั้น ----
+     ผู้ใช้ขอข้อนี้มาตรง ๆ ตั้งแต่แรก ล็อกไว้ไม่ให้หลุดตอนแก้ UI */
+  const secs = (t) => { const m = /(\d+):(\d+(?:\.\d+)?)\s*$/.exec(t || ""); return m ? (+m[1]) * 60 + (+m[2]) : NaN; };
+  const readClock = () => page.evaluate(() => ((document.querySelector("#clock") || {}).textContent || "").trim());
+  await page.waitForTimeout(300);
+  const gb = await page.locator("#grid").boundingBox();
+  const hy = gb.y + 10, hx0 = gb.x + 170, hx1 = gb.x + Math.min(gb.width - 40, 520);   // แถบบนสุด 26px ของกริด = ที่จับหัวอ่าน
+  await page.mouse.move(hx0, hy); await page.mouse.down();
+  await page.mouse.move(hx1, hy, { steps: 8 }); await page.mouse.up();
+  await page.waitForTimeout(250);
+  const headClock = await readClock(), tHead = secs(headClock);
+  say(`ลากหัวอ่านไปที่: ${headClock}`);
+  if (!(tHead > 0.2)) fail.push(`${label}: ลากหัวอ่านแล้วตำแหน่งไม่ขยับ (${headClock})`);
+  await page.evaluate(() => {
+    window.__lampOn = 0; const l = document.getElementById("kLamp");
+    if (l) new MutationObserver(() => { if (l.classList.contains("on")) window.__lampOn++; }).observe(l, { attributes: true });
+  });
+  await page.click("#play").catch(() => {});
+  await page.waitForTimeout(700);
+  const runClock = await readClock(), tRun = secs(runClock);
+  const lampOn = await page.evaluate(() => window.__lampOn);
+  await clickFirst(page, ["#stopb", "#stop"]);
+  say(`กดเล่นจากหัวอ่าน → ${runClock} · ไฟจังหวะกะพริบ ${lampOn} ครั้ง`);
+  if (!(tRun >= tHead - 0.05 && tRun < tHead + 2.5))
+    fail.push(`${label}: กดเล่นแล้วไม่ได้เริ่มจากหัวอ่าน (หัวอ่าน ${tHead}s แต่เล่นอยู่ที่ ${tRun}s)`);
+
+  /* ---- ธีมมิดเซนจูรี่ ---- */
+  const th = await page.evaluate(() => {
+    const kt = window.KlongTheme; if (!kt) return null;
+    const off = document.createElement("canvas").getContext("2d"); off.fillStyle = "#1F1B19";   // แบบ canvas ส่งออก
+    const on = document.querySelector("#grid").getContext("2d"), keep = on.fillStyle;
+    on.fillStyle = "#1F1B19"; const onV = on.fillStyle; on.fillStyle = keep;
+    return { mode: document.documentElement.dataset.kmode, unmapped: [...kt.unmapped], off: off.fillStyle, on: onV,
+             lamp: !!document.getElementById("kLamp"), vu: !!document.getElementById("kVu"), sw: !!document.getElementById("kMode") };
+  });
+  if (!th) fail.push(`${label}: ธีมไม่โหลด`);
+  else {
+    say(`ธีม: โหมด=${th.mode} · สีหลุดธีม=${th.unmapped.length ? th.unmapped.join(",") : "ไม่มี"} · canvas ส่งออก=${th.off} · canvas บนจอ=${th.on}`);
+    if (th.unmapped.length) fail.push(`${label}: มีสีบนจอที่ธีมยังไม่รู้จัก ${th.unmapped.join(", ")}`);
+    if (th.off !== "#1f1b19") fail.push(`${label}: canvas ส่งออกโดนแปลงสี (${th.off})`);
+    if (th.on === "#1f1b19") fail.push(`${label}: canvas บนจอไม่ถูกแปลงสี`);
+    if (!th.lamp || !th.vu || !th.sw) fail.push(`${label}: ไฟจังหวะ/มาตรวัด/สวิตช์แสง ไม่ครบ`);
+    if (!(lampOn > 0)) fail.push(`${label}: ไฟจังหวะไม่กะพริบตอนเล่น`);
+    const bgOf = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const before = await bgOf();
+    await page.click('#kMode button[data-mode="night"]');
+    await page.waitForTimeout(400);
+    const n = await page.evaluate(() => ({ mode: document.documentElement.dataset.kmode, unmapped: [...window.KlongTheme.unmapped] }));
+    const after = await bgOf();
+    say(`สลับเป็นกลางคืน: โหมด=${n.mode} · พื้น ${before} → ${after}`);
+    if (n.mode !== "night" || before === after) fail.push(`${label}: สลับเป็นกลางคืนไม่ได้`);
+    if (n.unmapped.length) fail.push(`${label}: โหมดกลางคืนมีสีหลุดธีม ${n.unmapped.join(", ")}`);
+    await page.click('#kMode button[data-mode="auto"]');
+    await page.waitForTimeout(200);
+  }
 
   await ctx.setOffline(true);
   await page.goto(BASE, { waitUntil: "load" })

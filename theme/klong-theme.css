@@ -1,0 +1,206 @@
+/* ============================================================
+   ธีมมิดเซนจูรี่ของ Klong Pro — สไตล์
+
+   ทุกกฎขึ้นต้นด้วย html[data-kmode] ซึ่ง klong-theme.js เป็นคนตั้ง
+   ถ้าสคริปต์ธีมโหลดไม่ขึ้น โปรแกรมจะกลับไปหน้าตาเดิมทั้งหมด ไม่พัง
+
+   ไม่แก้กฎเดิมของโปรแกรม แค่เขียนทับจากไฟล์นี้ (โหลดหลัง CSS ของโปรแกรม)
+   ตัวแปรสีเดิมของโปรแกรม (--bg --panel --ink --ok ...) ถูกตั้งค่าใหม่
+   ตามโหมด ส่วนไหนของโปรแกรมที่ใช้ตัวแปรอยู่แล้วจึงเปลี่ยนตามเอง
+   ============================================================ */
+
+html[data-kmode="day"]{
+  --bg:#EFE6D2; --panel:#F4ECDC; --panel2:#E7DBC1; --line:#D2C1A0; --line2:#BBA67F;
+  --ink:#33241A; --dim:#6B5747; --dimmer:#7A6452; --ok:#1F7A74; --warn:#B3261E; --soft:#A8741A;
+  --k-wood-a:#6A4529; --k-wood-b:#4E321F; --k-wood-ink:#F3E8D2; --k-wood-dim:#D4BF9E;
+  --k-brass:#C59A4E; --k-brass-hi:#E3C27F;
+  --k-tray:rgba(0,0,0,.26); --k-tray-panel:rgba(91,58,36,.13);
+  --k-sel-top:#2A8C85; --k-sel-edge:#155955; --k-sel-ink:#F6EEDD;
+  --k-key-top:#F6EEDC; --k-key-bot:#E6D8BB; --k-key-border:#CDB993; --k-key-edge:#A88F66;
+  --k-key-ink:#33241A; --k-key-hi:rgba(255,255,255,.5); --k-key-hover:#FBF5E8;
+  --k-on-top:#D8C8A8; --k-on-bot:#E4D6BA; --k-on-ink:#155955; --k-lamp:#1F7A74;
+  --k-lcd-bg:#2E1D11; --k-lcd-ink:#F2C14E; --k-vu-a:#F4E7C8; --k-vu-b:#E3CFA4; --k-vu-ink:#3B2A20;
+  color-scheme:light;
+}
+html[data-kmode="night"]{
+  --bg:#1E1611; --panel:#261C15; --panel2:#2E2219; --line:#3E2F24; --line2:#57432F;
+  --ink:#EADBC0; --dim:#AE9880; --dimmer:#9A8470; --ok:#4FB3A8; --warn:#E0614F; --soft:#E2B54A;
+  --k-wood-a:#3E2919; --k-wood-b:#2C1C11; --k-wood-ink:#EADBC0; --k-wood-dim:#B9A283;
+  --k-brass:#A9813F; --k-brass-hi:#C9A15F;
+  --k-tray:rgba(0,0,0,.36); --k-tray-panel:rgba(0,0,0,.28);
+  --k-sel-top:#6CC3B8; --k-sel-edge:#2E7F77; --k-sel-ink:#10201E;
+  --k-key-top:#3E3026; --k-key-bot:#30241C; --k-key-border:#4D3B2E; --k-key-edge:#140E0A;
+  --k-key-ink:#EADBC0; --k-key-hi:rgba(255,255,255,.07); --k-key-hover:#463629;
+  --k-on-top:#261D17; --k-on-bot:#2F241C; --k-on-ink:#6CC7BB; --k-lamp:#4FB3A8;
+  --k-lcd-bg:#140D08; --k-lcd-ink:#F2C14E; --k-vu-a:#DCC59A; --k-vu-b:#C7AE82; --k-vu-ink:#2C1C11;
+  color-scheme:dark;
+}
+html[data-kmode]{
+  --k-depth:4px; --k-r:12px;
+  --k-display:"Prompt", "IBM Plex Sans Thai", system-ui, -apple-system, sans-serif;
+  --k-wood:
+    repeating-linear-gradient(91deg, rgba(0,0,0,.07) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(89deg, rgba(255,255,255,.035) 0 1px, transparent 1px 17px),
+    linear-gradient(180deg, var(--k-wood-a), var(--k-wood-b));
+}
+
+/* ---------- ตัวอักษร: Prompt สำหรับชื่อและตัวเลขใหญ่ ที่เหลือคงเดิม ---------- */
+html[data-kmode] h1,
+html[data-kmode] #topbar .tbL b{font-family:var(--k-display); font-weight:600; letter-spacing:.005em}
+
+/* ---------- แถบบนและแถบล่างเป็นไม้วอลนัท ขอบทองเหลือง ---------- */
+html[data-kmode] body.shell #topbar{
+  background:var(--k-wood); color:var(--k-wood-ink);
+  border-bottom:2px solid var(--k-brass);
+  box-shadow:inset 0 -3px 0 -2px var(--k-brass-hi), 0 3px 10px rgba(30,15,5,.22)}
+html[data-kmode] #topbar .tbL b{font-size:17px; color:var(--k-wood-ink)}
+html[data-kmode] #topbar .tbL span,
+html[data-kmode] #topbar .status{color:var(--k-wood-dim)}
+html[data-kmode] #topbar .status.err{color:#FFB4A8}
+
+html[data-kmode] #tp{
+  background:var(--k-wood); color:var(--k-wood-ink); -webkit-backdrop-filter:none; backdrop-filter:none;
+  border-top:2px solid var(--k-brass);
+  box-shadow:inset 0 3px 0 -2px var(--k-brass-hi), 0 -3px 10px rgba(30,15,5,.2)}
+html[data-kmode] #tp .grpname,
+html[data-kmode] #tp .mini,
+html[data-kmode] #tp label.chk,
+html[data-kmode] #tp #barHint{color:var(--k-wood-dim)}
+html[data-kmode] #tp input[type=range]{accent-color:var(--k-brass)}
+html[data-kmode] input[type=checkbox]{accent-color:var(--ok)}
+html[data-kmode] #rowLive{border-top-color:rgba(0,0,0,.25)}
+
+/* ---------- ปุ่ม: ยกขึ้น ยุบตามนิ้ว ค้างลงเมื่อเลือก ---------- */
+html[data-kmode] .btn,
+html[data-kmode] .seg button,
+html[data-kmode] .valwrap button,
+html[data-kmode] #genres button,
+html[data-kmode] #tpToggle{
+  position:relative; border:1px solid var(--k-key-border); border-radius:var(--k-r);
+  background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-key-ink);
+  box-shadow:0 var(--k-depth) 0 var(--k-key-edge), 0 calc(var(--k-depth) + 3px) 6px rgba(0,0,0,.22), inset 0 1px 0 var(--k-key-hi);
+  transform:translateY(0); transition:transform 70ms ease-out, box-shadow 70ms ease-out;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation}
+html[data-kmode] .btn:hover,
+html[data-kmode] .seg button:hover,
+html[data-kmode] .valwrap button:hover{background:linear-gradient(var(--k-key-hover), var(--k-key-bot))}
+html[data-kmode] .btn.primary{
+  background:linear-gradient(var(--k-sel-top), var(--ok)); border-color:var(--k-sel-edge); color:var(--k-sel-ink); font-weight:600;
+  box-shadow:0 var(--k-depth) 0 var(--k-sel-edge), 0 calc(var(--k-depth) + 3px) 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.25)}
+html[data-kmode] .btn.primary:hover{background:linear-gradient(var(--k-sel-top), var(--k-sel-top))}
+
+/* เลือกอยู่ = ค้างลง มีไฟเขียวดวงเล็ก — บอกสถานะด้วยรูปทรง ไม่ได้พึ่งสีอย่างเดียว */
+html[data-kmode] .seg button[aria-pressed="true"],
+html[data-kmode] .valwrap button[aria-pressed="true"],
+html[data-kmode] #genres button[aria-pressed="true"],
+html[data-kmode] .btn[aria-pressed="true"]{
+  transform:translateY(calc(var(--k-depth) - 1px));
+  background:linear-gradient(var(--k-on-top), var(--k-on-bot)); color:var(--k-on-ink);
+  border-color:var(--k-key-border); font-weight:600;
+  box-shadow:0 1px 0 var(--k-key-edge), inset 0 2px 5px rgba(0,0,0,.3)}
+html[data-kmode] .seg button[aria-pressed="true"]::before,
+html[data-kmode] .valwrap button[aria-pressed="true"]::before,
+html[data-kmode] #genres button[aria-pressed="true"]::before,
+html[data-kmode] .btn[aria-pressed="true"]::before{
+  content:""; position:absolute; left:50%; top:4px; width:14px; height:3px; margin-left:-7px;
+  border-radius:2px; background:var(--k-lamp); box-shadow:0 0 6px var(--k-lamp); pointer-events:none}
+
+/* กำลังกด (klong-theme.js ใส่ .k-down ตอน pointerdown) */
+html[data-kmode] .k-down{
+  transform:translateY(var(--k-depth)) !important;
+  box-shadow:0 0 0 var(--k-key-edge), 0 1px 2px rgba(0,0,0,.2), inset 0 2px 4px rgba(0,0,0,.24) !important}
+html[data-kmode] .btn:disabled,
+html[data-kmode] .seg button:disabled{
+  opacity:.45; transform:none; box-shadow:0 var(--k-depth) 0 var(--k-key-edge), inset 0 1px 0 var(--k-key-hi)}
+
+/* ถาดปุ่ม: กลุ่มที่เลือกได้ทีละอัน */
+html[data-kmode] .seg{
+  gap:4px; padding:4px 4px calc(4px + var(--k-depth)); border:0; border-radius:calc(var(--k-r) + 4px);
+  overflow:visible; background:var(--k-tray-panel); box-shadow:inset 0 2px 4px rgba(0,0,0,.28), 0 1px 0 rgba(255,255,255,.08)}
+html[data-kmode] #topbar .seg,
+html[data-kmode] #tp .seg{background:var(--k-tray)}
+html[data-kmode] .seg button + button{border-left:1px solid var(--k-key-border)}
+html[data-kmode] .valwrap{gap:6px; padding:4px 4px calc(4px + var(--k-depth)); border-radius:calc(var(--k-r) + 4px);
+  background:var(--k-tray); box-shadow:inset 0 2px 4px rgba(0,0,0,.32)}
+html[data-kmode] #topbar .seg button{min-height:38px}
+html[data-kmode] #topbar .btn{min-height:40px}
+
+/* ---------- นาฬิกาเป็นจอ LCD อำพัน ไฟจังหวะ มาตรวัด ---------- */
+html[data-kmode] .clock{
+  display:inline-flex; align-items:center; min-height:40px; padding:0 12px; border-radius:10px;
+  background:var(--k-lcd-bg); color:var(--k-lcd-ink);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.1);
+  font-family:var(--k-display); font-weight:500; font-size:14.5px; font-variant-numeric:tabular-nums; white-space:nowrap}
+#kLamp{display:none}
+html[data-kmode] #kLamp{display:inline-block; flex:none; align-self:center; width:10px; height:10px; border-radius:50%;
+  background:#5A3F1E; box-shadow:inset 0 1px 1px rgba(0,0,0,.5); transition:background-color 60ms, box-shadow 120ms}
+html[data-kmode] #kLamp.on{background:#F2C14E; box-shadow:0 0 8px #F2C14E, 0 0 2px #FFE7A0}
+html[data-kmode] #kLamp.on.bar{background:#FFE08A; box-shadow:0 0 14px #F2C14E, 0 0 3px #FFF2C6}
+#kVu{display:none}
+html[data-kmode] #kVu{display:inline-flex; flex:none; flex-direction:column; align-items:center; padding:3px 6px 2px; border-radius:9px;
+  background:linear-gradient(var(--k-vu-a), var(--k-vu-b)); box-shadow:inset 0 1px 3px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.1)}
+html[data-kmode] #kVu svg{width:62px; height:30px; display:block}
+html[data-kmode] #kVu .kvu-arc{stroke:var(--k-vu-ink); stroke-width:1; opacity:.55}
+html[data-kmode] #kVu .kvu-red{stroke:#B33A2C; stroke-width:2.4}
+html[data-kmode] #kVu .kvu-ticks line{stroke:var(--k-vu-ink); stroke-width:1; opacity:.7}
+html[data-kmode] #kVu #kNeedle line{stroke:var(--k-vu-ink); stroke-width:1.4; stroke-linecap:round}
+html[data-kmode] #kVu #kNeedle{transition:transform 40ms linear}
+html[data-kmode] #kVu circle{fill:var(--k-vu-ink)}
+html[data-kmode] #kVu > span{font-size:10px; line-height:1.1; color:var(--k-vu-ink)}
+@media (max-width:560px){ html[data-kmode] #kVu{display:none} }
+
+/* สวิตช์แสงหน้าจอในแถบล่าง */
+html[data-kmode] .kmode-wrap{display:flex; align-items:center; gap:8px; margin-left:auto}
+
+/* ---------- วงล้อซูมเป็นปุ่มหมุนไม้ ---------- */
+html[data-kmode] #zwheel .zslot{background:var(--k-tray-panel); border-color:var(--line)}
+html[data-kmode] #zwheel .zknob{
+  background-image:
+    repeating-linear-gradient(180deg,
+      rgba(255,255,255,0) 0px, rgba(255,255,255,0) 17px,
+      rgba(255,255,255,.14) 17px, rgba(255,255,255,.14) 18px,
+      rgba(0,0,0,.30) 18px, rgba(0,0,0,.30) 19px,
+      rgba(255,255,255,0) 19px, rgba(255,255,255,0) 36px),
+    linear-gradient(90deg, #341F12 0%, #5A3A24 18%, #7E5636 40%, #946A45 50%, #74502F 64%, #4E321F 85%, #2E1B10 100%)}
+html[data-kmode] #zwheel.act .zslot{border-color:var(--ok)}
+html[data-kmode] #zwheel .zval{color:#F3E8D2}
+html[data-kmode] #zwheel .zcap{color:var(--dim)}
+
+/* ---------- รายละเอียดที่โปรแกรมใส่สีตรง ๆ ไว้ ---------- */
+html[data-kmode] #labels{background:linear-gradient(90deg, var(--panel) 84%, transparent)}
+html[data-kmode] #labels .r{border-bottom-color:var(--line)}
+html[data-kmode] .grpname{color:var(--dim)}
+html[data-kmode] #viol div{border-bottom-color:var(--line)}
+html[data-kmode] .srow{border-bottom-color:var(--line); color:var(--dim)}
+
+@media (prefers-reduced-motion: reduce){
+  html[data-kmode] .btn, html[data-kmode] .seg button, html[data-kmode] .valwrap button,
+  html[data-kmode] #kLamp, html[data-kmode] #kVu #kNeedle{transition:none}
+}
+
+/* ---------- แถบบนบน iPad แนวตั้ง: แบ่งสองแถว แทนการเลื่อนหาปุ่ม ----------
+   รุ่น 11 ต้องการความกว้างราว 1,190px แต่ iPad แนวตั้งมี 834px
+   แถวบน = ปุ่มสั่งงาน (นำเข้า ย้อนแก้ ข้อความสถานะ ส่งออก ตั้งค่า)
+   แถวล่าง = ถาดเครื่องมือกับถาดโหมด ซึ่งเป็นกลุ่มที่เลือกทีละอันเหมือนกัน
+   บนมือถือยังเลื่อนซ้ายขวาเหมือนเดิม เพราะถ้าแบ่งแถวบนจอแคบขนาดนั้นจะกินพื้นที่กริดมากเกินไป
+   พื้นที่ทำงานกับแผงตั้งค่าขยับลงตามความสูงจริงของแถบ (klong-theme.js ตั้ง --kt-top) */
+html[data-kmode] body.shell main.wrap{top:var(--kt-top, 60px)}
+html[data-kmode] body.shell #insp{top:var(--kt-top, 60px)}
+@media (min-width:600px) and (max-width:1189px){
+  html[data-kmode] body.shell #topbar{height:auto; flex-wrap:wrap; row-gap:6px; padding-block:6px 4px; overflow:visible}
+  html[data-kmode] #topbar > .tbL{order:1}
+  html[data-kmode] #topbar > #pick{order:2}
+  html[data-kmode] #topbar > #undoBtn{order:3}
+  html[data-kmode] #topbar > .status{order:4; flex:1 1 0; min-width:60px}  /* ใช้แค่ที่เหลือ ไม่ดันปุ่มส่งออกตกแถว */
+  html[data-kmode] #topbar > #toExport{order:5}
+  html[data-kmode] #topbar > #moreBtn{order:6}
+  html[data-kmode] #topbar > #tool{order:7}
+  html[data-kmode] #topbar > #modeSeg{order:8}
+}
+
+/* ---------- มือถือ: ปุ่มตื้นลงและถาดบางลง เพื่อคืนพื้นที่ให้กริด ---------- */
+@media (max-width:599px){
+  html[data-kmode]{--k-depth:3px; --k-r:10px}
+  html[data-kmode] .seg,
+  html[data-kmode] .valwrap{gap:3px; padding:3px 3px calc(3px + var(--k-depth))}
+}

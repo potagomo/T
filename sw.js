@@ -41,7 +41,16 @@ const PRECACHE = [
   "./fonts/ibm-plex-sans-thai-latin-ext-300.woff2",
   "./fonts/ibm-plex-sans-thai-latin-ext-400.woff2",
   "./fonts/ibm-plex-sans-thai-latin-ext-500.woff2",
-  "./fonts/ibm-plex-sans-thai-latin-ext-600.woff2"
+  "./fonts/ibm-plex-sans-thai-latin-ext-600.woff2",
+  "./fonts/prompt.css",
+  "./fonts/prompt-thai-500.woff2",
+  "./fonts/prompt-thai-600.woff2",
+  "./fonts/prompt-latin-500.woff2",
+  "./fonts/prompt-latin-600.woff2",
+  "./fonts/prompt-latin-ext-500.woff2",
+  "./fonts/prompt-latin-ext-600.woff2",
+  "./theme/klong-theme.css",
+  "./theme/klong-theme.js"
 ];
 
 self.addEventListener("install", (e) => {

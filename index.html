@@ -541,6 +541,12 @@ body.locked main.wrap{padding-top:calc(8px + var(--sat))}
 body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
   scrollbar-width:thin; -webkit-overflow-scrolling:touch}
 </style>
+<!-- ==================== ธีมมิดเซนจูรี่ ====================
+     ไฟล์ทั้งหมดอยู่ใน theme/ — สคริปต์ต้องโหลดตรงนี้แบบปกติ (ไม่ defer)
+     เพื่อตั้งโหมดกลางวัน/กลางคืนก่อนหน้าแรกวาด และดักสีก่อนโปรแกรมสร้าง canvas -->
+<link rel="stylesheet" href="./fonts/prompt.css">
+<link rel="stylesheet" href="./theme/klong-theme.css">
+<script src="./theme/klong-theme.js"></script>
 </head>
 <body class="shell">
 <div id="homeScreen">
@@ -1064,7 +1070,7 @@ const VOICES = [
   {id:"splash", th:"สแปลช",       gm:55, limb:"H", color:"#DCE887", ring:0.7},
   {id:"bell",   th:"ไรด์เบลล์",    gm:53, limb:"H", color:"#E8E06A", ring:0.9},
   {id:"ride",   th:"ไรด์",         gm:51, limb:"H", color:"#CBD45F", ring:1.1},
-  {id:"hihat",  th:"ไฮแฮต",       gm:42, limb:"H", color:"#4FC7D4", ring:0.06},
+  {id:"hihat",  th:"ไฮแฮต",       gm:42, limb:"H", color:"#4FC8D4", ring:0.06},
   {id:"tom1",   th:"ทอม 1",        gm:48, limb:"H", color:"#C8A0F0", ring:0.45},
   {id:"tom2",   th:"ทอม 2",        gm:47, limb:"H", color:"#B98BE8", ring:0.5},
   {id:"snare",  th:"สแนร์",        gm:38, limb:"H", color:"#E2564A", ring:0.2},
@@ -2339,6 +2345,12 @@ function drawHead(){
   }
   ox.setTransform(dpr,0,0,dpr,0,0);
   ox.clearRect(0,0,ovW,ovH);
+  /* ธีม: ไฟห้องที่หัวอ่านอยู่ แสงจาง ๆ ทั้งห้อง สีมาจาก theme/klong-theme.js */
+  if(playAbs!=null && window.KlongTheme && S.bars.length){
+    const hb=barAt(T0(playAbs));
+    if(hb>=0){ const ha=barStarts[hb], hz=hb+1<barStarts.length?barStarts[hb+1]:totalEnd();
+      ox.fillStyle=window.KlongTheme.focus; ox.fillRect(X0(ha)-scroller.scrollLeft, 0, (hz-ha)*S.zoom, ovH); }
+  }
   if(playAbs==null) return;
   const px=playAbs-scroller.scrollLeft;
   if(px<0 || px>ovW) return;

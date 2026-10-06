@@ -39,6 +39,8 @@ LAYER_MARKS = [
     (u"safe-area",             r'safe-area-inset-bottom'),
     (u"ฟอนต์ในเครื่อง",         r'fonts/ibm-plex-sans-thai.css'),
     (u"viewport-fit",          r'viewport-fit=cover'),
+    (u"ธีม (CSS)",              r'theme/klong-theme.css'),
+    (u"ธีม (สคริปต์)",          r'theme/klong-theme.js'),
 ]
 
 

@@ -276,7 +276,28 @@ function ready(){
       lamp.className="on"+(isBar?" bar":"");
       clearTimeout(timer); timer=setTimeout(function(){ lamp.className=""; }, isBar?150:90);
     };
+    /* กันนาฬิกาเปลี่ยนความกว้าง: จองที่ไว้พอสำหรับห้องสองหลักตั้งแต่แรก
+       และไม่ยอมหดกลับ ถ้าข้อความยาวขึ้นเกินที่จองไว้ (ห้อง 100 นาที 10) ขยายครั้งเดียวแล้วค้างไว้
+       วัดเฉพาะตอนจำนวนตัวอักษรเปลี่ยน ไม่บังคับ layout ทุกเฟรมตอนเล่น */
+    var clockLen=-1;
+    var reserve=function(sample){
+      var probe=clock.cloneNode(false); probe.removeAttribute("id");
+      probe.style.cssText="position:absolute;visibility:hidden;left:-9999px;top:0;min-width:0";
+      probe.textContent=sample; clock.parentNode.appendChild(probe);
+      var w=Math.ceil(probe.getBoundingClientRect().width); probe.remove();
+      if(w > (parseFloat(clock.style.minWidth)||0)) clock.style.minWidth=w+"px";
+    };
+    var fit=function(force){
+      var t=clock.textContent||"";
+      if(!force && t.length===clockLen) return;
+      clockLen=t.length;
+      reserve(t.replace(/\d/g,"8"));
+      reserve("ห้อง 88 · จังหวะ 8 · 8:88.88");
+    };
+    fit(true);
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ clock.style.minWidth=""; fit(true); });
     new MutationObserver(function(){
+      fit(false);
       var m=/ห้อง\s*(\d+)\s*·\s*จังหวะ\s*(\d+)/.exec(clock.textContent||"");
       if(!m) return;
       if(playing() && (m[1]!==lastBar || m[2]!==lastBeat)) blink(m[1]!==lastBar);

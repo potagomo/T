@@ -218,6 +218,21 @@ async function suite(label, ctxOpts, exe) {
     if (th.on === "#1f1b19") fail.push(`${label}: canvas บนจอไม่ถูกแปลงสี`);
     if (!th.lamp || !th.vu || !th.sw) fail.push(`${label}: ไฟจังหวะ/มาตรวัด/สวิตช์แสง ไม่ครบ`);
     if (!(lampOn > 0)) fail.push(`${label}: ไฟจังหวะไม่กะพริบตอนเล่น`);
+    /* นาฬิกาต้องกว้างคงที่ทุกค่าเวลา ไม่งั้นปุ่มทั้งแถวสั่นตอนเล่น (เคยเกิดกับฟอนต์ Prompt)
+       ป้อนข้อความแบบที่โปรแกรมเขียนจริง 0:00.00 ถึง 0:12.00 แล้ววัดทุกค่า คืนข้อความเดิมตอนจบ */
+    const cw = await page.evaluate(async () => {
+      const c = document.getElementById("clock"), keep = c.textContent, ws = new Set();
+      const fmt = (t) => { const m = Math.floor(t / 60), s = t - m * 60; return m + ":" + (s < 10 ? "0" : "") + s.toFixed(2); };
+      for (let i = 0; i <= 1200; i += 7) {
+        const t = i / 100;
+        c.textContent = "ห้อง " + (1 + Math.floor(t / 2)) + " · จังหวะ " + (1 + Math.floor(t * 2) % 4) + " · " + fmt(t);
+        await new Promise((r) => requestAnimationFrame(r));
+        ws.add(Math.round(c.getBoundingClientRect().width * 10) / 10);
+      }
+      c.textContent = keep; return [...ws];
+    });
+    say(`ความกว้างนาฬิกาตลอด 12 วินาที: ${cw.join(", ")}px`);
+    if (cw.length !== 1) fail.push(`${label}: นาฬิกาเปลี่ยนความกว้างตามตัวเลข ${cw.length} แบบ ปุ่มข้าง ๆ จะสั่นตอนเล่น`);
     const bgOf = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const before = await bgOf();
     await page.click('#kMode button[data-mode="night"]');

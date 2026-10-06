@@ -56,6 +56,27 @@ function serve() {
   });
 }
 
+/* กดตัวแรกในรายการที่มองเห็นอยู่ คืน selector ที่กดได้ หรือ null
+   มีไว้เพราะปุ่มย้าย/เปลี่ยนชื่อระหว่างรุ่น เช่นรุ่น 11 ย้ายส่งออกไปหน้าแยก
+   และเปลี่ยน #stop เป็น #stopb ชุดทดสอบจะได้ไม่พังทุกครั้งที่ UI ขยับ */
+async function clickFirst(page, sels) {
+  for (const s of sels) {
+    const el = page.locator(s).first();
+    if (await el.count() && await el.isVisible().catch(() => false)) { await el.click(); return s; }
+  }
+  return null;
+}
+
+/* โปรแกรมเปิดขึ้นแล้วหรือยัง: ประตูหน้าต้องหาย และหน้าแรกต้องโผล่
+   รุ่น 8 หน้าแรกคือ #drop รุ่น 11 เปลี่ยนเป็น #homeScreen */
+async function booted(page) {
+  if (await page.locator("#gate").count()) return false;
+  for (const s of ["#homeScreen", "#drop"]) {
+    if (await page.locator(s).first().isVisible().catch(() => false)) return true;
+  }
+  return false;
+}
+
 async function suite(label, ctxOpts, exe) {
   const browser = await chromium.launch({ executablePath: exe });
   const ctx = await browser.newContext({ ...ctxOpts, acceptDownloads: true });
@@ -72,8 +93,7 @@ async function suite(label, ctxOpts, exe) {
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForTimeout(600);
 
-  if (await page.locator("#gate").count()) fail.push(`${label}: ประตูหน้ายังอยู่ = โปรแกรมไม่รัน`);
-  if (!(await page.locator("#drop").isVisible())) fail.push(`${label}: #drop ไม่แสดง`);
+  if (!(await booted(page))) fail.push(`${label}: โปรแกรมไม่เปิดขึ้น (ประตูหน้ายังอยู่ หรือไม่เห็นหน้าแรก)`);
 
   const font = await page.evaluate(async () => { await document.fonts.ready;
     return [...document.fonts].some((f) => f.family.includes("IBM Plex Sans Thai") && f.status === "loaded"); });
@@ -92,7 +112,9 @@ async function suite(label, ctxOpts, exe) {
   say(`serviceWorker=${JSON.stringify(sw)}`);
   if (!sw || !sw.controlled) fail.push(`${label}: service worker ไม่ได้คุมหน้า`);
 
-  await page.click("#blank");
+  const started = await clickFirst(page, ["#homeBlank", "#blank"]);
+  say(`เริ่มกริดเปล่าด้วย ${started}`);
+  if (!started) { fail.push(`${label}: ไม่เจอปุ่มเริ่มกริดเปล่า`); await browser.close(); return; }
   await page.waitForTimeout(600);
   await page.click('#tool button[data-v="draw"]');
   await page.evaluate(() => document.getElementById("gw").scrollIntoView({ block: "start" }));
@@ -118,9 +140,14 @@ async function suite(label, ctxOpts, exe) {
   say(`แตะวางโน้ต → ${stats}`);
   if (!/ตัวโน้ตรวม\s*[1-9]/.test(stats)) fail.push(`${label}: แตะแล้วไม่มีโน้ตเกิดขึ้น`);
 
-  for (const [id, ext_, magic] of [["#exp", "mid", "MThd"], ["#expX", "musicxml", "<?xml"]]) {
+  // หยุดเล่นก่อน (ถ้ามี) แล้วเข้าหน้าส่งออกในรุ่นที่แยกหน้าไว้
+  const toExp = await clickFirst(page, ["#toExport"]);
+  if (toExp) { say("เข้าหน้าส่งออก"); await page.waitForTimeout(500); }
+  for (const [ids, ext_, magic] of [[["#exMid2", "#exp"], "mid", "MThd"],
+                                     [["#exXml2", "#expX"], "musicxml", "<?xml"]]) {
     const dl = await Promise.all([
-      page.waitForEvent("download", { timeout: 15000 }).catch(() => null), page.click(id),
+      page.waitForEvent("download", { timeout: 15000 }).catch(() => null),
+      clickFirst(page, ids),
     ]).then((r) => r[0]);
     if (!dl) { fail.push(`${label}: ส่งออก .${ext_} ไม่ได้ไฟล์`); say(`.${ext_}: ไม่มีไฟล์`); continue; }
     const p = path.join(require("os").tmpdir(), `smoke-${label}.${ext_}`);
@@ -130,20 +157,24 @@ async function suite(label, ctxOpts, exe) {
     if (head !== magic) fail.push(`${label}: ไฟล์ .${ext_} ผิดรูปแบบ`);
   }
 
+  // ถ้าอยู่หน้าส่งออก กลับมาหน้า editor ก่อน (รุ่น 11)
+  if (toExp) {
+    await clickFirst(page, ["#exBack", "#exClose", "#backEdit", '#exportScreen button:has-text("กลับ")']);
+    await page.waitForTimeout(400);
+  }
   await page.click("#play").catch(() => {});
   await page.waitForTimeout(1200);
   const clock = await page.evaluate(() => {
     const el = document.querySelector(".clock"); return el ? el.textContent.trim() : ""; });
   say(`หลังกดเล่น: ${clock.replace(/\s+/g, " ")}`);
   if (!/0:0[1-9]|0:[1-9]/.test(clock)) fail.push(`${label}: กดเล่นแล้วเวลาไม่เดิน`);
-  await page.click("#stop").catch(() => {});
+  await clickFirst(page, ["#stopb", "#stop"]);
 
   await ctx.setOffline(true);
   await page.goto(BASE, { waitUntil: "load" })
     .catch((e) => fail.push(`${label}: โหลดตอนออฟไลน์ไม่ได้ ${e.message}`));
   await page.waitForTimeout(1200);
-  const offOk = (await page.locator("#gate").count()) === 0 &&
-                (await page.locator("#drop").isVisible().catch(() => false));
+  const offOk = await booted(page);
   const offFont = await page.evaluate(async () => { await document.fonts.ready;
     return [...document.fonts].some((f) => f.family.includes("IBM Plex Sans Thai") && f.status === "loaded"); });
   say(`ออฟไลน์: เปิดได้=${offOk} ฟอนต์มา=${offFont}`);

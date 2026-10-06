@@ -18,6 +18,9 @@
 """
 import io, os, re, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _layer
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 FONT_WEIGHTS = ["300", "400", "500", "600"]
@@ -255,15 +258,9 @@ def audit(src):
         problems.append(u"ยังเหลือลิงก์ Google Fonts อยู่")
 
     # ของที่โหลดจากข้างนอก จะถูก CSP บล็อกเงียบ ๆ ต้องเตือนให้เห็นก่อน
-    ext = set()
-    for mm in re.finditer(r'(?:src|href)\s*=\s*["\'](https?://[^"\']+)["\']', src, re.I):
-        u = mm.group(1)
-        if not u.startswith("http://www.musicxml.org/"):   # อันนี้เป็น DTD ในข้อความ ไม่ได้โหลดจริง
-            ext.add(u)
-    if ext:
-        problems.append(u"ไฟล์ใหม่ดึงของจากข้างนอก %d รายการ CSP จะบล็อกทิ้งเงียบ ๆ:\n     "
-                        % len(ext) + u"\n     ".join(sorted(ext)) +
-                        u"\n     → ต้องย้ายมาเก็บในโปรเจกต์ หรือผ่อน CSP อย่างจงใจ")
+    ext_problem = _layer.external_problem(src)
+    if ext_problem:
+        problems.append(ext_problem)
 
     for f in ["manifest.webmanifest", "sw.js", ".nojekyll",
               "fonts/ibm-plex-sans-thai.css", "icons/icon-512.png"]:

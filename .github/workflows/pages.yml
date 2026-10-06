@@ -69,10 +69,21 @@ jobs:
       - name: ตั้งค่า Pages
         uses: actions/configure-pages@v5
 
+      # อัปเฉพาะไฟล์ที่เว็บต้องใช้จริง ไม่เอา README/tools/.claude ขึ้นไปด้วย
+      # (upload-pages-artifact ตัดให้แค่ .git กับ .github ที่เหลือมันอัปหมด)
+      - name: จัดไฟล์ที่จะเผยแพร่
+        run: |
+          set -euo pipefail
+          rm -rf _site && mkdir -p _site
+          cp index.html 404.html manifest.webmanifest sw.js .nojekyll _site/
+          cp -r fonts icons _site/
+          echo "ขนาดที่จะเผยแพร่: $(du -sh _site | cut -f1)"
+          find _site -type f | sort
+
       - name: อัปโหลด
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - name: เผยแพร่
         id: deployment

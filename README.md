@@ -159,7 +159,7 @@ icons/                     ไอคอนแอปสำหรับหน้�
 .github/workflows/pages.yml  deploy อัตโนมัติเมื่อ push
 tools/apply-webapp-layer.py  เติมชั้นเว็บแอปลงไฟล์ต้นฉบับรุ่นใหม่ (ดูข้อ 6)
 tools/smoke-test.js          ตรวจเว็บแอปด้วยเบราว์เซอร์จริงก่อน push
-.claude/skills/uiux-pro-max/ แนวทางออกแบบ UI/UX ของโปรเจกต์นี้ (ดูข้อ 9)
+.claude/skills/drum-pro-ui/     แนวทางออกแบบ UI/UX ของโปรเจกต์นี้ (ดูข้อ 9)
 ```
 
 `index.html` ถูกคอมมิตครั้งแรกแบบยังไม่แก้อะไรเลย แล้วค่อยเพิ่มชั้นเว็บแอปในคอมมิตถัดมา
@@ -184,7 +184,7 @@ tools/smoke-test.js          ตรวจเว็บแอปด้วยเบ
 
 ## 9. แนวทาง UI/UX
 
-`.claude/skills/uiux-pro-max/` เป็น skill ประจำโปรเจกต์ Claude Code จะหยิบไปใช้เอง
+`.claude/skills/drum-pro-ui/` เป็น skill ประจำโปรเจกต์ Claude Code จะหยิบไปใช้เอง
 ทุกครั้งที่งานแตะหน้าตาหรือการใช้งาน ไม่ต้องสั่ง
 
 ในนั้นเก็บสามอย่าง

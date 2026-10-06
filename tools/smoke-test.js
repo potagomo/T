@@ -233,6 +233,22 @@ async function suite(label, ctxOpts, exe) {
     });
     say(`ความกว้างนาฬิกาตลอด 12 วินาที: ${cw.join(", ")}px`);
     if (cw.length !== 1) fail.push(`${label}: นาฬิกาเปลี่ยนความกว้างตามตัวเลข ${cw.length} แบบ ปุ่มข้าง ๆ จะสั่นตอนเล่น`);
+    /* แถบสถานะของ iPad (เวลา แบต) ต้องไม่ทับแถบบน และพื้นที่ทำงานต้องเริ่มใต้แถบพอดี
+       จำลองแถบสถานะสูง 33px แบบ iPad 11 นิ้วที่เปิดจากหน้าโฮม แล้วคืนค่าเดิม */
+    const edge = await page.evaluate(async () => {
+      const st = document.createElement("style"); st.textContent = ":root{--sat:33px !important}";
+      document.head.appendChild(st);
+      await new Promise((r) => setTimeout(r, 250));
+      const tb = document.getElementById("topbar").getBoundingClientRect();
+      const kids = [...document.querySelectorAll("#topbar > *")].filter((e) => e.offsetParent)
+        .map((e) => e.getBoundingClientRect().top);
+      const mw = document.querySelector("main.wrap").getBoundingClientRect().top;
+      st.remove(); await new Promise((r) => setTimeout(r, 250));
+      return { firstTop: Math.round(Math.min(...kids)), tbBottom: Math.round(tb.bottom), mainTop: Math.round(mw) };
+    });
+    say(`แถบสถานะ 33px: ปุ่มบนสุดเริ่มที่ ${edge.firstTop}px · แถบบนสิ้นสุด ${edge.tbBottom}px · พื้นที่ทำงานเริ่ม ${edge.mainTop}px`);
+    if (edge.firstTop < 33) fail.push(`${label}: แถบสถานะ iPad ทับปุ่มแถบบน (ปุ่มเริ่มที่ ${edge.firstTop}px)`);
+    if (Math.abs(edge.mainTop - edge.tbBottom) > 1) fail.push(`${label}: พื้นที่ทำงานไม่ได้เริ่มใต้แถบบนพอดี (${edge.mainTop} กับ ${edge.tbBottom})`);
     const bgOf = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     const before = await bgOf();
     await page.click('#kMode button[data-mode="night"]');

@@ -190,8 +190,26 @@ html[data-kmode] .srow{border-bottom-color:var(--line); color:var(--dim)}
    พื้นที่ทำงานกับแผงตั้งค่าขยับลงตามความสูงจริงของแถบ (klong-theme.js ตั้ง --kt-top) */
 html[data-kmode] body.shell main.wrap{top:var(--kt-top, 60px)}
 html[data-kmode] body.shell #insp{top:var(--kt-top, 60px)}
+
+/* ---------- ขอบจอ iPad/iPhone ตอนเปิดจากหน้าโฮม ----------
+   บน: แถบสถานะ (เวลา วันที่ แบต) โปร่งใสทับหน้าแอป ปุ่มกับชื่อโปรแกรมเลยโดนทับ
+       ดันเนื้อแถบลงเท่า --sat แต่ไม้ยังเต็มถึงขอบบน แถบสถานะจึงอยู่บนพื้นไม้ อ่านง่าย
+       ความสูงที่เพิ่มถูกวัดเป็น --kt-top อยู่แล้ว พื้นที่ทำงานจึงขยับตามเอง
+   ล่าง: บาง iPadOS วางแถบล่างลอยเหนือขอบจอ (ดู --kt-gap ใน klong-theme.js)
+       ขยายแถบล่างกับพื้นที่ทำงานลงไปถึงขอบจอจริง ปุ่มยังพ้นขีดโฮมเพราะเผื่อ --sab ไว้แล้ว
+       และพื้นหลังสุดของหน้า (นอกตัวแอป) เป็นสีไม้ เผื่อเครื่องที่วัดช่องว่างไม่ได้
+       จะเห็นเป็นแถบไม้ต่อกัน ไม่ใช่แถบสีครีมโหว่ ๆ */
+html[data-kmode] body.shell #topbar{
+  height:calc(60px + var(--sat, 0px)); padding-top:var(--sat, 0px);
+  padding-left:calc(12px + var(--sal, 0px)); padding-right:calc(12px + var(--sar, 0px))}
+html[data-kmode] body.shell #tp{bottom:calc(-1 * var(--kt-gap, 0px))}
+html[data-kmode] body.shell main.wrap{bottom:calc(-1 * var(--kt-gap, 0px))}
+@media (max-width:900px){ html[data-kmode] body.shell #insp{bottom:calc(-1 * var(--kt-gap, 0px))} }
+html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio)){background:var(--k-wood-b)}
+
 @media (min-width:600px) and (max-width:1189px){
-  html[data-kmode] body.shell #topbar{height:auto; flex-wrap:wrap; row-gap:6px; padding-block:6px 4px; overflow:visible}
+  html[data-kmode] body.shell #topbar{height:auto; flex-wrap:wrap; row-gap:6px;
+    padding-block:calc(6px + var(--sat, 0px)) 4px; overflow:visible}
   html[data-kmode] #topbar > .tbL{order:1}
   html[data-kmode] #topbar > #pick{order:2}
   html[data-kmode] #topbar > #undoBtn{order:3}

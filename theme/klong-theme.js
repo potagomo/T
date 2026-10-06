@@ -230,13 +230,57 @@ function ready(){
   document.addEventListener("pointerup", up, true); document.addEventListener("pointercancel", up, true);
 
   /* แถบบนสูงได้มากกว่าหนึ่งแถวบนจอแคบ: ให้พื้นที่ทำงานเลื่อนลงตามความสูงจริง */
+  /* วัดทั้งกล่องรวม padding (border-box) เพราะการหลบแถบสถานะเพิ่มแค่ padding
+     ถ้าวัดแค่เนื้อใน หมุนจอแล้วแถบสูงขึ้นจะไม่มีใครรู้ พื้นที่ทำงานจะมุดใต้แถบ */
   var tb=document.getElementById("topbar");
+  var fitTop=function(){
+    var h=tb ? tb.getBoundingClientRect().height : 0;
+    if(h>0) root.style.setProperty("--kt-top", Math.round(h)+"px");
+  };
   if(tb && window.ResizeObserver){
-    new ResizeObserver(function(){
-      var h=tb.getBoundingClientRect().height;
-      if(h>0) root.style.setProperty("--kt-top", Math.round(h)+"px");
-    }).observe(tb);
+    var ro=new ResizeObserver(fitTop);
+    try{ ro.observe(tb, {box:"border-box"}); }catch(_){ ro.observe(tb); }
   }
+
+  /* ช่องว่างใต้แถบล่างบน iPad ที่เปิดจากหน้าโฮม
+     iPadOS บางรุ่นให้พื้นที่จอของแอปเตี้ยกว่าจอจริงเท่าแถบสถานะ แต่เริ่มที่ขอบบนสุด
+     ของที่ติดขอบล่าง (bottom:0) จึงลอยค้างเหนือขอบจอ เหลือแถบสีพื้นว่าง ๆ ด้านล่าง
+     วัดจากกล่อง fixed จริงเทียบกับขนาดจอ แล้วตั้ง --kt-gap ให้ CSS ขยายแถบล่างลงไปถึงขอบ
+     ใช้เฉพาะตอนเปิดเป็นแอปเต็มจอ (ความกว้างต้องเท่าจอ) และช่องว่างต้องไม่เกิน 60px
+     ถ้าไม่เข้าเงื่อนไขเป็น 0 ไม่เปลี่ยนอะไร */
+  var probe=document.createElement("div");
+  probe.setAttribute("aria-hidden","true");
+  probe.style.cssText="position:fixed;top:0;bottom:0;left:0;width:0;visibility:hidden;pointer-events:none";
+  document.body.appendChild(probe);
+  var standalone=function(){
+    return navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  };
+  var fitGap=function(){
+    var gap=0;
+    if(standalone()){
+      var a=screen.width, b=screen.height, land=window.innerWidth>window.innerHeight;
+      var W=land?Math.max(a,b):Math.min(a,b), H=land?Math.min(a,b):Math.max(a,b);
+      var d=Math.round(H-probe.getBoundingClientRect().height);
+      if(Math.abs(window.innerWidth-W)<=2 && d>=8 && d<=60) gap=d;
+    }
+    root.style.setProperty("--kt-gap", gap+"px");
+    /* ช่องว่างนี้คือความสูงแถบสถานะพอดี ถ้าเครื่องดันรายงาน safe-area ด้านบนเป็น 0
+       ทั้งที่แถบสถานะทับอยู่ ใช้ค่านี้แทน แถบบนจะได้ไม่โดนเวลา/แบตทับ */
+    root.style.removeProperty("--sat");
+    if(gap>0){
+      probe.style.paddingTop="var(--sat)";
+      var sat=parseFloat(getComputedStyle(probe).paddingTop)||0;
+      probe.style.paddingTop="";
+      if(sat<1) root.style.setProperty("--sat", gap+"px");
+    }
+    fitTop();
+  };
+  fitGap();
+  var gapLater=function(){ fitGap(); setTimeout(fitGap, 350); };
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitTop);   // iOS อัปเดตขนาดจอช้ากว่าอีเวนต์หมุนจอ
+  window.addEventListener("resize", gapLater);
+  window.addEventListener("orientationchange", gapLater);
+  if(window.visualViewport) visualViewport.addEventListener("resize", gapLater);
 
   /* สวิตช์กลางวัน / กลางคืน / ตามเครื่อง ไว้ในแถบล่างแถวเดียวกับเสียงเพลง/กลอง */
   var host=document.getElementById("rowMain");

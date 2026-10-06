@@ -184,10 +184,26 @@ tools/smoke-test.js          ตรวจเว็บแอปด้วยเบ
 
 ## 9. แนวทาง UI/UX
 
-`.claude/skills/drum-pro-ui/` เป็น skill ประจำโปรเจกต์ Claude Code จะหยิบไปใช้เอง
-ทุกครั้งที่งานแตะหน้าตาหรือการใช้งาน ไม่ต้องสั่ง
+โปรเจกต์นี้มี skill ด้าน UI/UX สองตัว Claude Code หยิบไปใช้เองทุกครั้งที่งาน
+แตะหน้าตาหรือการใช้งาน ไม่ต้องสั่ง
 
-ในนั้นเก็บสามอย่าง
+| skill | คืออะไร |
+|---|---|
+| `.claude/skills/drum-pro-ui/` | **กรอบของโปรเจกต์นี้** เราเขียนเอง |
+| `.claude/skills/ui-ux-pro-max/` | **คลังความรู้ดีไซน์ทั่วไป** ลอกมาจาก [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) (MIT) · ดู `VENDORED.md` ในโฟลเดอร์นั้น |
+
+**เมื่อสองอันขัดกัน ยึด `drum-pro-ui`** — คลังความรู้นั้นสร้างจากงาน landing page
+เป็นหลัก พอถามถึงโปรแกรมนี้มันตอบเป็นโครง hero/CTA กับจานสีชมพู-ฟ้า ซึ่งผิดทาง
+ของที่ดึงจากมันมาใช้ได้จริงคือ accessibility ขนาดเป้าแตะ performance
+และกฎจุกจิกที่คนลืม ส่วนจานสีกับโครงหน้าให้ยึดของเดิมที่จูนมาแล้ว
+
+ค้นคลังด้วยตัวเองได้:
+
+```bash
+python3 .claude/skills/ui-ux-pro-max/scripts/search.py "touch target" --domain ux
+```
+
+`drum-pro-ui` เก็บสิ่งที่คลังทั่วไปไม่มีทางรู้:
 
 * **ลำดับการทำงาน** — วิเคราะห์ UX ปัจจุบัน ระบุปัญหาพร้อมหลักฐาน จัดลำดับข้อมูล
   เสนอ design system และโครง component ให้ผู้ใช้เห็นชอบ **แล้วจึงลงมือแก้**

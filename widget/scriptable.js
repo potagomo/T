@@ -5,17 +5,35 @@ const SERVER = "__KRUTA_URL__";
 const KEY = "__KRUTA_KEY__";
 const APP = "https://potagomo.github.io/T/lesson/";
 
-const C = {
-  paper: Color.dynamic(new Color("#FFFDF5"), new Color("#16140F")),
-  card: Color.dynamic(new Color("#FFFFFF"), new Color("#211E18")),
-  ink: Color.dynamic(new Color("#111111"), new Color("#F0E9DA")),
-  muted: Color.dynamic(new Color("#5A5A5A"), new Color("#B5AC9A")),
-  line: Color.dynamic(new Color("#111111"), new Color("#D8CFBC")),
+// 🎨 สี: กดค้างวิดเจ็ต › แก้ไขวิดเจ็ต › Parameter พิมพ์ชื่อธีม
+//    ครีม · กลางคืน · ชมพู · ฟ้า · มิ้นต์ · ม่วง · ดำ   (เว้นว่าง = ตามโหมดกลางวัน/กลางคืนของเครื่อง)
+const THEMES = {
+  "ครีม":    { bg: "#FFFDF5", ink: "#111111", muted: "#5A5A5A", acc: "#FFD93D", on: "#111111" },
+  "กลางคืน": { bg: "#16140F", ink: "#F0E9DA", muted: "#B5AC9A", acc: "#FFD93D", on: "#111111", dark: true },
+  "ชมพู":    { bg: "#FFF0F5", ink: "#2A1520", muted: "#7A5866", acc: "#FF8FB1", on: "#2A1520" },
+  "ฟ้า":     { bg: "#EEF6FF", ink: "#0E1E33", muted: "#4A6380", acc: "#7CC4FF", on: "#0E1E33" },
+  "มิ้นต์":   { bg: "#EFFBF4", ink: "#0F2A1C", muted: "#4C6E5B", acc: "#6EE7A8", on: "#0F2A1C" },
+  "ม่วง":    { bg: "#F5F0FF", ink: "#1E1433", muted: "#685A80", acc: "#C4B5FD", on: "#1E1433" },
+  "ดำ":      { bg: "#000000", ink: "#FFFFFF", muted: "#AAAAAA", acc: "#FF6B6B", on: "#000000", dark: true }
+};
+const PARAM = (typeof args !== "undefined" && args.widgetParameter ? String(args.widgetParameter) : "").trim();
+const T = THEMES[PARAM] || null;
+const dyn = (light, dark) => Color.dynamic(new Color(light), new Color(dark));
+const fix = (h) => new Color(h);
+const C = T ? {
+  paper: fix(T.bg), ink: fix(T.ink), muted: fix(T.muted), line: fix(T.ink),
+  yel: fix(T.acc), onYel: fix(T.on), red: fix("#FF6B6B"),
+  ok: fix(T.dark ? "#5EE08F" : "#15803D"), wait: fix(T.dark ? "#F5C842" : "#8A5A00"), off: fix(T.dark ? "#8F8776" : "#8A8A8A")
+} : {
+  paper: dyn("#FFFDF5", "#16140F"),
+  ink: dyn("#111111", "#F0E9DA"),
+  muted: dyn("#5A5A5A", "#B5AC9A"),
+  line: dyn("#111111", "#D8CFBC"),
   yel: new Color("#FFD93D"), onYel: new Color("#111111"),
   red: new Color("#FF6B6B"),
-  ok: Color.dynamic(new Color("#15803D"), new Color("#5EE08F")),
-  wait: Color.dynamic(new Color("#8A5A00"), new Color("#F5C842")),
-  off: Color.dynamic(new Color("#8A8A8A"), new Color("#8F8776"))
+  ok: dyn("#15803D", "#5EE08F"),
+  wait: dyn("#8A5A00", "#F5C842"),
+  off: dyn("#8A8A8A", "#8F8776")
 };
 const ST = { present: ["✓ มาแล้ว", C.ok], planned: ["รอยืนยัน", C.wait], sick: ["ลาป่วย", C.off], lateCancel: ["ลาด่วน", C.off] };
 const DOW = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
@@ -29,10 +47,16 @@ async function load() {
     r.timeoutInterval = 10;
     const j = await r.loadJSON();
     if (j && j.ok) { fm.writeString(cachePath, JSON.stringify(j)); return j; }
-    if (j && j.error) return { error: j.error };
+    if (j && j.error) return { error: friendly(j.error) };
   } catch (e) {}
   try { if (fm.fileExists(cachePath)) return JSON.parse(fm.readString(cachePath)); } catch (e) {}
   return null;
+}
+// ข้อความจากตัวส่งที่คนอ่านแล้วรู้ว่าต้องทำอะไร
+function friendly(e) {
+  if (e === "not found") return "ตัวส่งยังเป็นรุ่นเก่า — อัปเดตโค้ดตัวส่งเป็นรุ่น 3 (แอปครูต้า › 🧩)";
+  if (/รหัสวิดเจ็ต/.test(e)) return "รหัสวิดเจ็ตไม่ถูกต้อง — คัดลอกสคริปต์ใหม่จากแอปครูต้า › 🧩";
+  return e;
 }
 function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 function parse(l) {
@@ -103,8 +127,8 @@ async function build() {
   const data = await load();
   if (!data || data.error) {
     chip(w); w.addSpacer(8);
-    text(w, data && data.error ? data.error : "ยังโหลดตารางไม่ได้", 13, C.ink, true, 3);
-    text(w, "ตรวจเน็ต หรือคัดลอกสคริปต์ใหม่จากแอปครูต้า", 11, C.muted, false, 3);
+    text(w, "⚠ โหลดตารางไม่ได้", 13, C.ink, true, 1);
+    text(w, data && data.error ? data.error : "ติดต่อตัวส่งไม่ได้ (ไม่มีเน็ต?)", 11, C.muted, false, 4);
     w.refreshAfterDate = new Date(Date.now() + 15 * 60000);
     return w;
   }

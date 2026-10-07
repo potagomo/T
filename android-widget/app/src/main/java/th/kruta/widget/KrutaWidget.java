@@ -72,8 +72,9 @@ public class KrutaWidget extends AppWidgetProvider {
 
     /** สิ่งที่ต้องแสดง คำนวณจากเวลาปัจจุบันทุกครั้งที่วาด */
     static final class Model {
-        final boolean configured;
+        final boolean configured, hasData;
         final String note;
+        final Theme theme;
         final long now = System.currentTimeMillis();
         Store.Lesson next;
         final List<Store.Lesson> today = new ArrayList<>();
@@ -81,7 +82,9 @@ public class KrutaWidget extends AppWidgetProvider {
 
         Model(Context c, String note) {
             this.configured = Store.configured(c);
-            this.note = note;
+            this.hasData = Store.prefs(c).getString("data", null) != null;
+            this.note = note == null ? Store.prefs(c).getString("error", null) : note;
+            this.theme = Theme.of(c);
             String todayIso = LocalDate.now().toString();
             for (Store.Lesson l : Store.lessons(c)) {
                 boolean off = "sick".equals(l.status) || "lateCancel".equals(l.status);
@@ -114,19 +117,27 @@ public class KrutaWidget extends AppWidgetProvider {
         Intent open = md.configured
                 ? new Intent(Intent.ACTION_VIEW, Uri.parse(APP_URL))
                 : new Intent(c, MainActivity.class);
-        v.setOnClickPendingIntent(R.id.root, PendingIntent.getActivity(c, 1, open,
+        v.setOnClickPendingIntent(android.R.id.background, PendingIntent.getActivity(c, 1, open,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
         v.setOnClickPendingIntent(R.id.refresh, PendingIntent.getBroadcast(c, 2,
                 new Intent(c, KrutaWidget.class).setAction(ACTION_REFRESH),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
 
+        Theme th = md.theme;
+        th.apply(v);
         String summary = md.today.isEmpty() ? "" : "วันนี้ " + md.done + "/" + md.today.size() + " ยืนยันแล้ว";
-        v.setTextViewText(R.id.summary, md.note != null ? md.note : (rows > 0 ? summary : ""));
+        v.setTextViewText(R.id.summary, md.note != null && md.hasData ? md.note : (rows > 0 ? summary : ""));
 
         if (!md.configured) {
             v.setTextViewText(R.id.label, "ยังไม่ได้ตั้งค่า");
             v.setTextViewText(R.id.time, "แตะที่นี่");
             v.setTextViewText(R.id.name, "วางรหัสวิดเจ็ตจากแอปครูต้า");
+            v.setViewVisibility(R.id.place, View.GONE);
+        } else if (!md.hasData) {
+            // ยังไม่เคยโหลดสำเร็จ — บอกตรง ๆ ว่าโหลดไม่ได้ ไม่ใช่ "ไม่มีคาบ"
+            v.setTextViewText(R.id.label, "โหลดตารางไม่ได้");
+            v.setTextViewText(R.id.time, "⚠");
+            v.setTextViewText(R.id.name, md.note != null ? md.note : "แตะ ↻ เพื่อลองใหม่");
             v.setViewVisibility(R.id.place, View.GONE);
         } else if (md.next == null) {
             v.setTextViewText(R.id.label, md.today.isEmpty() ? "วันนี้ไม่มีคาบ" : "สอนครบแล้ววันนี้");
@@ -152,24 +163,26 @@ public class KrutaWidget extends AppWidgetProvider {
                 if (shown >= rows) break;
                 RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.widget_row);
                 boolean past = l.end <= md.now && !"planned".equals(l.status);
-                int ink = c.getColor(past ? R.color.muted : R.color.ink);
+                int ink = past ? Theme.MUTED : Theme.INK;
                 r.setTextViewText(R.id.r_time, l.time);
-                r.setTextColor(R.id.r_time, ink);
+                th.text(r, R.id.r_time, ink);
                 r.setTextViewText(R.id.r_name, l == md.next ? "▶ " + l.name : l.name);
-                r.setTextColor(R.id.r_name, ink);
+                th.text(r, R.id.r_name, ink);
                 String st; int col;
                 switch (l.status) {
-                    case "present": st = "✓ มาแล้ว"; col = R.color.ok; break;
-                    case "sick": st = "ลาป่วย"; col = R.color.off; break;
-                    case "lateCancel": st = "ลาด่วน"; col = R.color.off; break;
-                    default: st = "รอยืนยัน"; col = R.color.wait;
+                    case "present": st = "✓ มาแล้ว"; col = Theme.OK; break;
+                    case "sick": st = "ลาป่วย"; col = Theme.OFF; break;
+                    case "lateCancel": st = "ลาด่วน"; col = Theme.OFF; break;
+                    default: st = "รอยืนยัน"; col = Theme.WAIT;
                 }
                 r.setTextViewText(R.id.r_status, st);
-                r.setTextColor(R.id.r_status, c.getColor(col));
+                th.text(r, R.id.r_status, col);
                 v.addView(R.id.list, r);
                 shown++;
             }
-            v.setTextViewText(R.id.today_title, md.today.isEmpty() ? "วันนี้ไม่มีคาบ" : "วันนี้ " + md.today.size() + " คาบ");
+            v.setTextViewText(R.id.today_title, !md.hasData ? "" : md.today.isEmpty() ? "วันนี้ไม่มีคาบ" : "วันนี้ " + md.today.size() + " คาบ");
+            th.text(v, R.id.today_title, Theme.MUTED);
+            th.text(v, R.id.more, Theme.MUTED);
             int more = md.today.size() - shown;
             v.setTextViewText(R.id.more, more > 0 ? "+" + more + " คาบ · แตะเพื่อดูทั้งหมด" : "");
             v.setViewVisibility(R.id.more, more > 0 ? View.VISIBLE : View.GONE);

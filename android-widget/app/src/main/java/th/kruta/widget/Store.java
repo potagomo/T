@@ -69,17 +69,24 @@ final class Store {
             while (in != null && (n = in.read(buf)) > 0) out.write(buf, 0, n);
             JSONObject j = new JSONObject(out.toString("UTF-8"));
             if (!j.optBoolean("ok")) {
-                String err = j.optString("error", "ตัวส่งปฏิเสธ");
+                String err = friendly(j.optString("error", "ตัวส่งปฏิเสธ"));
                 p.edit().putString("error", err).apply();
                 return err;
             }
             p.edit().putString("data", j.toString()).putLong("fetched", System.currentTimeMillis()).remove("error").apply();
             return null;
         } catch (Exception e) {
-            return "ไม่มีเน็ต — ใช้ข้อมูลล่าสุด";
+            return p.getString("data", null) != null ? "ไม่มีเน็ต — ใช้ข้อมูลล่าสุด" : "ติดต่อตัวส่งไม่ได้ (ไม่มีเน็ต?)";
         } finally {
             if (con != null) con.disconnect();
         }
+    }
+
+    /** ข้อความจากตัวส่งที่คนอ่านแล้วรู้ว่าต้องทำอะไร */
+    static String friendly(String e) {
+        if ("not found".equals(e)) return "ตัวส่งยังเป็นรุ่นเก่า — อัปเดตโค้ดตัวส่งเป็นรุ่น 3 (แอปครูต้า › 🧩)";
+        if (e.contains("รหัสวิดเจ็ต")) return "รหัสวิดเจ็ตไม่ถูกต้อง — คัดลอกรหัสใหม่จากแอปครูต้า › 🧩";
+        return e;
     }
 
     static final class Lesson {

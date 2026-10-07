@@ -34,6 +34,7 @@ function makeEnv(fam, response, files) {
     FileManager: { local: () => ({ documentsDirectory: () => "/docs", joinPath: (a, b) => a + "/" + b,
       writeString: (p, s) => { store[p] = s; }, readString: (p) => store[p], fileExists: (p) => p in store }) },
     config: { widgetFamily: fam, runsInWidget: true },
+    args: { widgetParameter: (makeEnv.param || null) },
     Script: { setWidget: (w) => { g.__widget = w; }, complete: () => {} },
     __texts: texts
   };
@@ -73,6 +74,17 @@ const off = await run("medium", new Error("offline"), files);
 ok(/harvey/.test(off.texts.join(" ")), "ไม่มีเน็ต: ใช้ตารางล่าสุดที่จำไว้");
 const bad = await run("small", { ok: false, error: "รหัสวิดเจ็ตไม่ถูกต้อง" }, {});
 ok(/รหัสวิดเจ็ตไม่ถูกต้อง/.test(bad.texts.join(" ")), "รหัสผิด: บอกชัด ๆ บนวิดเจ็ต");
+const oldW = await run("small", { ok: false, error: "not found" }, {});
+ok(/โหลดตารางไม่ได้/.test(oldW.texts.join(" ")) && /รุ่นเก่า/.test(oldW.texts.join(" ")) && !/ไม่มีคาบ/.test(oldW.texts.join(" ")), "ตัวส่งรุ่นเก่า: บอกให้อัปเดต ไม่ขึ้นว่าไม่มีคาบ");
+const noNet = await run("small", new Error("offline"), {});
+ok(/โหลดตารางไม่ได้/.test(noNet.texts.join(" ")) && !/ไม่มีคาบ/.test(noNet.texts.join(" ")), "ไม่มีเน็ตและไม่เคยโหลดได้: บอกตรง ๆ ไม่ขึ้นว่าไม่มีคาบ");
+for (const name of ["ชมพู", "ดำ", "ไม่มีธีมนี้"]) {
+  makeEnv.param = name;
+  const t = await run("medium", data, {});
+  const bg = t.widget.backgroundColor;
+  ok(name === "ไม่มีธีมนี้" ? !!(bg && bg.a) : (bg && bg.hex === (name === "ชมพู" ? "#FFF0F5" : "#000000")), "ธีม " + name + (name === "ไม่มีธีมนี้" ? ": ชื่อผิดใช้สีตามเครื่อง" : ": พื้นเปลี่ยนสี"));
+}
+makeEnv.param = null;
 const empty = await run("medium", { ok: true, lessons: [] }, {});
 ok(/วันนี้ไม่มีคาบ/.test(empty.texts.join(" ")), "ไม่มีคาบ: แสดงข้อความพัก ☕");
 const doneOnly = await run("small", { ok: true, lessons: [L(-200, "ซีริว", "present")] }, {});

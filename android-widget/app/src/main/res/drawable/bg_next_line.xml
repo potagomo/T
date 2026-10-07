@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- เส้นขอบหนาของการ์ด (สไตล์เดียวกับแอป) วาดแยกชั้นเพื่อเปลี่ยนสีพื้นได้โดยเส้นไม่หาย -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+    <stroke android:width="2.5dp" android:color="@color/on_yel" />
+    <corners android:radius="@android:dimen/system_app_widget_inner_radius" />
+</shape>

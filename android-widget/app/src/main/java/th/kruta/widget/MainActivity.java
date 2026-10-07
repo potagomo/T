@@ -6,6 +6,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.Button;
@@ -17,6 +18,44 @@ import android.widget.TextView;
 /** หน้าตั้งค่า: วางรหัสวิดเจ็ตจากแอปครูต้า แล้ววางวิดเจ็ตบนหน้าจอโฮม */
 public class MainActivity extends Activity {
     private TextView status;
+    private LinearLayout themes;
+
+    /** ปุ่มธีม: พื้นเป็นสีพื้นของธีม มีแถบสีหลักด้านหน้า เห็นหน้าตาก่อนเลือก */
+    private void drawThemes() {
+        themes.removeAllViews();
+        float dp = getResources().getDisplayMetrics().density;
+        String cur = Theme.of(this).key;
+        for (Theme t : Theme.ALL) {
+            TextView b = new TextView(this);
+            boolean on = t.key.equals(cur);
+            b.setText((t.auto ? "◐  " : "●  ") + t.label + (on ? "   ✓" : ""));
+            b.setTextSize(16);
+            b.setTypeface(null, on ? Typeface.BOLD : Typeface.NORMAL);
+            b.setPadding((int) (16 * dp), (int) (13 * dp), (int) (16 * dp), (int) (13 * dp));
+            GradientDrawable g = new GradientDrawable();
+            g.setCornerRadius(14 * dp);
+            if (t.auto) {
+                g.setColors(new int[] { 0xFFFFFDF5, 0xFF16140F });
+                g.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
+                b.setTextColor(0xFF111111);
+            } else {
+                g.setColor(t.bg);
+                b.setTextColor(t.ink);
+            }
+            g.setStroke((int) ((on ? 4 : 2) * dp), t.auto ? 0xFF888888 : t.accent);
+            b.setBackground(g);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = (int) (8 * dp);
+            b.setLayoutParams(lp);
+            b.setOnClickListener(x -> {
+                Store.prefs(this).edit().putString("theme", t.key).apply();
+                drawThemes();
+                KrutaWidget.renderAll(getApplicationContext(), null);
+                status.setText("✓ เปลี่ยนสีเป็น " + t.label + " แล้ว");
+            });
+            themes.addView(b);
+        }
+    }
     private EditText code;
 
     @Override
@@ -78,6 +117,16 @@ public class MainActivity extends Activity {
             }
         });
         l.addView(pin);
+
+        TextView th = new TextView(this);
+        th.setText("\n🎨 สีวิดเจ็ต");
+        th.setTextSize(18);
+        th.setTypeface(null, Typeface.BOLD);
+        l.addView(th);
+        themes = new LinearLayout(this);
+        themes.setOrientation(LinearLayout.VERTICAL);
+        l.addView(themes);
+        drawThemes();
 
         status = new TextView(this);
         status.setTextSize(15);

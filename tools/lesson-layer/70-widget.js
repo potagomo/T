@@ -102,6 +102,7 @@
         '<button class="btn-brass" type="button" style="width:100%;" onclick="closeModal();openPush()">ไปตั้งแจ้งเตือน</button>';
     } else {
       ensureKey();
+      if (window.__pushLoadWorker) window.__pushLoadWorker();
       if (!SCRIPT) fetch("../widget/scriptable.js").then(function (r) { return r.ok ? r.text() : null; }).then(function (t) { if (t) SCRIPT = t; }).catch(function () {});
       body = '<div id="wg-ver"><div class="hint">กำลังตรวจตัวส่ง…</div></div>' +
         '<details class="more" open><summary>iPad / iPhone — ผ่านแอปฟรี Scriptable</summary><ol class="syguide">' +
@@ -132,7 +133,8 @@
       if (!(info && info.version >= NEED_VER)) {
         box.innerHTML = '<div class="warnline"><b>ต้องอัปเดตโค้ดตัวส่งก่อน</b> (วิดเจ็ตต้องใช้รุ่น 3)<br>' +
           'Cloudflare › <b>kruta-push</b> › <b>Edit code</b> › Command Palette › <b>Select All</b> › วางโค้ดใหม่ › <b>Deploy</b></div>' +
-          '<button class="btn-g" type="button" style="width:100%;min-height:40px;margin-bottom:10px;" onclick="pushCopyWorker()">📋 คัดลอกโค้ดตัวส่งรุ่นใหม่</button>';
+          '<button class="btn-g" type="button" style="width:100%;min-height:40px;margin-bottom:10px;" onclick="pushCopyWorker()">📋 คัดลอกโค้ดตัวส่งรุ่นใหม่</button>' +
+          '<div class="hint" style="margin:-4px 0 10px;">คัดลอกไม่ได้? เปิด <a href="push-worker.js" target="_blank" rel="noopener">ไฟล์โค้ด</a> แล้วเลือกทั้งหมด</div>';
         st("รอตัวส่งรุ่นใหม่");
         return;
       }

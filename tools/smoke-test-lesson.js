@@ -582,6 +582,18 @@ async function login(page) {
     while (remOf() && Date.now() - t2 < 12000) await new Promise((r) => setTimeout(r, 300));
     ok(!remOf(), "ลบคาบแล้ว รายการเตือนของคาบนั้นหายจากตัวส่ง");
 
+    // เปิดหน้าวิดเจ็ตตรง ๆ (ไม่เคยเข้าหน้าแจ้งเตือน) แล้วกดคัดลอกโค้ดตัวส่ง — ต้องได้โค้ด ไม่ใช่ "ยังโหลดโค้ดไม่เสร็จ"
+    await phone.p.reload(); await login(phone.p);
+    const wcode = await phone.p.evaluate(async () => {
+      let x = ""; const o = copyText; copyText = (t) => { x = t; };
+      openWidget(); pushCopyWorker();                     // แตะทันทีที่เปิดหน้า: โหลดแล้วคัดลอกให้เอง
+      for (let i = 0; i < 50 && !x; i++) await new Promise((r) => setTimeout(r, 100));
+      const first = x; x = "";
+      pushCopyWorker(); const second = x;                 // แตะครั้งต่อไป: คัดลอกทันที (iPad ต้องการแบบนี้)
+      copyText = o; closeModal(); return { first, second };
+    });
+    ok(/VERSION\s*=\s*3/.test(wcode.first) && wcode.second === wcode.first, "หน้าวิดเจ็ต: ปุ่มคัดลอกโค้ดตัวส่งรุ่นใหม่ได้โค้ดจริง (แตะครั้งแรกก็ได้)");
+
     pushed.length = 0;
     await ipad.p.evaluate(() => { openPush(); pushTest(); });
     await ipad.p.waitForFunction(() => /ส่งทดสอบแล้ว 2 เครื่อง/.test(document.body.innerText), null, { timeout: 10000 })

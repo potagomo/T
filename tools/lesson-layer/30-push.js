@@ -93,17 +93,20 @@
   }
 
   /* ── ส่งรายการขึ้นตัวส่ง (เฉพาะเมื่อเปลี่ยน หรือทุก 6 ชั่วโมงเพื่อเลื่อนหน้าต่างเวลา) ── */
-  var syncT = null, syncing = false;
+  var syncT = null, syncing = false, again = false;
   function pushSyncSoon(ms) { clearTimeout(syncT); syncT = setTimeout(function () { pushSync(false); }, ms == null ? 4000 : ms); }
   function pushSync(force, keepalive) {
-    if (!cfg() || (syncing && !keepalive) || !navigator.onLine) return Promise.resolve(false);
+    // กำลังส่งอยู่: จำไว้ แล้วส่งรายการล่าสุดซ้ำเมื่อรอบนี้จบ (ไม่ทิ้ง ไม่งั้นตัวส่งค้างรายการเก่า)
+    if (syncing && !keepalive) { again = true; return Promise.resolve(false); }
+    if (!cfg() || !navigator.onLine) return Promise.resolve(false);
     var list = reminders().map(function (r) { return { id: r.id, at: r.at, title: r.title, body: r.body }; });
     var h = JSON.stringify(list), last = lsj("td_push_last") || {};
     if (!force && last.h === h && Date.now() - (last.at || 0) < 6 * 3600 * 1000) return Promise.resolve(false);
     syncing = true; clearTimeout(syncT); syncT = null;
+    var done = function (ok) { syncing = false; if (again) { again = false; pushSyncSoon(300); } return ok; };
     return api("/schedule", { reminders: list }, keepalive).then(function () {
-      lsj("td_push_last", { h: h, at: Date.now() }); syncing = false; return true;
-    }, function (e) { syncing = false; window.__pushErr = e.message; return false; });
+      lsj("td_push_last", { h: h, at: Date.now() }); return done(true);
+    }, function (e) { window.__pushErr = e.message; return done(false); });
   }
 
   /* ── ลงทะเบียนเครื่องนี้ ── */
@@ -184,10 +187,22 @@
     lsj("td_push_dev", null); lsj("td_push_last", null);
     toast("เลิกใช้แจ้งเตือนแล้ว"); openPush();
   };
+  // โหลดโค้ดตัวส่งไว้ก่อน (ทั้งหน้าแจ้งเตือนและหน้าวิดเจ็ต) — บน iPad ต้องคัดลอกทันทีที่แตะ
+  function loadWorker() {
+    if (WORKER_CODE) return Promise.resolve(WORKER_CODE);
+    return fetch("push-worker.js", { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (t) { if (t) WORKER_CODE = t; return WORKER_CODE; }).catch(function () { return null; });
+  }
   window.pushCopyWorker = function () {
-    if (WORKER_CODE) copyText(WORKER_CODE);
-    else toast("ยังโหลดโค้ดไม่เสร็จ ลองอีกครั้ง");
+    if (WORKER_CODE) { copyText(WORKER_CODE); return; }
+    toast("กำลังโหลดโค้ด…");
+    loadWorker().then(function (t) {
+      // ยังอยู่ในจังหวะแตะ (Android/Chrome คัดลอกได้) · ถ้าเครื่องไม่ยอม แตะปุ่มอีกครั้งจะคัดลอกทันที
+      if (t) copyText(t);
+      else toast("โหลดโค้ดไม่ได้ — เช็กเน็ต หรือเปิดไฟล์โค้ดแล้วเลือกทั้งหมด");
+    });
   };
+  window.__pushLoadWorker = loadWorker;
 
   /* ── หน้าตั้งค่าแจ้งเตือน ── */
   function steps() {
@@ -233,7 +248,7 @@
     }).join("");
   }
   function openPush() {
-    if (!WORKER_CODE) fetch("push-worker.js").then(function (r) { return r.ok ? r.text() : null; }).then(function (t) { if (t) WORKER_CODE = t; }).catch(function () {});
+    loadWorker();
     var c = cfg(), body;
     if (!c) {
       body = '<div class="hint" style="margin-bottom:12px;">เตือนก่อนถึงคาบแม้ปิดแอปอยู่ ทั้ง iPad และมือถือ ต้องมีตัวส่งบน Cloudflare ของคุณเอง (ฟรี) ตั้งครั้งเดียวบนเครื่องไหนก็ได้ อีกเครื่องจะได้ค่าตามการซิงค์</div>' +

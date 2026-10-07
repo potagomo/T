@@ -1,0 +1,28 @@
+<!-- โหมดกลางคืน: ตั้งธีมก่อนวาดหน้าแรก กันจอขาวแวบตอนเปิดแอป (โค้ดหลักอยู่ใน 60-dark.js) -->
+<script>
+(function(){
+  try {
+    var p = localStorage.getItem("td_theme") || "light";
+    var dark = p === "dark" || (p === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+    if (dark) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", "#16140F");
+    }
+  } catch (e) {}
+})();
+</script>
+<style>
+/* สิ่งที่ตัวแปลงสีทำไม่ได้ (pseudo-element, scrollbar, ตัวแปรกลาง) — ที่เหลือแปลงทีละชิ้นใน 60-dark.js */
+html[data-theme="dark"]{color-scheme:dark;--paper:#16140F;--card:#211E18;--yel-soft:#3A3218;}
+html[data-theme="dark"],html[data-theme="dark"] body{background:#16140F !important;color:#F0E9DA !important;}
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder{color:#8F8776 !important;}
+html[data-theme="dark"] details.more summary::after{color:#B5AC9A !important;}
+html[data-theme="dark"] ::-webkit-scrollbar-track{background:#16140F !important;}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb{background:#D8CFBC !important;}
+html[data-theme="dark"] ::selection{background:var(--yel);color:#16140F;}
+html[data-theme="dark"] .rc-preview{background:#2A261F !important;}
+html[data-theme="dark"] input[type=date],html[data-theme="dark"] input[type=time]{color-scheme:dark;}
+html[data-theme="dark"] select{background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D8CFBC' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;background-repeat:no-repeat !important;background-position:right 10px center !important;background-size:16px !important;padding-right:34px !important;}
+html.dk-fixing *,html.dk-fixing *::before,html.dk-fixing *::after{transition:none !important;}
+@media print{html[data-theme="dark"],html[data-theme="dark"] body{background:#fff !important;color:#000 !important;}}
+</style>

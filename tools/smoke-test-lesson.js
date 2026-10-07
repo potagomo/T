@@ -7,6 +7,7 @@
  *   เปิดขึ้นทั้งจอ iPad และจอมือถือ · manifest/ไอคอนโหลดได้ (ติดตั้งลงหน้าโฮมได้)
  *   Service Worker ของ /lesson/ ทำงาน · ตัดเน็ตแล้วยังเปิดได้
  *   Service Worker ของกลอง → MIDI ไม่เก็บหน้า /lesson/ ไปทับสำเนาของตัวเอง
+ *   โหมดกลางคืน: ตัวหนังสืออ่านออกทุกชิ้น สลับกลับได้ครบ
  *   ล็อกหน้าจอเก็บรหัสแบบ PBKDF2 · รหัสแบบเก่ายังเข้าได้และถูกอัปเกรด
  *   ซิงค์สองเครื่องแบบเรียลไทม์ · ลบนักเรียนข้ามเครื่อง
  *   แจ้งเตือนคาบถัดไป: ตัวส่งจริง (push-worker) + KV จำลอง ถอดรหัสข้อความด้วย http_ece (ใช้คลาวด์จำลองแทน Firebase ผ่านช่อง
@@ -198,7 +199,7 @@ async function login(page) {
       await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
     };
     await page.goto(BASE + "lesson/", { waitUntil: "load" });
-    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on" && window.__newPlanned === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions + "/" + window.__newPlanned) + ")");
+    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on" && window.__newPlanned === "on" && !!window.__dark), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions + "/" + window.__newPlanned) + ")");
 
     // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
     const t0 = Date.now();
@@ -244,6 +245,79 @@ async function login(page) {
     ok(await page.evaluate(() => /^pbkdf2-sha256\$/.test(localStorage.getItem("td_pw"))), "เข้าครั้งแรกแล้วอัปเกรดเป็นแบบเข้ารหัสให้เอง");
     await page.waitForFunction(() => /รหัสกู้คืนเดิม/.test(document.body.innerText), null, { timeout: 5000 })
       .then(() => ok(true, "ชวนสร้างรหัสกู้คืนใหม่แทนแบบเก่า"), () => ok(false, "ไม่ชวนสร้างรหัสกู้คืนใหม่"));
+    ok(!errors.length, "ไม่มี error ใน console" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
+    await ctx.close();
+  }
+
+  /* 2.5) โหมดกลางคืน */
+  console.log("โหมดกลางคืน");
+  {
+    const ctx = await browser.newContext({ ...devices["iPad Pro 11"], serviceWorkers: "block" });
+    const page = await ctx.newPage(); const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(BASE + "lesson/", { waitUntil: "load" });
+    await login(page);
+    await page.evaluate(() => {
+      closeModal();
+      const t = todayStr();
+      S.lessons.unshift({ id: 9101, date: t, time: "15:00", kind: "school", duration: 1, rate: 300, heads: 1, attendance: "present", student: "ซีริว", topic: "Rock", notes: "n", scores: [{ label: "จังหวะ", score: 4, remark: "" }], practiceItems: [], updatedAt: nowISO() },
+                        { id: 9102, date: t, time: "16:00", kind: "private", duration: 1, rate: 0, heads: 1, attendance: "planned", student: "harvey", topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() });
+      save(); DAYV.date = t; setTab("today"); renderAll();
+    });
+    const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    ok(await bodyBg() !== "rgb(22, 20, 15)", "ค่าเริ่มต้นเป็นกลางวัน (ไม่เปลี่ยนหน้าตาเดิมเอง)");
+    await page.evaluate(() => { openMenu(); });
+    ok(await page.evaluate(() => /โหมดกลางคืน/.test((document.getElementById("th-row") || {}).textContent || "")), "หน้าตั้งค่ามีแถว 🌙 โหมดกลางคืน");
+    await page.evaluate(() => { closeModal(); openTheme(); setThemePref("dark"); closeModal(); renderAll(); });
+    await page.waitForTimeout(300);
+    ok(await bodyBg() === "rgb(22, 20, 15)" && await page.evaluate(() => document.documentElement.getAttribute("data-theme") === "dark"), "เลือกกลางคืนแล้วพื้นหลังเข้ม");
+
+    // สแกนตัวหนังสือที่มองเห็นทุกชิ้น ว่าอ่านออกบนพื้นจริง (WCAG ≥ 3:1 สำหรับทุกขนาด)
+    const audit = () => page.evaluate(() => {
+      const P = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s); if (!m) return null; const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+      const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      const L = (c) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+      const over = (t, b) => [t[0] * t[3] + b[0] * (1 - t[3]), t[1] * t[3] + b[1] * (1 - t[3]), t[2] * t[3] + b[2] * (1 - t[3]), 1];
+      const bgOf = (el) => { const chain = []; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = P(getComputedStyle(n).backgroundColor); if (c && c[3] > 0) { chain.push(c); if (c[3] >= 0.99) break; } }
+        let b = chain.length && chain[chain.length - 1][3] >= 0.99 ? chain.pop() : [22, 20, 15, 1]; while (chain.length) b = over(chain.pop(), b); return b; };
+      const bad = [];
+      const els = [...document.querySelectorAll("#app *, #modal-root *")].filter((e) => {
+        if (e.closest(".rc-preview,.rcframe,canvas,svg")) return false;
+        const r = e.getBoundingClientRect(); if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight) return false;
+        const cs = getComputedStyle(e); if (cs.visibility === "hidden" || +cs.opacity < 0.5) return false;
+        return [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+      });
+      els.forEach((e) => { const fg = P(getComputedStyle(e).color), bg = bgOf(e); const a = L(fg), b = L(bg); const cr = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        if (cr < 3) bad.push(e.textContent.trim().slice(0, 20) + " (" + cr.toFixed(1) + ")"); });
+      return { n: els.length, bad };
+    });
+    const screens = [
+      ["วันนี้", () => { setTab("today"); renderAll(); }],
+      ["นักเรียน", () => { setTab("students"); renderAll(); }],
+      ["ประวัตินักเรียน", () => { openStudent("ซีริว"); }],
+      ["ฟอร์มคาบใหม่", () => { closeModal(); openAdd(); }],
+      ["รายได้", () => { closeModal(); setTab("money"); renderAll(); }],
+      ["ภาพรวม", () => { setTab("overview"); renderAll(); }],
+      ["ตั้งค่า", () => { openMenu(); }],
+      ["ซิงค์", () => { closeModal(); openSync(); }],
+      ["แจ้งเตือน", () => { closeModal(); openPush(); }]
+    ];
+    let total = 0; const allBad = [];
+    for (const [name, fn] of screens) {
+      await page.evaluate(fn); await page.waitForTimeout(250);
+      const r = await audit(); total += r.n; r.bad.forEach((b) => allBad.push(name + ": " + b));
+    }
+    ok(total > 150 && !allBad.length, "ตัวหนังสือ " + total + " ชิ้นใน 9 หน้า อ่านออกทุกชิ้นในโหมดกลางคืน" + (allBad.length ? " — ไม่ผ่าน: " + allBad.slice(0, 6).join(" | ") : ""));
+
+    const ms = await page.evaluate(() => new Promise((res) => { closeModal(); setTab("today"); const t0 = performance.now(); renderAll(); requestAnimationFrame(() => requestAnimationFrame(() => res(performance.now() - t0))); }));
+    ok(ms < 400, "วาดหน้าวันนี้ใหม่พร้อมแปลงสีใช้ " + Math.round(ms) + " ms");
+
+    await page.evaluate(() => { setThemePref("light"); closeModal(); });
+    ok(await bodyBg() !== "rgb(22, 20, 15)" && await page.evaluate(() => !document.querySelector("[data-dk]") && !document.documentElement.hasAttribute("data-theme")),
+      "สลับกลับกลางวัน: คืนสีเดิมครบทุกชิ้น ไม่ต้องโหลดใหม่");
+    await page.evaluate(() => setThemePref("dark")); await page.reload({ waitUntil: "domcontentloaded" });
+    ok(await page.evaluate(() => document.documentElement.getAttribute("data-theme") === "dark" && getComputedStyle(document.body).backgroundColor === "rgb(22, 20, 15)"),
+      "เปิดแอปใหม่: เป็นกลางคืนตั้งแต่หน้าแรก (ไม่มีจอขาวแวบ)");
     ok(!errors.length, "ไม่มี error ใน console" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
     await ctx.close();
   }

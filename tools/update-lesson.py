@@ -94,6 +94,15 @@ def main():
     if html.count("</body>") != 1:
         die("หา </body> ไม่เจอหรือมีมากกว่าหนึ่ง — ฝังชั้นเสริมไม่ได้")
     layer_dir = os.path.join(ROOT, "tools", "lesson-layer")
+    # *.head.html → ใส่ก่อน </head> (ของที่ต้องทำงานก่อนวาดหน้าแรก เช่นธีมกลางคืน)
+    html = re.sub(r"<!-- headlayer:[\w.-]+:start -->.*?<!-- headlayer:[\w.-]+:end -->\n?", "", html, flags=re.S)
+    if html.count("</head>") != 1:
+        die("หา </head> ไม่เจอหรือมีมากกว่าหนึ่ง")
+    heads = ""
+    for name in sorted(f for f in os.listdir(layer_dir) if f.endswith(".head.html")):
+        heads += "<!-- headlayer:%s:start -->\n%s<!-- headlayer:%s:end -->\n" % (
+            name, io.open(os.path.join(layer_dir, name), encoding="utf-8").read(), name)
+    html = html.replace("</head>", heads + "</head>")
     blocks = ""
     for name in sorted(f for f in os.listdir(layer_dir) if f.endswith(".js")):
         code = io.open(os.path.join(layer_dir, name), encoding="utf-8").read()
@@ -103,7 +112,7 @@ def main():
     html = html.replace("</body>", blocks + "</body>")
 
     # เก็บเฉพาะไฟล์ดิบเป็นจุดอ้างอิง ไฟล์ที่ผ่านสคริปต์นี้มาแล้ว (มีชั้นเสริมฝังอยู่) ไม่นับ
-    if not re.search(r"<!-- (?:secure-lock|layer:[\w.-]+):start -->", src):
+    if not re.search(r"<!-- (?:secure-lock|layer:[\w.-]+|headlayer:[\w.-]+):start -->", src):
         io.open(os.path.join(ROOT, "upstream", "kruta-lesson.html"), "w", encoding="utf-8").write(src)
     io.open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(html)
     print("✓ lesson/index.html (%d KB) · ไอคอน %s" % (len(html.encode()) // 1024, ", ".join(sorted(os.listdir(os.path.join(OUT, "icons"))))))

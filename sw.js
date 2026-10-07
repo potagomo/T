@@ -97,9 +97,11 @@ self.addEventListener("fetch", (e) => {
   try { url = new URL(req.url); } catch (_) { return; }
   if (url.origin !== self.location.origin) return;
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
-  // แอปบันทึกการสอนที่ /lesson/ มี Service Worker ของตัวเอง ห้ามแตะ
-  // (ไม่งั้นการเปิด /lesson/ ครั้งแรกจะถูกเก็บทับเป็นสำเนาของกลอง → MIDI)
-  if (url.pathname === ROOT + "lesson" || url.pathname.startsWith(ROOT + "lesson/")) return;
+  // แอปอื่นที่อยู่ใต้เว็บเดียวกัน (/lesson/ ครูต้า · /show/ อัดโชว์) ห้ามแตะ
+  // (ไม่งั้นการเปิดหน้านั้นครั้งแรกจะถูกเก็บทับเป็นสำเนาของกลอง → MIDI)
+  for (const app of ["lesson", "show"]) {
+    if (url.pathname === ROOT + app || url.pathname.startsWith(ROOT + app + "/")) return;
+  }
 
   if (isAppDoc(req, url)) {
     e.respondWith((async () => {

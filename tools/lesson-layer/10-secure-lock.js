@@ -1,5 +1,5 @@
 /* ชั้นเว็บแอป: ล็อกหน้าจอแบบเข้ารหัสมาตรฐาน — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
-   แก้ที่ tools/lesson-secure-lock.js แล้วรัน update-lesson.py อย่าแก้ใน index.html ตรง ๆ
+   แก้ที่ tools/lesson-layer/10-secure-lock.js แล้วรัน update-lesson.py อย่าแก้ใน index.html ตรง ๆ
 
    เดิมแอปเก็บรหัสผ่านและรหัสกู้คืนด้วยแฮช 32 บิต (djb2) ซึ่งถอดย้อนหรือหาค่าที่ชนกันได้ในเสี้ยววินาที
    ชั้นนี้เปลี่ยนเป็น PBKDF2-SHA256 · 600,000 รอบ · salt สุ่ม 16 ไบต์ต่อค่า (เกณฑ์ OWASP)

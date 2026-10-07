@@ -136,7 +136,7 @@ async function login(page) {
       await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
     };
     await page.goto(BASE + "lesson/", { waitUntil: "load" });
-    ok(await page.evaluate(() => window.__secureLock) === "on", "ชั้นล็อกหน้าจอทำงาน (" + await page.evaluate(() => window.__secureLock) + ")");
+    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete) + ")");
 
     // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
     const t0 = Date.now();
@@ -230,6 +230,35 @@ async function login(page) {
     await phone.p.waitForFunction(() => !S.lessons.some((x) => x.id === 990001), null, { timeout: 10000 })
       .then(() => ok(true, "ลบบน iPad → มือถือย้ายลงถังขยะด้วย"), () => ok(false, "ลบบน iPad แต่มือถือยังอยู่"));
     ok(await phone.p.evaluate((n) => S.lessons.length === n, N), "จำนวนคาบบนมือถือกลับมาเท่าเดิม");
+
+    // ลบนักเรียนที่เหลือแต่ของค้าง: คาบที่วางแผนไว้ + ตารางประจำ + ของในถังขยะ (เคสจริงของ "กายำ")
+    await ipad.p.evaluate(() => {
+      S.lessons.unshift({ id: 990002, date: todayStr(), time: "17:00", kind: "private", duration: 1, rate: 0, heads: 1, courseId: null, attendance: "planned",
+        student: "กายำ", topic: "", notes: "", videoLink: "", nextLesson: "", media: null, scores: [], practiceItems: [], updatedAt: nowISO() });
+      addScheduleEntry({ student: "กายำ", day: 3, time: "17:00", kind: "private" });
+      S.trash.unshift({ type: "lesson", deletedAt: nowISO(), data: { id: 990003, student: "กายำ", date: todayStr(), topic: "เก่า" } });
+      save();
+    });
+    await phone.p.waitForFunction(() => S.students.some((r) => r.key === "กายำ"), null, { timeout: 10000 });
+    await ipad.p.evaluate(() => openStudentProfile("กายำ"));
+    const box = await ipad.p.evaluate(() => (document.getElementById("sd-box") || {}).innerText || "");
+    ok(/ยังลบชื่อนี้ไม่ได้/.test(box) && /วางแผนไว้/.test(box) && /ตารางสอนประจำ/.test(box) && /ถังขยะ/.test(box),
+      "หน้าข้อมูลนักเรียนบอกว่าติดอะไรบ้าง");
+    await ipad.p.click("#sd-go");
+    ok(await ipad.p.evaluate(() => S.students.some((r) => r.key === "กายำ")), "แตะครั้งแรกยังไม่ลบ (ต้องยืนยัน)");
+    await ipad.p.click("#sd-go");
+    ok(await ipad.p.evaluate(() => !S.students.some((r) => r.key === "กายำ") && !S.schedule.some((e) => e.student === "กายำ")
+      && !S.lessons.some((l) => l.student === "กายำ") && !S.trash.some((t) => t.data && t.data.student === "กายำ")), "แตะยืนยันแล้วลบนักเรียนและของค้างบน iPad");
+    await phone.p.waitForFunction(() => !S.students.some((r) => r.key === "กายำ") && !S.schedule.some((e) => e.student === "กายำ"), null, { timeout: 10000 })
+      .then(() => ok(true, "มือถือลบนักเรียนคนนี้ตามเอง"), () => ok(false, "ลบบน iPad แต่มือถือยังมีนักเรียนคนนี้"));
+    await new Promise((r) => setTimeout(r, 2500));
+    ok(await ipad.p.evaluate(() => !S.students.some((r) => r.key === "กายำ")), "ชื่อไม่เด้งกลับมาหลังซิงค์");
+
+    // นักเรียนที่มีคาบสอนจริง ห้ามลบให้
+    await ipad.p.evaluate(() => { closeModal(); openStudentProfile("น้องมิ้น"); });
+    ok(await ipad.p.evaluate(() => /คาบที่สอนแล้ว/.test((document.getElementById("sd-box") || {}).innerText || "") && !document.getElementById("sd-go")),
+      "มีคาบที่สอนจริง: บอกเหตุผล ไม่มีปุ่มล้างให้");
+    await ipad.p.evaluate(() => closeModal());
 
     const shot = path.join(process.env.SHOT_DIR || ROOT, "lesson-phone.png");
     await phone.p.screenshot({ path: shot });

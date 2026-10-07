@@ -8,7 +8,7 @@
   2. ดึงไอคอนที่ฝังในไฟล์ออกมาเป็น lesson/icons/*.png
   3. เปลี่ยน manifest ที่สร้างเป็น data: URL ให้เป็นไฟล์จริง lesson/manifest.webmanifest
      (Chrome บน Android/Samsung ติดตั้งเป็นแอปเต็มตัวได้แน่นอนกว่า และ iOS ได้ไอคอนคมชัด)
-  4. ฝังล็อกหน้าจอแบบเข้ารหัสมาตรฐาน (tools/lesson-secure-lock.js) ไว้ท้ายไฟล์
+  4. ฝังชั้นเสริมทุกไฟล์ใน tools/lesson-layer/ ไว้ท้ายไฟล์ (ล็อกหน้าจอแบบเข้ารหัส ฯลฯ)
   5. เขียนผลลัพธ์ลง lesson/index.html
 
 ตรรกะของโปรแกรม (บันทึก ซิงค์ ฯลฯ) ไม่ถูกแตะเลย
@@ -84,15 +84,21 @@ def main():
 
     html = html.replace("ต้องเปิดจากลิงก์ Netlify ไม่ใช่", "ต้องเปิดจากลิงก์เว็บแอป ไม่ใช่")
 
-    # ล็อกหน้าจอแบบเข้ารหัสมาตรฐาน — ฝังท้ายไฟล์ (แทนบล็อกเดิมถ้ามี จึงรันซ้ำได้)
-    lock = io.open(os.path.join(ROOT, "tools", "lesson-secure-lock.js"), encoding="utf-8").read()
-    html = re.sub(r"<!-- secure-lock:start -->.*?<!-- secure-lock:end -->\n?", "", html, flags=re.S)
+    # ชั้นเสริมใน tools/lesson-layer/*.js (เรียงตามชื่อไฟล์) — ฝังท้ายไฟล์ แทนบล็อกเดิมถ้ามี จึงรันซ้ำได้
+    html = re.sub(r"<!-- (?:secure-lock|layer:[\w.-]+):start -->.*?<!-- (?:secure-lock|layer:[\w.-]+):end -->\n?", "", html, flags=re.S)
     if html.count("</body>") != 1:
-        die("หา </body> ไม่เจอหรือมีมากกว่าหนึ่ง — ฝังล็อกหน้าจอไม่ได้")
-    html = html.replace("</body>", "<!-- secure-lock:start -->\n<script>\n" + lock + "</script>\n<!-- secure-lock:end -->\n</body>")
+        die("หา </body> ไม่เจอหรือมีมากกว่าหนึ่ง — ฝังชั้นเสริมไม่ได้")
+    layer_dir = os.path.join(ROOT, "tools", "lesson-layer")
+    blocks = ""
+    for name in sorted(f for f in os.listdir(layer_dir) if f.endswith(".js")):
+        code = io.open(os.path.join(layer_dir, name), encoding="utf-8").read()
+        if "</script" in code.lower():
+            die(name + " มีคำว่า </script> ซึ่งจะตัดสคริปต์ขาดกลางทาง")
+        blocks += "<!-- layer:%s:start -->\n<script>\n%s</script>\n<!-- layer:%s:end -->\n" % (name, code, name)
+    html = html.replace("</body>", blocks + "</body>")
 
-    # เก็บเฉพาะไฟล์ดิบเป็นจุดอ้างอิง ไฟล์ที่ผ่านสคริปต์นี้มาแล้ว (มีล็อกฝังอยู่) ไม่นับ
-    if "<!-- secure-lock:start -->" not in src:
+    # เก็บเฉพาะไฟล์ดิบเป็นจุดอ้างอิง ไฟล์ที่ผ่านสคริปต์นี้มาแล้ว (มีชั้นเสริมฝังอยู่) ไม่นับ
+    if not re.search(r"<!-- (?:secure-lock|layer:[\w.-]+):start -->", src):
         io.open(os.path.join(ROOT, "upstream", "kruta-lesson.html"), "w", encoding="utf-8").write(src)
     io.open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(html)
     print("✓ lesson/index.html (%d KB) · ไอคอน %s" % (len(html.encode()) // 1024, ", ".join(sorted(os.listdir(os.path.join(OUT, "icons"))))))

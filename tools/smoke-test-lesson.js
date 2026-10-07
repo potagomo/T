@@ -198,7 +198,7 @@ async function login(page) {
       await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
     };
     await page.goto(BASE + "lesson/", { waitUntil: "load" });
-    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push) + ")");
+    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions) + ")");
 
     // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
     const t0 = Date.now();
@@ -316,6 +316,31 @@ async function login(page) {
       .then(() => ok(true, "มือถือลบนักเรียนคนนี้ตามเอง"), () => ok(false, "ลบบน iPad แต่มือถือยังมีนักเรียนคนนี้"));
     await new Promise((r) => setTimeout(r, 2500));
     ok(await ipad.p.evaluate(() => !S.students.some((r) => r.key === "กายำ")), "ชื่อไม่เด้งกลับมาหลังซิงค์");
+
+    // นักเรียนที่มีคอร์ส (เคสจริงของ "ธาวิน"): หน้าประวัติมีปุ่มแก้ไข/ลบคอร์ส และกล่องลบนักเรียนลบคอร์สได้
+    await ipad.p.evaluate(() => {
+      S.courses.push({ id: 880001, student: "ธาวิน", name: "คอร์ส 10 ครั้ง", sessions: 10, price: 5000, hoursPer: 1 });
+      save(); openStudent("ธาวิน");
+    });
+    ok(await ipad.p.evaluate(() => { const r = document.querySelector("#modal-root .ca-row"); return !!r && /แก้ไขคอร์ส/.test(r.textContent) && /ลบคอร์ส/.test(r.textContent); }),
+      "หน้าประวัตินักเรียน: การ์ดคอร์สมีปุ่ม ✎ แก้ไขคอร์ส และ ลบคอร์ส");
+    await ipad.p.evaluate(() => document.querySelector("#modal-root .ca-row").children[0].click());
+    ok(await ipad.p.evaluate(() => /แก้ไขคอร์ส/.test(document.getElementById("modal-root").innerText) && CF && CF.id === 880001), "ปุ่มแก้ไขเปิดหน้าแก้ไขคอร์สนั้น");
+    await ipad.p.evaluate(() => { closeModal(); openStudent("ธาวิน"); document.querySelector("#modal-root .ca-row").children[1].click(); });
+    ok(await ipad.p.evaluate(() => /ลบคอร์ส/.test(document.getElementById("modal-root").innerText) && /คอร์ส 10 ครั้ง/.test(document.getElementById("modal-root").innerText)),
+      "ปุ่มลบคอร์สเปิดหน้ายืนยันของแอป");
+    await ipad.p.evaluate(() => { closeModal(); openStudentProfile("ธาวิน"); });
+    ok(await ipad.p.evaluate(() => /คอร์ส 10 ครั้ง/.test((document.getElementById("sd-box") || {}).innerText || "") && !!document.querySelector("#sd-box [data-course]") && !document.getElementById("sd-go")),
+      "กล่องลบนักเรียน: แสดงคอร์สพร้อมปุ่มลบคอร์ส");
+    await ipad.p.click("#sd-box [data-course]");
+    ok(await ipad.p.evaluate(() => S.courses.some((c) => c.id === 880001)), "แตะครั้งแรกยังไม่ลบคอร์ส");
+    await ipad.p.click("#sd-box [data-course]");
+    ok(await ipad.p.evaluate(() => !S.courses.some((c) => c.id === 880001) && S.trash.some((t) => t.type === "course" && t.data.id === 880001) && !!document.getElementById("sd-go")),
+      "ลบคอร์สแล้ว (ไปอยู่ถังขยะ) และมีปุ่มล้างของค้างให้ลบนักเรียนต่อ");
+    await ipad.p.click("#sd-go"); await ipad.p.click("#sd-go");
+    ok(await ipad.p.evaluate(() => !S.students.some((r) => r.key === "ธาวิน")), "ลบนักเรียนที่เคยมีคอร์สได้");
+    await phone.p.waitForFunction(() => !S.students.some((r) => r.key === "ธาวิน") && !S.courses.some((c) => c.id === 880001), null, { timeout: 10000 })
+      .then(() => ok(true, "มือถือลบคอร์สและนักเรียนตามเอง"), () => ok(false, "มือถือยังมีคอร์สหรือนักเรียนคนนี้"));
 
     // นักเรียนที่มีคาบสอนจริง ห้ามลบให้
     await ipad.p.evaluate(() => { closeModal(); openStudentProfile("น้องมิ้น"); });

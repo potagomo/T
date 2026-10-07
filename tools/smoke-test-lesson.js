@@ -7,6 +7,7 @@
  *   เปิดขึ้นทั้งจอ iPad และจอมือถือ · manifest/ไอคอนโหลดได้ (ติดตั้งลงหน้าโฮมได้)
  *   Service Worker ของ /lesson/ ทำงาน · ตัดเน็ตแล้วยังเปิดได้
  *   Service Worker ของกลอง → MIDI ไม่เก็บหน้า /lesson/ ไปทับสำเนาของตัวเอง
+ *   ล็อกหน้าจอเก็บรหัสแบบ PBKDF2 · รหัสแบบเก่ายังเข้าได้และถูกอัปเกรด
  *   ซิงค์สองเครื่องแบบเรียลไทม์ (ใช้คลาวด์จำลองแทน Firebase ผ่านช่อง
  *   window.__syncTransportFactory ที่แอปเปิดไว้ให้ทดสอบ)
  *
@@ -123,7 +124,69 @@ async function login(page) {
     await ctx.close();
   }
 
-  /* 2) ซิงค์เรียลไทม์ iPad ↔ Samsung */
+  /* 2) ล็อกหน้าจอแบบเข้ารหัสมาตรฐาน */
+  console.log("ล็อกหน้าจอ (PBKDF2-SHA256)");
+  {
+    const ctx = await browser.newContext({ ...devices["iPad Pro 11"], serviceWorkers: "block" });
+    const page = await ctx.newPage(); const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    const app = () => page.evaluate(() => document.getElementById("app").style.display === "block");
+    const enter = async (pw) => {
+      await page.fill("#pw-input", pw); await page.click("#login-btn");
+      await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
+    };
+    await page.goto(BASE + "lesson/", { waitUntil: "load" });
+    ok(await page.evaluate(() => window.__secureLock) === "on", "ชั้นล็อกหน้าจอทำงาน (" + await page.evaluate(() => window.__secureLock) + ")");
+
+    // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
+    const t0 = Date.now();
+    await enter("กลองสแนร์99");
+    ok(await page.evaluate(() => /^pbkdf2-sha256\$600000\$/.test(localStorage.getItem("td_pw"))), "รหัสผ่านเก็บแบบ PBKDF2 600,000 รอบ (ใช้ " + (Date.now() - t0) + "ms)");
+    ok(await page.evaluate(() => /^pbkdf2-sha256\$/.test(localStorage.getItem("td_rec"))), "รหัสกู้คืนเก็บแบบ PBKDF2");
+    ok(await page.evaluate(() => !/กลองสแนร์99/.test(JSON.stringify(localStorage))), "ไม่มีตัวรหัสผ่านอยู่ที่ไหนในเครื่อง");
+    const code = await page.evaluate(() => document.querySelector("#modal-root div.mono").textContent);
+    await page.evaluate(() => confirmSavedCode());
+    ok(await app(), "ตั้งรหัสแล้วเข้าแอปได้");
+
+    await page.evaluate(() => lockApp());
+    await enter("ผิด"); ok(!(await app()) && /ไม่ถูกต้อง/.test(await page.textContent("#login-err")), "รหัสผิดเข้าไม่ได้");
+    await enter("กลองสแนร์99"); ok(await app(), "รหัสถูกเข้าได้");
+
+    // เปลี่ยนรหัส
+    await page.evaluate(() => { openChangePw(); });
+    await page.fill("#cp0", "ผิด"); await page.fill("#cp1", "ใหม่1234"); await page.fill("#cp2", "ใหม่1234");
+    await page.evaluate(() => doChangePw());
+    await page.waitForFunction(() => /ไม่ถูกต้อง/.test(document.getElementById("cp-err").textContent), null, { timeout: 10000 });
+    ok(true, "เปลี่ยนรหัส: รหัสเดิมผิดถูกปฏิเสธ");
+    await page.fill("#cp0", "กลองสแนร์99"); await page.evaluate(() => doChangePw());
+    await page.waitForFunction(() => !document.getElementById("cp0"), null, { timeout: 10000 });
+    await page.evaluate(() => lockApp()); await enter("ใหม่1234"); ok(await app(), "เปลี่ยนรหัสแล้วเข้าด้วยรหัสใหม่ได้");
+
+    // ลืมรหัส → ใช้รหัสกู้คืน
+    await page.evaluate(() => lockApp()); await page.evaluate(() => openForgotPw());
+    await page.fill("#rec-code", "AAAA-BBBB-CCCC"); await page.fill("#rec-pw1", "กู้คืน55"); await page.fill("#rec-pw2", "กู้คืน55");
+    await page.evaluate(() => doResetPw());
+    await page.waitForFunction(() => /ไม่ถูกต้อง/.test(document.getElementById("rec-err").textContent), null, { timeout: 10000 });
+    ok(true, "รหัสกู้คืนผิดถูกปฏิเสธ");
+    await page.fill("#rec-code", code.toLowerCase()); await page.evaluate(() => doResetPw());
+    await page.waitForFunction(() => !document.getElementById("rec-code") && document.querySelector("#modal-root div.mono"), null, { timeout: 10000 });
+    const code2 = await page.evaluate(() => document.querySelector("#modal-root div.mono").textContent);
+    ok(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(code2) && code2 !== code, "ใช้รหัสกู้คืนแล้วได้รหัสใหม่ (รหัสเก่าใช้ซ้ำไม่ได้)");
+    await page.evaluate(() => confirmSavedCode()); ok(await app(), "ตั้งรหัสใหม่ผ่านรหัสกู้คืนแล้วเข้าแอปได้");
+    await page.evaluate(() => lockApp()); await enter("กู้คืน55"); ok(await app(), "เข้าด้วยรหัสที่ตั้งใหม่ได้");
+
+    // ผู้ใช้เดิมที่ตั้งรหัสไว้แบบเก่า
+    await page.evaluate(() => { localStorage.setItem("td_pw", hashPw("เก่า1234")); localStorage.setItem("td_rec", hashPw("ABCD")); lockApp(); });
+    await enter("เก่า1234");
+    ok(await app(), "รหัสแบบเก่ายังเข้าได้ (ไม่ต้องตั้งใหม่)");
+    ok(await page.evaluate(() => /^pbkdf2-sha256\$/.test(localStorage.getItem("td_pw"))), "เข้าครั้งแรกแล้วอัปเกรดเป็นแบบเข้ารหัสให้เอง");
+    await page.waitForFunction(() => /รหัสกู้คืนเดิม/.test(document.body.innerText), null, { timeout: 5000 })
+      .then(() => ok(true, "ชวนสร้างรหัสกู้คืนใหม่แทนแบบเก่า"), () => ok(false, "ไม่ชวนสร้างรหัสกู้คืนใหม่"));
+    ok(!errors.length, "ไม่มี error ใน console" + (errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""));
+    await ctx.close();
+  }
+
+  /* 3) ซิงค์เรียลไทม์ iPad ↔ Samsung */
   console.log("ซิงค์ iPad ↔ Samsung (คลาวด์จำลอง)");
   {
     const mk = async (dev) => {

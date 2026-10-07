@@ -332,8 +332,25 @@ async function login(page) {
     await ipad.p.waitForFunction(() => S.lessons.some((l) => l.student === "น้องกดเอง"), null, { timeout: 8000 });
     ok(await ipad.p.evaluate(() => S.lessons.find((l) => l.student === "น้องกดเอง").attendance === "planned"), "บันทึกแล้วเป็นคาบรอยืนยัน (ไม่ต้องกรอกหัวข้อ)");
     await ipad.p.evaluate(() => { const l = S.lessons.find((x) => x.student === "น้องมิ้น" && x.attendance === "present"); openEdit(l.id); });
-    ok(await ipad.p.evaluate(() => EF._mode === "edit" && EF.attendance === "present" && ![...document.querySelectorAll("#ef-att button")].some((x) => /ยังไม่ยืนยัน/.test(x.textContent))),
-      "แก้คาบเดิมที่มาเรียนแล้ว: สถานะไม่เปลี่ยน");
+    ok(await ipad.p.evaluate(() => EF._mode === "edit" && EF.attendance === "present" &&
+      /มาเรียน/.test(document.querySelector('#ef-att button[aria-pressed="true"]').textContent) &&
+      [...document.querySelectorAll("#ef-att button")].some((x) => /ยังไม่ยืนยัน/.test(x.textContent))),
+      "แก้คาบเดิมที่มาเรียนแล้ว: สถานะไม่เปลี่ยนเอง แต่มีปุ่มเปลี่ยนกลับเป็นยังไม่ยืนยัน");
+
+    // การ์ดหน้าวันนี้: คาบที่ยืนยันแล้ว แตะ "มาเรียน ▾" → มีปุ่มรอยืนยัน → แตะแล้วกลับเป็นรอยืนยัน
+    await ipad.p.evaluate(() => {
+      closeModal();
+      S.lessons.unshift({ id: 990020, date: todayStr(), time: "15:00", kind: "school", duration: 1, rate: 0, heads: 1, courseId: null, attendance: "present",
+        student: "น้องยืนยันแล้ว", topic: "x", notes: "", videoLink: "", nextLesson: "", media: null, scores: [], practiceItems: [], updatedAt: nowISO() });
+      save(); DAYV.date = todayStr(); setTab("today"); renderAll();
+    });
+    await ipad.p.click('button.statbtn[onclick="reopenAtt(990020)"]');
+    ok(await ipad.p.isVisible('button.att-planned'), "การ์ดหน้าวันนี้: เมนูเปลี่ยนสถานะมีปุ่ม “รอยืนยัน”");
+    await ipad.p.click('button.att-planned');
+    ok(await ipad.p.evaluate(() => S.lessons.find((l) => l.id === 990020).attendance === "planned"), "แตะแล้วคาบกลับเป็นรอยืนยัน");
+    await phone.p.waitForFunction(() => (S.lessons.find((l) => l.id === 990020) || {}).attendance === "planned", null, { timeout: 10000 })
+      .then(() => ok(true, "มือถือเห็นสถานะรอยืนยันตาม"), () => ok(false, "มือถือไม่เห็นสถานะใหม่"));
+    await ipad.p.evaluate(() => { S.lessons = S.lessons.filter((l) => l.id !== 990020); S.students = S.students.filter((r) => r.key !== "น้องยืนยันแล้ว"); save(); renderAll(); });
     await ipad.p.evaluate(() => { closeModal(); S.lessons = S.lessons.filter((l) => l.student !== "น้องกดเอง"); S.students = S.students.filter((r) => r.key !== "น้องกดเอง"); save(); });
 
     // นักเรียนที่มีคอร์ส (เคสจริงของ "ธาวิน"): หน้าประวัติมีปุ่มแก้ไข/ลบคอร์ส และกล่องลบนักเรียนลบคอร์สได้

@@ -39,11 +39,11 @@ jobs:
           python3 - "$BUILD_ID" <<'PY'
           import io, sys
           build = sys.argv[1]
-          p = "sw.js"
-          s = io.open(p, encoding="utf-8").read()
-          if "__BUILD_ID__" not in s:
-              sys.exit("ไม่พบ __BUILD_ID__ ใน sw.js")
-          io.open(p, "w", encoding="utf-8").write(s.replace("__BUILD_ID__", build))
+          for p in ("sw.js", "lesson/sw.js"):
+              s = io.open(p, encoding="utf-8").read()
+              if "__BUILD_ID__" not in s:
+                  sys.exit("ไม่พบ __BUILD_ID__ ใน " + p)
+              io.open(p, "w", encoding="utf-8").write(s.replace("__BUILD_ID__", build))
           print("BUILD =", build)
           PY
 
@@ -53,7 +53,9 @@ jobs:
           for f in index.html manifest.webmanifest sw.js \
                    icons/icon-512.png icons/apple-touch-icon.png \
                    fonts/ibm-plex-sans-thai.css fonts/prompt.css \
-                   theme/klong-theme.css theme/klong-theme.js; do
+                   theme/klong-theme.css theme/klong-theme.js \
+                   lesson/index.html lesson/manifest.webmanifest lesson/sw.js \
+                   lesson/icons/icon-512.png lesson/icons/apple-touch-icon.png; do
             test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
           done
           # .nojekyll ตั้งใจให้เป็นไฟล์ว่าง จึงเช็คแค่ว่ามีอยู่ ไม่เช็คขนาด
@@ -77,7 +79,7 @@ jobs:
           set -euo pipefail
           rm -rf _site && mkdir -p _site
           cp index.html 404.html manifest.webmanifest sw.js .nojekyll _site/
-          cp -r fonts icons theme _site/
+          cp -r fonts icons theme lesson _site/
           echo "ขนาดที่จะเผยแพร่: $(du -sh _site | cut -f1)"
           find _site -type f | sort
 

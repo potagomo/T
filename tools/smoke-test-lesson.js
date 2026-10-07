@@ -198,7 +198,7 @@ async function login(page) {
       await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
     };
     await page.goto(BASE + "lesson/", { waitUntil: "load" });
-    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions) + ")");
+    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on" && window.__newPlanned === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions + "/" + window.__newPlanned) + ")");
 
     // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
     const t0 = Date.now();
@@ -316,6 +316,25 @@ async function login(page) {
       .then(() => ok(true, "มือถือลบนักเรียนคนนี้ตามเอง"), () => ok(false, "ลบบน iPad แต่มือถือยังมีนักเรียนคนนี้"));
     await new Promise((r) => setTimeout(r, 2500));
     ok(await ipad.p.evaluate(() => !S.students.some((r) => r.key === "กายำ")), "ชื่อไม่เด้งกลับมาหลังซิงค์");
+
+    // กด + บันทึกคาบเอง → เริ่มเป็น "รอยืนยัน" (เหมือนคาบจากตาราง/ไลน์)
+    await ipad.p.evaluate(() => closeModal());
+    await ipad.p.click('button[aria-label="เพิ่มคาบสอน"]');
+    ok(await ipad.p.evaluate(() => EF._mode === "add" && EF.attendance === "planned" &&
+      /ยังไม่ยืนยัน/.test((document.querySelector('#ef-att button[aria-pressed="true"]') || {}).textContent || "")),
+      "กด + : สถานะเริ่มต้นเป็น “ยังไม่ยืนยัน”");
+    ok(await ipad.p.evaluate(() => LESSON_OPEN && !lessonDirty()), "เปิดฟอร์มเฉย ๆ ไม่นับว่ามีการแก้ค้าง");
+    await ipad.p.evaluate(() => efSetAtt("present"));
+    ok(await ipad.p.evaluate(() => { const b = [...document.querySelectorAll("#ef-att button")]; return b.some((x) => /ยังไม่ยืนยัน/.test(x.textContent)) && /มาเรียน/.test(b.find((x) => x.getAttribute("aria-pressed") === "true").textContent); }),
+      "เลือกมาเรียนแล้ว ปุ่มยังไม่ยืนยันยังอยู่ให้สลับกลับได้");
+    await ipad.p.evaluate(() => efSetAtt("planned"));
+    await ipad.p.evaluate(() => { EF.student = "น้องกดเอง"; saveLesson(); });
+    await ipad.p.waitForFunction(() => S.lessons.some((l) => l.student === "น้องกดเอง"), null, { timeout: 8000 });
+    ok(await ipad.p.evaluate(() => S.lessons.find((l) => l.student === "น้องกดเอง").attendance === "planned"), "บันทึกแล้วเป็นคาบรอยืนยัน (ไม่ต้องกรอกหัวข้อ)");
+    await ipad.p.evaluate(() => { const l = S.lessons.find((x) => x.student === "น้องมิ้น" && x.attendance === "present"); openEdit(l.id); });
+    ok(await ipad.p.evaluate(() => EF._mode === "edit" && EF.attendance === "present" && ![...document.querySelectorAll("#ef-att button")].some((x) => /ยังไม่ยืนยัน/.test(x.textContent))),
+      "แก้คาบเดิมที่มาเรียนแล้ว: สถานะไม่เปลี่ยน");
+    await ipad.p.evaluate(() => { closeModal(); S.lessons = S.lessons.filter((l) => l.student !== "น้องกดเอง"); S.students = S.students.filter((r) => r.key !== "น้องกดเอง"); save(); });
 
     // นักเรียนที่มีคอร์ส (เคสจริงของ "ธาวิน"): หน้าประวัติมีปุ่มแก้ไข/ลบคอร์ส และกล่องลบนักเรียนลบคอร์สได้
     await ipad.p.evaluate(() => {

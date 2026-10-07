@@ -61,6 +61,11 @@ iPad ต้องเป็น iPadOS 16.4 ขึ้นไปและเปิ�
 แอปเขียนสีตายตัวไว้เกือบพันจุด จึงแปลงสีตอนวาดหน้าจากค่าสีจริง และตรวจทุกตัวหนังสือให้อ่านออก (WCAG)
 รูปที่ส่งผู้ปกครองเหมือนเดิมทุกพิกเซล (ทดสอบแล้ว) · โค้ดอยู่ที่ `tools/lesson-layer/60-dark.js` + `60-dark.head.html`
 
+**🧩 วิดเจ็ตหน้าจอโฮม** — คาบถัดไป (นับถอยหลัง) + คาบวันนี้พร้อมสถานะ · ⚙ → วิดเจ็ตหน้าจอโฮม แล้วทำตามขั้นตอน
+iPad: แอปฟรี Scriptable + สคริปต์ `widget/scriptable.js` (แอปใส่ที่อยู่/รหัสให้) · Samsung: แอปวิดเจ็ต `android-widget/`
+build อัตโนมัติตอน deploy วางไว้ที่ https://potagomo.github.io/T/widget/kruta-widget.apk · ต้องใช้ตัวส่งรุ่น 3
+ตรวจ: `node tools/test-widget-scriptable.mjs` (จำลอง Scriptable) · กุญแจเซ็นแอปอยู่ใน `android-widget/keystore/` (อ่าน README ในนั้น)
+
 ส่วนเสริมทุกอย่างอยู่ใน `tools/lesson-layer/` — แก้ที่นั่นแล้วรัน `update-lesson.py` อย่าแก้ใน `lesson/index.html` ตรง ๆ
 ข้อจำกัด: ล็อกนี้ปกป้อง*ตัวรหัสผ่าน* ส่วนข้อมูลบันทึกการสอนในเครื่องยังไม่ได้เข้ารหัส กันคนอื่นด้วยรหัสปลดล็อกเครื่อง
 
@@ -311,7 +316,10 @@ lesson/                      แอปที่สอง: ครูต้า —
 upstream/kruta-lesson.html   ไฟล์ดิบของครูต้ารุ่นล่าสุด
 tools/update-lesson.py       รับไฟล์ครูต้ารุ่นใหม่เข้า lesson/
 tools/lesson-layer/          ส่วนเสริมของครูต้า (ล็อกหน้าจอ ลบนักเรียน แจ้งเตือน ปุ่มคอร์ส คาบใหม่รอยืนยัน โหมดกลางคืน) ฝังเข้า lesson/index.html
-push-worker/                 ตัวส่งแจ้งเตือนสำหรับ Cloudflare Workers (worker.js + wrangler.toml)
+push-worker/                 ตัวส่งแจ้งเตือน + ข้อมูลวิดเจ็ต สำหรับ Cloudflare Workers (worker.js + wrangler.toml)
+widget/scriptable.js         วิดเจ็ต iPad (แอป Scriptable)
+android-widget/              แอปวิดเจ็ต Samsung/Android (Java ไม่มีไลบรารีนอก)
+tools/test-widget-scriptable.mjs  ตรวจสคริปต์วิดเจ็ต iPad ด้วย API จำลอง
 tools/test-push-worker.mjs   ตรวจตัวส่ง: เข้ารหัสข้อความ ลายเซ็น VAPID และจังหวะ cron
 tools/smoke-test-lesson.js   ตรวจครูต้า: ออฟไลน์ ติดตั้ง และซิงค์สองเครื่อง
 .claude/skills/drum-pro-ui/     แนวทางออกแบบ UI/UX ของโปรเจกต์นี้ (ดูข้อ 9)

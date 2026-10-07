@@ -165,7 +165,8 @@
       var token = old || randToken();
       return fetch(url + "/claim", { method: "POST", body: JSON.stringify({ token: token }) }).then(function (r) { return r.json(); }).then(function (c) {
         if (!c.ok) throw new Error(c.error || "เชื่อมต่อไม่สำเร็จ");
-        S.settings.push = { url: url, token: token, key: c.publicKey };
+        S.settings.push = Object.assign({}, S.settings.push || {}, { url: url, token: token, key: c.publicKey });
+        delete S.settings.pushOff;
         save({ noSnap: true, noCount: true });
         lsj("td_push_last", null);
         return pushSync(true);
@@ -179,7 +180,7 @@
     if (b && !b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "แตะอีกครั้งเพื่อยืนยัน"; return; }
     var go = dev() ? window.pushDisableHere : function () {};
     go();
-    delete S.settings.push; save({ noSnap: true, noCount: true });
+    delete S.settings.push; S.settings.pushOff = Date.now(); lsj("td_push_cfg", null); save({ noSnap: true, noCount: true });
     lsj("td_push_dev", null); lsj("td_push_last", null);
     toast("เลิกใช้แจ้งเตือนแล้ว"); openPush();
   };
@@ -314,8 +315,18 @@
   };
 
   /* ข้อมูลเปลี่ยน (ทั้งจากเครื่องนี้และที่ซิงค์มา) → ส่งรายการเตือนใหม่ */
+  /* ค่าตัวส่งอยู่ใน S.settings ซึ่งซิงค์ทั้งก้อน ถ้าอีกเครื่องส่ง settings รุ่นที่ยังไม่มีค่าล่าสุดมาทับ
+     (เช่นรหัสวิดเจ็ตที่เพิ่งสร้าง) ค่าจะหายทั้งสองเครื่อง — จึงจำไว้ในเครื่องด้วย แล้วเติมส่วนที่หายกลับก่อนบันทึก */
+  function keepCfg() {
+    var cur = S.settings && S.settings.push, mem = lsj("td_push_cfg");
+    if (S.settings && S.settings.pushOff) { lsj("td_push_cfg", null); return; }
+    if (!cur || !cur.url || !cur.token) { if (mem && mem.url && mem.token && S.settings) S.settings.push = mem; return; }
+    if (mem && mem.token === cur.token) Object.keys(mem).forEach(function (k) { if (cur[k] == null) cur[k] = mem[k]; });
+    lsj("td_push_cfg", cur);
+  }
   var origSave = window.save;
   window.save = function () {
+    try { keepCfg(); } catch (e) {}
     var r = origSave.apply(this, arguments);
     if (cfg()) pushSyncSoon();
     return r;
@@ -347,6 +358,8 @@
   });
   window.addEventListener("pagehide", function () { if (syncT) pushSync(false, true); });
 
+  window.__pushApi = api;            // ใช้ร่วมกับ 70-widget.js
+  window.__pushCfg = cfg;
   window.__pushReminders = reminders;
   window.__pushSync = pushSync;
   window.__push = "on";

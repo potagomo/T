@@ -4,3 +4,7 @@ package-lock.json
 package.json
 _site/
 __pycache__/
+android-widget/.gradle/
+android-widget/app/build/
+android-widget/build/
+kruta-widget.apk

@@ -73,6 +73,27 @@ jobs:
       - name: ตั้งค่า Pages
         uses: actions/configure-pages@v5
 
+      # แอปวิดเจ็ตครูต้าบน Samsung/Android — build ใหม่ทุกครั้งแล้ววางไว้ที่ /T/widget/kruta-widget.apk
+      # ถ้า build ไม่ผ่าน เว็บยังขึ้นได้ตามปกติ (แค่ไม่มีไฟล์ APK รุ่นใหม่) — ดู log ของขั้นนี้
+      - name: เตรียม Java สำหรับแอปวิดเจ็ต
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: เตรียม Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+      - name: สร้างแอปวิดเจ็ต (APK)
+        id: apk
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cd android-widget
+          gradle --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk ../kruta-widget.apk
+          ls -la ../kruta-widget.apk
+
       # อัปเฉพาะไฟล์ที่เว็บต้องใช้จริง ไม่เอา README/tools/.claude ขึ้นไปด้วย
       # (upload-pages-artifact ตัดให้แค่ .git กับ .github ที่เหลือมันอัปหมด)
       - name: จัดไฟล์ที่จะเผยแพร่
@@ -80,7 +101,8 @@ jobs:
           set -euo pipefail
           rm -rf _site && mkdir -p _site
           cp index.html 404.html manifest.webmanifest sw.js .nojekyll _site/
-          cp -r fonts icons theme lesson show _site/
+          cp -r fonts icons theme lesson show widget _site/
+          if [ -s kruta-widget.apk ]; then cp kruta-widget.apk _site/widget/; else echo "::warning::ไม่มีไฟล์ APK รุ่นใหม่ (build แอปวิดเจ็ตไม่ผ่าน)"; fi
           echo "ขนาดที่จะเผยแพร่: $(du -sh _site | cut -f1)"
           find _site -type f | sort
 

@@ -11,11 +11,13 @@
      • KV อาจใช้เวลาราว 1 นาทีกว่าข้อมูลใหม่จะเห็นได้ จึงไม่ดูแค่นาทีเดียว แต่ส่งรายการที่ถึงเวลาแล้ว
        และยังไม่ได้ส่ง (ย้อนได้ 10 นาที) · จดไว้ใน "sent" ถ้าเผลอส่งซ้ำ แจ้งเตือนมี tag เดียวกันจะทับกันเงียบ ๆ
      • ทุก 5 นาทีจด "beat" ไว้ ให้แอปตรวจได้ว่า Cron ทำงานอยู่จริง
+     • วิดเจ็ตหน้าจอโฮม (iPad: Scriptable · Samsung: แอปวิดเจ็ต) อ่านตารางสอน 8 วันจาก GET /widget?k=…
+       ใช้รหัสวิดเจ็ตแยกจากรหัสเข้าใช้ — วิดเจ็ตอ่านได้อย่างเดียว แก้หรือส่งแจ้งเตือนไม่ได้
      • กุญแจ VAPID สร้างเองครั้งแรกแล้วเก็บใน KV · รหัสเข้าใช้ (token) มาจากแอปเครื่องแรกที่เชื่อมต่อ
    ไม่มีไลบรารีจากข้างนอก ใช้ WebCrypto ของ Cloudflare ล้วน (RFC 8291 + RFC 8292)
    ============================================================ */
 
-const VERSION = 2;                 // แอปเทียบเลขนี้ ถ้าตัวส่งเก่ากว่าจะบอกให้วางโค้ดใหม่
+const VERSION = 3;                 // แอปเทียบเลขนี้ ถ้าตัวส่งเก่ากว่าจะบอกให้วางโค้ดใหม่ (3 = มีข้อมูลวิดเจ็ต)
 const CATCH_UP = 10 * 60000;       // รายการที่พลาดไป (KV ยังไม่อัปเดต / cron ข้ามรอบ) ส่งตามได้ภายใน 10 นาที
 const MAX_BODY = 256 * 1024;
 const MAX_REMINDERS = 600;
@@ -151,6 +153,12 @@ async function handle(req, env) {
   if (!env.KV) return json({ ok: false, error: "ยังไม่ได้ผูก KV namespace ชื่อตัวแปร KV" }, 500);
   const path = new URL(req.url).pathname.replace(/\/+$/, "") || "/";
 
+  if (req.method === "GET" && path === "/widget") {
+    const k = new URL(req.url).searchParams.get("k") || "", wk = await env.KV.get("wkey");
+    if (!wk || !same(wk, k)) return json({ ok: false, error: "รหัสวิดเจ็ตไม่ถูกต้อง" }, 403);
+    const wd = await kvGet(env, "wd", null);
+    return json({ ok: true, at: wd ? wd.at : null, lessons: wd ? wd.lessons : [] });
+  }
   if (req.method === "GET" && path === "/") {
     const v = await vapidKeys(env);
     return json({ ok: true, app: "kruta-push", version: VERSION, claimed: !!(await env.KV.get("token")), publicKey: v.pub });
@@ -185,6 +193,16 @@ async function handle(req, env) {
     await kvPut(env, "rem", rem);
     return json({ ok: true, count: rem.length });
   }
+  if (path === "/widget-data") {
+    if (typeof b.wkey !== "string" || b.wkey.length < 20) return json({ ok: false, error: "รหัสวิดเจ็ตสั้นเกินไป" }, 400);
+    const lessons = (Array.isArray(b.lessons) ? b.lessons : []).slice(0, 200).map((l) => ({
+      d: String(l.d || "").slice(0, 10), t: String(l.t || "").slice(0, 5), m: Math.max(0, Math.min(600, Number(l.m) || 0)),
+      n: String(l.n || "").slice(0, 60), k: String(l.k || "").slice(0, 10), p: String(l.p || "").slice(0, 60), s: String(l.s || "").slice(0, 12)
+    }));
+    if ((await env.KV.get("wkey")) !== b.wkey) await env.KV.put("wkey", b.wkey);
+    await kvPut(env, "wd", { at: Date.now(), lessons });
+    return json({ ok: true, count: lessons.length });
+  }
   if (path === "/status") {
     // สำหรับหน้าตรวจสถานะในแอป — ไม่มีชื่อนักเรียน มีแค่จำนวนและเวลา
     const now = Date.now(), rem = await kvGet(env, "rem", []), subs = await kvGet(env, "subs", []);
@@ -197,7 +215,7 @@ async function handle(req, env) {
     return json({ ok: true, ...r });
   }
   if (path === "/reset") {
-    await Promise.all(["token", "subs", "rem", "sent"].map((k) => env.KV.delete(k)));
+    await Promise.all(["token", "subs", "rem", "sent", "wkey", "wd"].map((k) => env.KV.delete(k)));
     return json({ ok: true });
   }
   return json({ ok: false, error: "not found" }, 404);

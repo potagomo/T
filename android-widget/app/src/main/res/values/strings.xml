@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ครูต้า วิดเจ็ต</string>
+    <string name="widget_label">ครูต้า · คาบถัดไป</string>
+    <string name="widget_desc">คาบถัดไปและคาบทั้งวันนี้</string>
+</resources>

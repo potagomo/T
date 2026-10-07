@@ -1,0 +1,34 @@
+// แอปวิดเจ็ตครูต้าบน Android — ไม่มีไลบรารีนอก ใช้แค่ Android framework
+// สร้างโดย .github/workflows/pages.yml ทุกครั้งที่ deploy แล้ววางไว้ที่ /T/widget/kruta-widget.apk
+plugins { id 'com.android.application' }
+
+def runNo = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
+android {
+    namespace 'th.kruta.widget'
+    compileSdk 35
+    defaultConfig {
+        applicationId "th.kruta.widget"
+        minSdk 31
+        targetSdk 35
+        versionCode runNo
+        versionName "1." + runNo
+    }
+    // กุญแจเซ็นแอปต้องเหมือนเดิมทุกรุ่น ไม่งั้นติดตั้งทับรุ่นเก่าไม่ได้ (ดูหมายเหตุใน keystore/README.md)
+    signingConfigs {
+        release {
+            storeFile file('../keystore/kruta-widget.jks')
+            storePassword 'kruta-widget'
+            keyAlias 'kruta'
+            keyPassword 'kruta-widget'
+        }
+    }
+    buildTypes {
+        release { minifyEnabled false; signingConfig signingConfigs.release }
+    }
+    lint { checkReleaseBuilds false; abortOnError false }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

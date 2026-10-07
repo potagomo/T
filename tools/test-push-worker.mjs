@@ -97,11 +97,20 @@ ok(pushed.length === 0, "รายการที่เลยมาเกิน 
 void staleRem;
 
 const st = await call("/status", { token });
-ok(st.ok && st.version === 2 && st.devices === 2 && st.reminders === 1 && typeof st.now === "number", "หน้าตรวจสถานะ: รุ่น อุปกรณ์ จำนวนรายการ");
+ok(st.ok && st.version === 3 && st.devices === 2 && st.reminders === 1 && typeof st.now === "number", "หน้าตรวจสถานะ: รุ่น อุปกรณ์ จำนวนรายการ");
 const beatMin = Math.ceil(Date.now() / 300000) * 300000;
 await tk(beatMin);
 ok(Number(store.get("beat")) === beatMin, "ทุก 5 นาทีจดว่า Cron ทำงาน (ให้แอปตรวจได้)");
 ok(!(await call("/status", { token: "ผิด" })).ok, "หน้าตรวจสถานะต้องใช้รหัสเข้าใช้");
+
+// วิดเจ็ต: อ่านได้ด้วยรหัสวิดเจ็ตเท่านั้น และอ่านได้อย่างเดียว
+const wkey = crypto.randomBytes(24).toString("base64url");
+ok((await call("/widget-data", { token, wkey, lessons: [{ d: "2026-10-08", t: "16:00", m: 50, n: "harvey", k: "school", p: "PlaySound", s: "planned" }] })).ok, "วิดเจ็ต: แอปส่งตารางขึ้นได้");
+ok(!(await call("/widget-data", { token: "ผิด", wkey, lessons: [] })).ok, "วิดเจ็ต: ส่งตารางต้องใช้รหัสเข้าใช้");
+const wget = async (k) => (await worker.fetch(new Request("https://kruta-push.test/widget?k=" + encodeURIComponent(k)), env)).json();
+const w = await wget(wkey);
+ok(w.ok && w.lessons.length === 1 && w.lessons[0].n === "harvey" && w.lessons[0].m === 50, "วิดเจ็ต: อ่านตารางด้วยรหัสวิดเจ็ตได้");
+ok(!(await wget("ผิด")).ok && !(await wget(token)).ok, "วิดเจ็ต: รหัสผิด หรือใช้รหัสเข้าใช้แทน อ่านไม่ได้");
 
 gone = new Set([sub2.endpoint]); pushed.length = 0;
 const tr = await call("/test", { token });

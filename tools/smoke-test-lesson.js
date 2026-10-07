@@ -58,7 +58,10 @@ function serveWorker(req, res, rest) {
 
 const server = http.createServer((req, res) => {
   let u = decodeURIComponent(req.url.split("?")[0]);
-  if (u === PREFIX + "push" || u.startsWith(PREFIX + "push/")) return serveWorker(req, res, u.slice((PREFIX + "push").length));
+  if (u === PREFIX + "push" || u.startsWith(PREFIX + "push/")) {
+    const q = req.url.indexOf("?");
+    return serveWorker(req, res, u.slice((PREFIX + "push").length) + (q >= 0 ? req.url.slice(q) : ""));
+  }
   if (!u.startsWith(PREFIX)) { res.writeHead(404); return res.end(); }
   let rel = u.slice(PREFIX.length);
   if (rel === "lesson") { res.writeHead(301, { Location: PREFIX + "lesson/" }); return res.end(); }
@@ -199,7 +202,7 @@ async function login(page) {
       await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
     };
     await page.goto(BASE + "lesson/", { waitUntil: "load" });
-    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on" && window.__newPlanned === "on" && !!window.__dark), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions + "/" + window.__newPlanned) + ")");
+    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on" && window.__courseActions === "on" && window.__newPlanned === "on" && !!window.__dark && window.__widget === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push + "/" + window.__courseActions + "/" + window.__newPlanned) + ")");
 
     // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
     const t0 = Date.now();
@@ -541,6 +544,27 @@ async function login(page) {
     while (!JSON.parse(kv.get("rem") || "[]").some((r) => /น้องรีบปิด/.test(r.title)) && Date.now() - tq < 3000) await new Promise((r) => setTimeout(r, 100));
     ok(JSON.parse(kv.get("rem") || "[]").some((r) => /น้องรีบปิด/.test(r.title)), "บันทึกแล้วสลับออกจากแอปทันที: รายการเตือนขึ้นตัวส่งใน " + (Date.now() - tq) + " ms");
     await ipad.p.evaluate(() => { delete document.visibilityState; S.lessons = S.lessons.filter((l) => l.id !== 990011); S.students = S.students.filter((r) => r.key !== "น้องรีบปิด"); save(); });
+
+    // วิดเจ็ตหน้าจอโฮม: หน้าตั้งค่า → ส่งตาราง 8 วันขึ้นตัวส่ง → อ่านด้วยรหัสวิดเจ็ตได้
+    await ipad.p.evaluate(() => openMenu());
+    ok(await ipad.p.evaluate(() => /วิดเจ็ตหน้าจอโฮม/.test((document.getElementById("wg-row") || {}).textContent || "")), "หน้าตั้งค่ามีแถว 🧩 วิดเจ็ตหน้าจอโฮม");
+    await ipad.p.click("#wg-row");
+    await ipad.p.waitForFunction(() => /ส่งตาราง \d+ คาบ/.test((document.getElementById("wg-state") || {}).textContent || ""), null, { timeout: 10000 })
+      .then(() => ok(true, "เปิดหน้าวิดเจ็ต: ส่งตาราง 8 วันให้วิดเจ็ตแล้ว"), async () => ok(false, "หน้าวิดเจ็ตไม่ส่งตาราง: " + await ipad.p.evaluate(() => (document.getElementById("wg-state") || {}).textContent)));
+    const wk = await ipad.p.evaluate(() => S.settings.push.wkey);
+    const wres = await (await realFetch(BASE + "push/widget?k=" + encodeURIComponent(wk))).json();
+    ok(wres.ok && wres.lessons.some((l) => l.n === "น้องเตือน" && l.s === "planned" && /^\d\d:\d\d$/.test(l.t)), "วิดเจ็ตอ่านตารางจากตัวส่งด้วยรหัสวิดเจ็ตได้");
+    const codeOk = await ipad.p.evaluate(() => { const c = (function () { let x; const o = copyText; copyText = (t) => { x = t; }; widgetCopyCode(); copyText = o; return x; })();
+      const j = JSON.parse(decodeURIComponent(escape(atob(c.slice(8))))); return c.startsWith("KRUTAW1:") && j.k === S.settings.push.wkey && j.u === S.settings.push.url; });
+    ok(codeOk, "รหัสวิดเจ็ตสำหรับ Samsung ถอดกลับได้ถูก (ที่อยู่ + รหัส)");
+    await ipad.p.waitForTimeout(500);
+    const scr = await ipad.p.evaluate(() => { let x; const o = copyText; copyText = (t) => { x = t; }; widgetCopyScript(); copyText = o; return x || ""; });
+    ok(scr.includes(await ipad.p.evaluate(() => S.settings.push.wkey)) && !scr.includes("__KRUTA_") && /Scriptable/.test(scr), "สคริปต์ iPad ใส่ที่อยู่และรหัสให้ครบแล้ว");
+    ok(await ipad.p.evaluate((k) => { S.settings.push = { url: S.settings.push.url, token: S.settings.push.token, key: S.settings.push.key }; save(); return S.settings.push.wkey === k; }, wk),
+      "settings จากอีกเครื่องที่ไม่มีรหัสวิดเจ็ตมาทับ: เติมรหัสเดิมกลับเอง (วิดเจ็ตไม่พัง)");
+    await phone.p.waitForFunction((k) => S.settings.push && S.settings.push.wkey === k, wk, { timeout: 10000 })
+      .then(() => ok(true, "รหัสวิดเจ็ตซิงค์ไปมือถือเอง"), () => ok(false, "รหัสวิดเจ็ตไม่ซิงค์ไปมือถือ"));
+    await ipad.p.evaluate(() => closeModal());
 
     // ตารางประจำสัปดาห์ก็เตือนด้วย (ทั้งที่ลงเป็นคาบล่วงหน้าแล้ว และที่ยังไม่ได้ลง)
     const roster = await ipad.p.evaluate(() => {

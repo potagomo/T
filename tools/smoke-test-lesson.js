@@ -517,6 +517,31 @@ async function login(page) {
     await ipad.p.waitForFunction(() => S.settings.pushLead === 15, null, { timeout: 10000 })
       .then(() => ok(true, "iPad ได้ค่า 15 นาทีตามการซิงค์"), () => ok(false, "iPad ไม่ได้ค่าเวลาเตือนใหม่"));
 
+    // หน้าตรวจตัวส่ง: ยังไม่มี Cron → เตือน · Cron ทำงานแล้ว → ✓ และรายการตรงกับในแอป
+    kv.delete("beat");                                  // รอบ tick ด้านบนเป็นเวลาในอนาคต ล้างออกให้เหมือนยังไม่ได้ตั้ง Cron
+    await ipad.p.evaluate(() => openPush());
+    await ipad.p.waitForFunction(() => /ยังไม่ทำงานตามเวลา/.test((document.getElementById("pu-status") || {}).innerText || ""), null, { timeout: 10000 })
+      .then(() => ok(true, "ตรวจตัวส่ง: ยังไม่มี Cron → บอกให้ตั้ง Trigger Events"), () => ok(false, "ตรวจตัวส่งไม่เตือนเรื่อง Cron"));
+    await tick(Math.floor(Date.now() / 300000) * 300000);
+    await ipad.p.evaluate(() => openPush());
+    await ipad.p.waitForFunction(() => { const t = (document.getElementById("pu-status") || {}).innerText || ""; return /ตัวส่งทำงานตามเวลา/.test(t) && /ตรงกับในแอป/.test(t); }, null, { timeout: 10000 })
+      .then(() => ok(true, "ตรวจตัวส่ง: Cron ทำงาน และรายการบนตัวส่งตรงกับในแอป"),
+            async () => ok(false, "ตรวจตัวส่งไม่ผ่าน: " + await ipad.p.evaluate(() => (document.getElementById("pu-status") || {}).innerText)));
+    await ipad.p.evaluate(() => closeModal());
+
+    // บันทึกคาบแล้วออกจากแอปทันที → รายการเตือนต้องขึ้นตัวส่งเลย ไม่รอ 4 วินาที
+    await ipad.p.evaluate(([d]) => {
+      S.lessons.unshift({ id: 990011, date: d, time: "23:58", kind: "school", duration: 1, rate: 0, heads: 1, courseId: null, attendance: "planned",
+        student: "น้องรีบปิด", topic: "", notes: "", videoLink: "", nextLesson: "", media: null, scores: [], practiceItems: [], updatedAt: nowISO() });
+      save();
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }, [iso(new Date(Date.now() + 86400000))]);
+    const tq = Date.now();
+    while (!JSON.parse(kv.get("rem") || "[]").some((r) => /น้องรีบปิด/.test(r.title)) && Date.now() - tq < 3000) await new Promise((r) => setTimeout(r, 100));
+    ok(JSON.parse(kv.get("rem") || "[]").some((r) => /น้องรีบปิด/.test(r.title)), "บันทึกแล้วสลับออกจากแอปทันที: รายการเตือนขึ้นตัวส่งใน " + (Date.now() - tq) + " ms");
+    await ipad.p.evaluate(() => { delete document.visibilityState; S.lessons = S.lessons.filter((l) => l.id !== 990011); S.students = S.students.filter((r) => r.key !== "น้องรีบปิด"); save(); });
+
     // ตารางประจำสัปดาห์ก็เตือนด้วย (ทั้งที่ลงเป็นคาบล่วงหน้าแล้ว และที่ยังไม่ได้ลง)
     const roster = await ipad.p.evaluate(() => {
       const d = addDays(todayStr(), 5);

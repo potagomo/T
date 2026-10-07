@@ -34,11 +34,14 @@
     return d;
   }
   function supported() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
-  function api(path, body) {
+  var WORKER_VERSION = 2;          // ตรงกับ VERSION ใน push-worker/worker.js
+  function api(path, body, keepalive) {
     var c = cfg(); if (!c) return Promise.reject(new Error("ยังไม่ได้ตั้งค่าตัวส่ง"));
     body = body || {}; body.token = c.token;
-    // ส่งเป็น text/plain เพื่อไม่ต้องมีคำขอ preflight
-    return fetch(c.url + path, { method: "POST", body: JSON.stringify(body) }).then(function (r) {
+    // ส่งเป็น text/plain เพื่อไม่ต้องมีคำขอ preflight · keepalive = ส่งต่อให้จบแม้ปิดแอปไปแล้ว
+    var init = { method: "POST", body: JSON.stringify(body) };
+    if (keepalive && init.body.length < 60000) init.keepalive = true;
+    return fetch(c.url + path, init).then(function (r) {
       return r.json().catch(function () { return { ok: false, error: "ตัวส่งตอบกลับไม่ถูกต้อง (" + r.status + ")" }; });
     }).then(function (j) { if (!j.ok) throw new Error(j.error || "ตัวส่งปฏิเสธ"); return j; });
   }
@@ -92,13 +95,13 @@
   /* ── ส่งรายการขึ้นตัวส่ง (เฉพาะเมื่อเปลี่ยน หรือทุก 6 ชั่วโมงเพื่อเลื่อนหน้าต่างเวลา) ── */
   var syncT = null, syncing = false;
   function pushSyncSoon(ms) { clearTimeout(syncT); syncT = setTimeout(function () { pushSync(false); }, ms == null ? 4000 : ms); }
-  function pushSync(force) {
-    if (!cfg() || syncing || !navigator.onLine) return Promise.resolve(false);
+  function pushSync(force, keepalive) {
+    if (!cfg() || (syncing && !keepalive) || !navigator.onLine) return Promise.resolve(false);
     var list = reminders().map(function (r) { return { id: r.id, at: r.at, title: r.title, body: r.body }; });
     var h = JSON.stringify(list), last = lsj("td_push_last") || {};
     if (!force && last.h === h && Date.now() - (last.at || 0) < 6 * 3600 * 1000) return Promise.resolve(false);
-    syncing = true;
-    return api("/schedule", { reminders: list }).then(function () {
+    syncing = true; clearTimeout(syncT); syncT = null;
+    return api("/schedule", { reminders: list }, keepalive).then(function () {
       lsj("td_push_last", { h: h, at: Date.now() }); syncing = false; return true;
     }, function (e) { syncing = false; window.__pushErr = e.message; return false; });
   }
@@ -244,10 +247,47 @@
           '<div class="hint" style="margin-top:6px;">ใช้ค่าเดียวกันทุกเครื่อง</div></div>' +
         '<div class="rc-group"><label>เครื่องนี้</label>' + deviceState() + '</div>' +
         '<div class="rc-group"><label>เตือนครั้งถัดไป</label>' + preview() + '</div>' +
+        '<div class="rc-group"><label>ตรวจตัวส่ง</label><div id="pu-status"><div class="hint">กำลังตรวจ…</div></div></div>' +
         '<div class="hint" style="margin:10px 0;">ชื่อนักเรียนและเวลาคาบ 3 สัปดาห์ข้างหน้าจะถูกส่งไปเก็บใน Cloudflare ของคุณเอง เพื่อใช้ทำข้อความแจ้งเตือน</div>' +
         '<button class="linkbtn" id="pu-forget" type="button" onclick="pushForget()">เลิกใช้แจ้งเตือน</button>';
     }
     showModal('<div class="mhead"><div class="mtitle">🔔 แจ้งเตือนคาบถัดไป</div><button class="ib" type="button" onclick="closeModal()" aria-label="ปิด" style="font-size:19px;">✕</button></div>' + body, "460px");
+    if (c) checkWorker();
+  }
+
+  /* ── ตรวจว่าตัวส่งพร้อมจริง: รุ่นโค้ด · Cron ทำงานไหม · รายการบนตัวส่งตรงกับในแอปไหม ── */
+  function hm(t) { var d = new Date(t); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  function checkWorker(retried) {
+    var c = cfg(), box = function () { return document.getElementById("pu-status"); };
+    function show(lines) { var b = box(); if (b) b.innerHTML = lines.join(""); }
+    function ok(t) { return '<div class="vline ok" style="margin-bottom:6px;">✓ ' + t + '</div>'; }
+    function warn(t) { return '<div class="warnline" style="margin-bottom:6px;">' + t + '</div>'; }
+    fetch(c.url + "/").then(function (r) { return r.json(); }).then(function (info) {
+      if (!info || !(info.version >= WORKER_VERSION)) {
+        show([warn("<b>โค้ดตัวส่งเป็นรุ่นเก่า</b> — รุ่นนี้อาจพลาดแจ้งเตือนที่ตั้งไว้กระชั้นชิด<br>" +
+          "Cloudflare › Workers &amp; Pages › <b>kruta-push</b> › <b>Edit code</b> › ลบโค้ดเดิม › วางโค้ดใหม่ › <b>Deploy</b>"),
+          '<button class="btn-g" type="button" style="width:100%;min-height:40px;" onclick="pushCopyWorker()">📋 คัดลอกโค้ดตัวส่งรุ่นใหม่</button>']);
+        return;
+      }
+      return api("/status").then(function (st) {
+        var out = [], local = reminders(), lnext = local.length ? local[0].at : null, now = st.now || Date.now();
+        if (!st.beat || now - st.beat > 12 * 60000) {
+          out.push(warn("<b>ตัวส่งยังไม่ทำงานตามเวลา</b> — แจ้งเตือนจะไม่เด้งเอง (ปุ่มส่งทดสอบยังใช้ได้)<br>" +
+            "Cloudflare › <b>kruta-push</b> › <b>Settings</b> › <b>Trigger Events</b> ต้องมี Cron <b>* * * * *</b><br>" +
+            "ถ้าเพิ่งตั้ง/เพิ่งวางโค้ดใหม่ รอ 5 นาทีแล้วเปิดหน้านี้อีกครั้ง"));
+        } else out.push(ok("ตัวส่งทำงานตามเวลา · ตรวจล่าสุด " + hm(st.beat)));
+        if (lnext && st.next !== lnext) {
+          if (!retried) {
+            out.push('<div class="hint">กำลังส่งรายการเตือนล่าสุดขึ้นตัวส่ง…</div>'); show(out);
+            pushSync(true).then(function () { setTimeout(function () { checkWorker(true); }, 1500); });
+            return;
+          }
+          out.push(warn("รายการเตือนบนตัวส่งยังไม่ตรงกับในแอป — ตรวจเน็ตแล้วเปิดหน้านี้อีกครั้ง"));
+        } else out.push(ok("รายการเตือนบนตัวส่งตรงกับในแอป (" + st.reminders + " รายการ" + (st.next ? " · ครั้งถัดไป " + hm(st.next) : "") + ")"));
+        out.push('<div class="hint">เครื่องที่เปิดแจ้งเตือน ' + st.devices + ' เครื่อง' + (st.lastSent ? " · ส่งแจ้งเตือนล่าสุด " + hm(st.lastSent) : "") + '</div>');
+        show(out);
+      });
+    }).catch(function (e) { show([warn("ติดต่อตัวส่งไม่ได้ — " + esc(e.message || "ไม่มีเน็ต?"))]); });
   }
   window.openPush = openPush;
 
@@ -300,8 +340,12 @@
     return r;
   };
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && document.getElementById("app") && document.getElementById("app").style.display === "block") pushSync(false);
+    var inApp = document.getElementById("app") && document.getElementById("app").style.display === "block";
+    if (document.visibilityState === "visible" && inApp) pushSync(false);
+    // ออกจากแอป (สลับแอป/ปิด) → ส่งรายการที่ค้างอยู่ทันที ไม่รอ 4 วินาที ซึ่งตอนนั้นแอปอาจถูกพักไปแล้ว
+    if (document.visibilityState === "hidden" && syncT) pushSync(false, true);
   });
+  window.addEventListener("pagehide", function () { if (syncT) pushSync(false, true); });
 
   window.__pushReminders = reminders;
   window.__pushSync = pushSync;

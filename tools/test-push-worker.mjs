@@ -7,7 +7,7 @@
  *   ตั้งรหัสเข้าใช้ได้ครั้งเดียว · รหัสผิดถูกปฏิเสธ
  *   ข้อความที่ส่งถอดรหัสได้ด้วยไลบรารีมาตรฐาน (http_ece, RFC 8188/8291) และได้ข้อความตรงกัน
  *   ลายเซ็น VAPID ตรวจผ่านด้วย node:crypto
- *   Cron ส่งเฉพาะรายการของนาทีนั้น ไม่ส่งซ้ำ · เครื่องที่ยกเลิกแล้ว (410) ถูกลบออก
+ *   Cron ส่งรายการที่ถึงเวลา · ส่งตามได้ถ้า KV อัปเดตช้า · ไม่ส่งซ้ำ · เครื่องที่ยกเลิกแล้ว (410) ถูกลบออก
  */
 import { createRequire } from "node:module";
 import crypto from "node:crypto";
@@ -74,10 +74,34 @@ ok(sigOk && claims.aud === "https://web.push.apple.com" && claims.exp > Date.now
 
 pushed.length = 0;
 await new Promise((res) => worker.scheduled({ scheduledTime: minute }, env, { waitUntil: (p) => p.then(res) }));
-ok(pushed.length === 2, "cron รอบเดิมซ้ำ (เช่นรันใหม่) ส่งเฉพาะของนาทีนั้น");
+ok(pushed.length === 0, "cron รอบเดิมซ้ำ (เช่นรันใหม่): ไม่ส่งซ้ำ");
 pushed.length = 0;
 await new Promise((res) => worker.scheduled({ scheduledTime: minute + 60000 }, env, { waitUntil: (p) => p.then(res) }));
 ok(pushed.length === 2 && pushed.every((p) => !/คาบถัดไป 17:00/.test(p.body)), "นาทีถัดไปส่งรายการถัดไป ไม่ส่งของเก่าซ้ำ");
+
+// เคสจริง: สร้างคาบก่อนเวลาเตือนแค่นาทีเดียว แล้ว KV ยังเห็นรายการเก่าในรอบนั้น
+const tk = (t) => new Promise((res) => worker.scheduled({ scheduledTime: t }, env, { waitUntil: (p) => p.then(res) }));
+const late = minute + 10 * 60000;
+const fresh = [{ id: "late", at: late, title: "🥁 อีก 10 นาที · 04:19 นามิ", body: "โรงเรียน" }];
+const staleRem = store.get("rem");                   // รอบ cron ตอนถึงเวลาเห็นของเก่า
+pushed.length = 0; await tk(late);
+ok(pushed.length === 0, "รอบที่ KV ยังไม่อัปเดต: ยังไม่มีรายการให้ส่ง");
+await call("/schedule", { token, reminders: fresh });
+pushed.length = 0; await tk(late + 60000);
+ok(pushed.length === 2 && pushed.every((p) => !p.body.includes("ทดสอบ")), "รอบถัดไปเห็นรายการแล้ว: ส่งตามทันที (ช้าไม่เกินนาทีเดียว)");
+pushed.length = 0; await tk(late + 120000);
+ok(pushed.length === 0, "รอบต่อไปไม่ส่งซ้ำ");
+await call("/schedule", { token, reminders: [{ id: "old", at: late + 120000 - 11 * 60000, title: "เก่า", body: "" }] });
+pushed.length = 0; await tk(late + 120000);
+ok(pushed.length === 0, "รายการที่เลยมาเกิน 10 นาที ไม่ส่ง (กันเด้งเตือนคาบที่ผ่านไปแล้ว)");
+void staleRem;
+
+const st = await call("/status", { token });
+ok(st.ok && st.version === 2 && st.devices === 2 && st.reminders === 1 && typeof st.now === "number", "หน้าตรวจสถานะ: รุ่น อุปกรณ์ จำนวนรายการ");
+const beatMin = Math.ceil(Date.now() / 300000) * 300000;
+await tk(beatMin);
+ok(Number(store.get("beat")) === beatMin, "ทุก 5 นาทีจดว่า Cron ทำงาน (ให้แอปตรวจได้)");
+ok(!(await call("/status", { token: "ผิด" })).ok, "หน้าตรวจสถานะต้องใช้รหัสเข้าใช้");
 
 gone = new Set([sub2.endpoint]); pushed.length = 0;
 const tr = await call("/test", { token });

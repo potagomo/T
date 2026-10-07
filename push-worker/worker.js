@@ -7,12 +7,16 @@
 
    ทำงานยังไง
      • แอปส่ง "รายการเตือน" ของ 3 สัปดาห์ข้างหน้ามาเก็บไว้ (เวลาเตือน + ข้อความ)
-     • Cron ปลุกตัวนี้ทุกนาที ถ้ามีรายการที่ถึงเวลาในนาทีนั้น ส่ง Web Push ไปทุกเครื่องที่ลงทะเบียน
-     • แต่ละนาทีดูเฉพาะช่วงเวลาของตัวเอง จึงไม่มีทางส่งซ้ำ และไม่ต้องเขียน KV ทุกนาที
+     • Cron ปลุกตัวนี้ทุกนาที ส่ง Web Push ของรายการที่ถึงเวลาไปทุกเครื่องที่ลงทะเบียน
+     • KV อาจใช้เวลาราว 1 นาทีกว่าข้อมูลใหม่จะเห็นได้ จึงไม่ดูแค่นาทีเดียว แต่ส่งรายการที่ถึงเวลาแล้ว
+       และยังไม่ได้ส่ง (ย้อนได้ 10 นาที) · จดไว้ใน "sent" ถ้าเผลอส่งซ้ำ แจ้งเตือนมี tag เดียวกันจะทับกันเงียบ ๆ
+     • ทุก 5 นาทีจด "beat" ไว้ ให้แอปตรวจได้ว่า Cron ทำงานอยู่จริง
      • กุญแจ VAPID สร้างเองครั้งแรกแล้วเก็บใน KV · รหัสเข้าใช้ (token) มาจากแอปเครื่องแรกที่เชื่อมต่อ
    ไม่มีไลบรารีจากข้างนอก ใช้ WebCrypto ของ Cloudflare ล้วน (RFC 8291 + RFC 8292)
    ============================================================ */
 
+const VERSION = 2;                 // แอปเทียบเลขนี้ ถ้าตัวส่งเก่ากว่าจะบอกให้วางโค้ดใหม่
+const CATCH_UP = 10 * 60000;       // รายการที่พลาดไป (KV ยังไม่อัปเดต / cron ข้ามรอบ) ส่งตามได้ภายใน 10 นาที
 const MAX_BODY = 256 * 1024;
 const MAX_REMINDERS = 600;
 const MAX_SUBS = 20;
@@ -149,7 +153,7 @@ async function handle(req, env) {
 
   if (req.method === "GET" && path === "/") {
     const v = await vapidKeys(env);
-    return json({ ok: true, app: "kruta-push", claimed: !!(await env.KV.get("token")), publicKey: v.pub });
+    return json({ ok: true, app: "kruta-push", version: VERSION, claimed: !!(await env.KV.get("token")), publicKey: v.pub });
   }
   if (req.method !== "POST") return json({ ok: false, error: "not found" }, 404);
   let b; try { b = await body(req); } catch (e) { return json({ ok: false, error: "อ่านข้อมูลไม่ได้" }, 400); }
@@ -181,24 +185,40 @@ async function handle(req, env) {
     await kvPut(env, "rem", rem);
     return json({ ok: true, count: rem.length });
   }
+  if (path === "/status") {
+    // สำหรับหน้าตรวจสถานะในแอป — ไม่มีชื่อนักเรียน มีแค่จำนวนและเวลา
+    const now = Date.now(), rem = await kvGet(env, "rem", []), subs = await kvGet(env, "subs", []);
+    const next = rem.filter((r) => r.at > now).reduce((m, r) => Math.min(m, r.at), Infinity);
+    return json({ ok: true, version: VERSION, devices: subs.length, reminders: rem.length, next: isFinite(next) ? next : null,
+      beat: Number(await env.KV.get("beat")) || null, lastSent: Number(await env.KV.get("lastSent")) || null, now });
+  }
   if (path === "/test") {
     const r = await sendAll(env, [{ title: "🥁 ทดสอบแจ้งเตือน", body: "ถ้าเห็นข้อความนี้ แปลว่าแจ้งเตือนคาบถัดไปพร้อมใช้งานแล้ว", tag: "kruta-test" }]);
     return json({ ok: true, ...r });
   }
   if (path === "/reset") {
-    await Promise.all(["token", "subs", "rem"].map((k) => env.KV.delete(k)));
+    await Promise.all(["token", "subs", "rem", "sent"].map((k) => env.KV.delete(k)));
     return json({ ok: true });
   }
   return json({ ok: false, error: "not found" }, 404);
 }
 
-/* ── Cron: ทุกนาที ส่งรายการที่เวลาเตือนตกอยู่ในนาทีนี้ ── */
+/* ── Cron: ทุกนาที ส่งรายการที่ถึงเวลาแล้วและยังไม่ได้ส่ง ── */
 async function tick(env, scheduledTime) {
   if (!env.KV) return { sent: 0 };
-  const end = Math.floor(scheduledTime / 60000) * 60000 + 60000;   // ปลายนาทีนี้
-  const start = end - 60000;
-  const due = (await kvGet(env, "rem", [])).filter((r) => r.at >= start && r.at < end);
+  const minute = Math.floor(scheduledTime / 60000) * 60000, end = minute + 60000;
+  if ((minute / 60000) % 5 === 0) await env.KV.put("beat", String(scheduledTime));
+  const rem = await kvGet(env, "rem", []);
+  const cand = rem.filter((r) => r.at < end && r.at >= minute - CATCH_UP);
+  if (!cand.length) return { sent: 0 };
+  const sent = await kvGet(env, "sent", {});
+  const key = (r) => r.id + "@" + r.at;                // เปลี่ยนเวลาคาบ = รายการใหม่ ส่งได้อีกครั้ง
+  const due = cand.filter((r) => !sent[key(r)]);
   if (!due.length) return { sent: 0 };
+  due.forEach((r) => { sent[key(r)] = scheduledTime; });
+  Object.keys(sent).forEach((k) => { if (sent[k] < scheduledTime - 2 * 86400000) delete sent[k]; });
+  await kvPut(env, "sent", sent);                       // จดก่อนส่ง กันรอบถัดไปส่งซ้ำระหว่างที่รอบนี้ยังส่งไม่เสร็จ
+  await env.KV.put("lastSent", String(scheduledTime));
   return sendAll(env, due.map((r) => ({ title: r.title, body: r.body, tag: "kruta-" + r.id })));
 }
 

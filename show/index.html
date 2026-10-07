@@ -1,0 +1,2525 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>อัดโชว์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#000; --umber:#231c16; --umber2:#33291f; --ink:#1d1711;
+  --paper:#f4ead8; --mute:#a99c86;
+  --amber:#ffb300; --red:#ff453a; --mark:#5fd3c4;
+  --line:#ffffff24; --line2:#ffffff4d; --scrim:#000000bf;
+  --r1:10px; --r2:14px; --tap:48px;
+  --fast:120ms; --med:220ms;
+  --font:"Chakra Petch","Noto Sans Thai",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--black);color:var(--paper);font-family:var(--font);font-size:16px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ic.fill{fill:currentColor;stroke:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+
+/* ---------- ปุ่ม ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--tap);padding:8px 14px;border:1px solid var(--line2);border-radius:var(--r1);background:#000000a6;color:var(--paper);font-weight:500;line-height:1.25;transition:background var(--fast),opacity var(--fast)}
+.btn:active{background:#ffffff26}
+.btn.solid{background:var(--amber);border-color:var(--amber);color:#000;font-weight:700}
+.btn.solid:active{background:#e6a100}
+.btn.danger{color:var(--red);border-color:#ff453a80}
+.btn.ghost{border-color:transparent;background:none;color:var(--mute);padding:8px 6px}
+.btn:disabled,.busy .btn,.busy .go{opacity:.45;pointer-events:none}
+
+/* ---------- หน้าแรก / รายละเอียด ---------- */
+.page{max-width:640px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 40px)}
+.page h1{font-size:44px;line-height:1.05;margin:0;font-weight:700;letter-spacing:-.01em}
+.page h2{font-size:19px;margin:32px 0 8px;font-weight:600}
+.lede{color:var(--mute);margin:8px 0 24px;max-width:34em}
+.go{display:block;width:100%;min-height:68px;border:0;border-radius:var(--r2);background:var(--amber);color:#000;font-size:22px;font-weight:700;transition:transform var(--fast)}
+.go:active{transform:scale(.985)}
+.ready{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.ready li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline;font-size:15px}
+.ready b{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--line2);color:var(--mute);white-space:nowrap}
+.ready li.ok b{color:var(--mark);border-color:#5fd3c480}
+.ready li.warn b{color:#000;background:var(--amber);border-color:var(--amber)}
+.h2row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.h2row span{color:var(--mute);font-size:14px;font-variant-numeric:tabular-nums}
+.setlist{position:relative;margin-top:16px;background:var(--paper);color:var(--ink);border-radius:3px;padding:26px 16px 12px}
+.setlist::before{content:"";position:absolute;top:-9px;left:50%;width:120px;height:22px;transform:translateX(-50%) rotate(-1.5deg);background:#3a3a3a;opacity:.92}
+.setlist textarea{display:block;width:100%;min-height:210px;border:0;background:transparent;resize:vertical;font-size:19px;line-height:1.7;font-weight:500;color:inherit;
+  background-image:repeating-linear-gradient(transparent 0 calc(1.7em - 1px),#1d171122 calc(1.7em - 1px) 1.7em);background-attachment:local}
+.setlist textarea::placeholder{color:#6b5f50}
+.setlist textarea:focus{outline:none}
+.hint{color:var(--mute);font-size:14px;margin:8px 0 0}
+.lib{list-style:none;margin:0;padding:0}
+.lib li{border-top:1px solid var(--line)}
+.lib button{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;width:100%;min-height:64px;text-align:left;background:none;border:0;padding:12px 2px;transition:background var(--fast)}
+.lib button:active{background:#ffffff14}
+.lib b{display:block;font-weight:600;font-size:17px}
+.lib span{color:var(--mute);font-size:14px;font-variant-numeric:tabular-nums}
+.lib .warn{display:block;color:var(--amber)}
+.lib .ic{color:var(--mute)}
+.empty{color:var(--mute);border-top:1px solid var(--line);padding:16px 2px}
+.logbox{margin-top:32px;color:var(--mute);font-size:14px}
+.logbox summary{min-height:var(--tap);display:flex;align-items:center}
+.logbox pre{white-space:pre-wrap;word-break:break-word;font:inherit;margin:0 0 12px}
+.row{display:flex;gap:8px;align-items:center}
+.row .btn{flex:1}
+
+.lbl{display:block;font-size:14px;color:var(--mute);margin:8px 0 0}
+.title-in{display:block;width:100%;min-height:var(--tap);background:none;border:0;border-bottom:1px solid var(--line2);border-radius:0;font-size:26px;font-weight:700;padding:4px 0}
+.meta{color:var(--mute);font-size:15px;margin:8px 0 16px;font-variant-numeric:tabular-nums}
+#dVid{position:sticky;top:0;z-index:5;display:block;width:100%;max-height:42vh;background:#000;margin-bottom:8px}
+.pickbar{display:flex;gap:4px;margin:0 0 4px -6px}
+.marks{list-style:none;margin:0;padding:0}
+.marks li{display:grid;grid-template-columns:44px minmax(0,1fr) auto 44px;align-items:center;gap:4px;border-top:1px solid var(--line);padding:8px 0}
+.cbx{display:flex;align-items:center;justify-content:center;width:44px;height:var(--tap)}
+.cbx input{width:26px;height:26px;margin:0;accent-color:var(--mark)}
+.marks time{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:14px;font-variant-numeric:tabular-nums;color:var(--mark)}
+.marks time i{font-style:normal;color:var(--mute)}
+.marks time .star{color:var(--amber);font-weight:600}
+.marks li.break time,.marks li.lead time{color:var(--mute)}
+.marks input[type=text]{width:100%;min-height:44px;background:none;border:0;padding:2px 0;font-size:17px;font-weight:500;text-overflow:ellipsis}
+.marks input:disabled{opacity:1;color:var(--mute);-webkit-text-fill-color:var(--mute)}
+.marks .pv{min-height:44px;padding:6px 12px;font-size:15px}
+.marks .x{display:flex;align-items:center;justify-content:center;width:44px;height:var(--tap);background:none;border:0;color:var(--mute);border-radius:var(--r1)}
+.marks .x:active{background:#ffffff1f}
+.marks li.note{display:block;color:var(--red);font-size:14px;padding:10px 0}
+.fold{border-top:1px solid var(--line);margin-top:8px}
+.fold summary{min-height:var(--tap);display:flex;align-items:center;font-weight:600}
+.fold .field{margin-top:4px}
+.dbar{position:sticky;bottom:0;z-index:4;margin:8px -16px 0;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 12px);background:linear-gradient(#0000,#000 30%)}
+.dbar .btn{width:100%;min-height:56px;font-size:17px}
+.status{min-height:22px;margin:0 0 8px;color:var(--amber);font-weight:600;font-size:15px}
+.actions{display:grid;gap:8px;margin-top:8px}
+
+/* ---------- หน้ากล้อง ---------- */
+#cam{position:fixed;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:#000;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-x pan-y}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity var(--med)}
+.hud,.mid,.deck{position:relative;z-index:1}
+.hud{padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 28px;background:linear-gradient(#000d,#0000);pointer-events:none}
+.tc{display:flex;align-items:center;gap:10px}
+#tally{width:14px;height:14px;border-radius:50%;background:#ffffff40}
+#cam.rec #tally{background:var(--red);box-shadow:0 0 14px var(--red);animation:blink 1.2s steps(2,start) infinite}
+@keyframes blink{50%{opacity:.25}}
+#tcode{font-size:40px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em;color:var(--amber)}
+#cam:not(.rec) #tcode{color:#ffffff8c}
+#recTag{font-size:12px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:99px;border:1px solid var(--line2);color:var(--mute)}
+#cam.rec #recTag{background:var(--red);border-color:var(--red);color:#fff}
+.stats{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 3px #000}
+.stats .k{color:#fff;font-weight:600}
+.alerts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.alerts span{font-size:13px;font-weight:700;padding:2px 10px;border-radius:99px}
+.alerts .w{color:#000;background:var(--amber)}
+.alerts .bad{color:#fff;background:var(--red)}
+
+.mid{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:0;padding:4px 14px 4px calc(env(safe-area-inset-left,0px) + 8px);pointer-events:none}
+.meters{position:relative;display:flex;gap:3px;height:min(100%,300px);min-height:60px}
+.bar{position:relative;width:9px;height:100%;border-radius:2px;overflow:hidden;background:linear-gradient(to top,#2e7d5b 0,#ffb300 62%,#ffb300 86%,#ff453a 92%)}
+.bar i{position:absolute;top:0;left:0;right:0;height:100%;background:#000000d9}
+#clip{position:absolute;top:-22px;left:-2px;font-size:11px;font-weight:700;color:#fff;background:var(--red);padding:0 4px;border-radius:2px;opacity:0}
+#clip.on{opacity:1}
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;align-self:flex-start;max-height:100%;overflow:hidden}
+#gSee{min-width:78px;padding:4px 10px 6px;border-radius:var(--r1);background:#000000b3;border:1px solid var(--line2);text-align:center;font-size:13px;line-height:1.3}
+#gSee b{display:block;font-size:34px;line-height:1.05;color:var(--mark)}
+#gSee.off b{color:var(--mute);font-size:20px;line-height:36px}
+#gDbg{margin:0;padding:6px 8px;border-radius:8px;background:#000c;font:12px/1.45 ui-monospace,monospace;color:var(--paper);text-align:left}
+
+.deck{display:flex;flex-direction:column;gap:8px;padding:28px 12px calc(env(safe-area-inset-bottom,0px) + 12px);background:linear-gradient(#0000,#000e 34%)}
+#zoomWrap{display:flex;align-items:center;gap:10px;font-size:13px;text-shadow:0 1px 3px #000}
+#zoomWrap input{flex:1;accent-color:var(--amber);height:36px}
+.now{display:flex;align-items:baseline;gap:8px;min-height:30px;font-size:18px;font-weight:600;text-shadow:0 1px 4px #000;border-left:4px solid var(--mark);padding-left:10px;transition:background .5s}
+.now span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.now small{flex:none;font-weight:400;color:var(--mute);font-variant-numeric:tabular-nums}
+.now.flash{background:#5fd3c466;transition:none}
+.idle{color:var(--mute);font-size:14px;text-shadow:0 1px 3px #000;text-align:center;margin:0}
+.deck .row .btn{padding:6px 6px;font-size:15px;min-height:52px}
+.deck .row.idle-only .btn{flex-direction:column;gap:2px;font-size:13px;min-height:60px}
+.next{min-height:72px;width:100%;border:0;border-radius:var(--r2);background:var(--mark);color:#04201c;font-size:20px;font-weight:700;padding:6px 12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;transition:transform var(--fast)}
+.next:active{transform:scale(.985)}
+.recbtn{flex:none;width:76px;height:76px;border-radius:50%;border:4px solid var(--paper);background:var(--red);margin:0 6px;transition:transform var(--fast)}
+.recbtn:active{transform:scale(.94)}
+.stop{color:#ff6b61;border-color:#ff453a99;font-weight:700}
+.stop.armed{background:var(--red);border-color:var(--red);color:#fff}
+#cam:not(.rec) .rec-only{display:none}
+#cam.rec .idle-only{display:none}
+#cam.dim #vid{opacity:0}
+#cam.dim .stats,#cam.dim .meters{opacity:.4}
+#cam.dim .next{background:#12403a;color:var(--mark)}
+#cam.dim #tcode{color:#8a6100}
+
+#gHold{position:absolute;left:50%;top:40%;z-index:6;transform:translateX(-50%);width:min(76vw,320px);padding:10px 14px 12px;border-radius:var(--r2);background:#000000d9;text-align:center;font-weight:600;pointer-events:none}
+#gHold i{display:block;height:8px;width:0;margin-top:8px;border-radius:4px;background:var(--mark)}
+#gFlash{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:44px;line-height:1.2;font-weight:700;color:#000;opacity:0;pointer-events:none;transition:opacity .9s}
+#gFlash.on{opacity:.92;transition:none}
+#gDot{position:fixed;z-index:6;width:56px;height:56px;margin:-28px 0 0 -28px;border:3px solid var(--amber);border-radius:50%;pointer-events:none}
+
+@media (max-width:359px){.deck .row.rec-only .btn{flex-direction:column;gap:2px;font-size:13px;min-height:56px} .page h1{font-size:38px}}
+@media (orientation:landscape){
+  #cam{grid-template-columns:minmax(0,1fr) min(320px,42vw);grid-template-rows:auto minmax(0,1fr)}
+  .hud{grid-column:1;grid-row:1;padding-left:calc(env(safe-area-inset-left,0px) + 14px);padding-bottom:12px}
+  .mid{grid-column:1;grid-row:2}
+  .deck{grid-column:2;grid-row:1 / 3;justify-content:flex-end;padding:12px calc(env(safe-area-inset-right,0px) + 12px) calc(env(safe-area-inset-bottom,0px) + 12px) 28px;background:linear-gradient(90deg,#0000,#000e 26%);overflow:auto}
+  #tcode{font-size:32px}
+  .next{min-height:56px;font-size:18px}
+  .recbtn{width:64px;height:64px}
+  .deck .row .btn{min-height:48px}
+  .deck .row.rec-only .btn{flex-direction:column;gap:2px;font-size:13px;min-height:52px}
+  #gHold{left:calc((100% - min(320px,42vw)) / 2)}
+}
+
+/* ---------- แผ่นเลื่อนขึ้น ---------- */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.box{display:flex;flex-direction:column;width:100%;max-width:560px;max-height:90vh;max-height:90dvh;background:var(--umber);border-radius:18px 18px 0 0;overflow:hidden}
+.box-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 12px 12px 16px;border-bottom:1px solid var(--line)}
+.box-head h3{margin:0;font-size:20px}
+.box-body{overflow:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.box p{margin:0 0 12px;color:var(--mute);font-size:14px}
+.box h4{margin:20px 0 8px;font-size:16px}
+.steps{margin:0 0 12px;padding-left:20px;color:var(--mute);font-size:14px}
+.steps li{margin-bottom:4px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:16px;border-radius:var(--r2);background:#0000008c}
+.seg button{min-height:44px;border:0;border-radius:var(--r1);background:none;color:var(--mute);font-weight:600;transition:background var(--fast),color var(--fast)}
+.seg button[aria-selected=true]{background:var(--umber2);color:var(--paper)}
+.typed{display:flex;gap:8px;margin-bottom:12px}
+.typed input{flex:1;min-width:0;min-height:52px;border-radius:var(--r1);border:1px solid var(--line2);background:#0006;padding:0 12px;font-size:18px}
+.pick{display:block;width:100%;text-align:left;min-height:54px;margin-bottom:8px;border:0;border-radius:var(--r1);background:var(--umber2);padding:8px 14px;font-size:18px;font-weight:500;transition:background var(--fast)}
+.pick:active{background:#4a3c2e}
+.pick.done{opacity:.45;text-decoration:line-through}
+.field{display:block;margin-bottom:12px}
+.field span{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+.field select{width:100%;min-height:50px;border-radius:var(--r1);border:1px solid var(--line2);background:#000;padding:0 10px}
+.field.inline{display:grid;grid-template-columns:88px 1fr;align-items:center;gap:8px;margin-bottom:8px}
+.field.inline span{margin:0;color:var(--paper);font-size:16px}
+#est{color:var(--amber);font-weight:600;margin:4px 0 0}
+.chk{display:flex;align-items:center;gap:12px;min-height:var(--tap);font-size:16px}
+.chk input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--amber)}
+.chk.main{font-weight:600;padding:4px 12px;margin-bottom:12px;border:1px solid var(--line2);border-radius:var(--r1)}
+#gOpts.off{opacity:.45;pointer-events:none}
+
+#toast{position:fixed;left:50%;top:32vh;transform:translateX(-50%);z-index:40;max-width:88vw;background:var(--paper);color:var(--ink);font-weight:600;padding:10px 16px;border-radius:var(--r1);box-shadow:0 6px 24px #000a;opacity:0;pointer-events:none;transition:opacity var(--med);text-align:center}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24"><path d="M3 11a9 9 0 0 1 15.5-5.5L21 8"/><path d="M21 3v5h-5"/><path d="M21 13a9 9 0 0 1-15.5 5.5L3 16"/><path d="M3 21v-5h5"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"/><circle cx="16" cy="7" r="2.5"/><circle cx="10" cy="17" r="2.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.5l-5.7 3 1.1-6.3L2.8 9.7l6.4-.9z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 13.5A8.5 8.5 0 1 1 10.5 3.5a6.5 6.5 0 0 0 10 10z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+</svg>
+
+<!-- หน้าแรก -->
+<main id="home" class="page">
+  <h1>อัดโชว์</h1>
+  <p class="lede">กดครั้งเดียว อัดยาวทั้งโชว์ แล้วแตะมาร์กชื่อเพลงไประหว่างเล่น</p>
+  <button class="go" id="openCam">เปิดกล้อง</button>
+  <ul class="ready" id="ready" aria-label="เช็กก่อนเล่น"></ul>
+
+  <div class="h2row"><h2>เซ็ตลิสต์คืนนี้</h2><span id="setCount"></span></div>
+  <div class="setlist">
+    <textarea id="setlist" spellcheck="false" aria-label="เซ็ตลิสต์ พิมพ์ชื่อเพลงบรรทัดละเพลง" placeholder="พิมพ์ชื่อเพลง บรรทัดละเพลง&#10;เรียงตามลำดับที่จะเล่น"></textarea>
+  </div>
+  <p class="hint">ไม่ใส่ก็ได้ ระหว่างอัดพิมพ์ชื่อเพลงเพิ่มหรือเลือกข้ามลำดับได้ตลอด</p>
+
+  <h2>วิดีโอที่อัดไว้</h2>
+  <ul class="lib" id="lib"></ul>
+  <p class="hint" id="libHint"></p>
+
+  <details class="logbox" id="logBox">
+    <summary>บันทึกเหตุขัดข้องของแอป</summary>
+    <pre id="logOut"></pre>
+    <div class="row"><button class="btn" id="logCopy">คัดลอก</button><button class="btn" id="logClear">ล้าง</button></div>
+  </details>
+</main>
+
+<!-- หน้ากล้อง -->
+<section id="cam" hidden>
+  <video id="vid" playsinline muted autoplay></video>
+
+  <header class="hud">
+    <div class="tc"><span id="tally"></span><span id="tcode">0:00:00</span><span id="recTag">พร้อม</span></div>
+    <div class="stats" id="stats"></div>
+    <div class="alerts" id="alerts" role="status"></div>
+  </header>
+
+  <div class="mid">
+    <div class="meters" aria-hidden="true">
+      <b id="clip">CLIP</b>
+      <div class="bar"><i id="mL"></i></div>
+      <div class="bar"><i id="mR"></i></div>
+    </div>
+    <div class="side">
+      <div id="gSee" class="off" hidden><b id="gSeeN">–</b><span id="gSeeT">กำลังโหลด</span></div>
+      <pre id="gDbg" hidden></pre>
+    </div>
+  </div>
+
+  <footer class="deck">
+    <div id="zoomWrap" hidden><span>ซูม</span><input type="range" id="zoom" aria-label="ซูม"></div>
+    <p class="idle idle-only" id="idleInfo"></p>
+    <div class="now rec-only" id="now"></div>
+
+    <div class="row idle-only">
+      <button class="btn" id="bBack"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span>กลับ</span></button>
+      <button class="btn" id="bFlip"><svg class="ic" aria-hidden="true"><use href="#i-flip"/></svg><span>สลับกล้อง</span></button>
+      <button class="recbtn" id="bRec" aria-label="เริ่มบันทึก"></button>
+      <button class="btn" id="bSet"><svg class="ic" aria-hidden="true"><use href="#i-set"/></svg><span>ตั้งค่า</span></button>
+    </div>
+
+    <button class="next rec-only" id="bNext">เริ่มเพลงใหม่</button>
+    <div class="row rec-only">
+      <button class="btn" id="bPick"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>เลือกเพลง</span></button>
+      <button class="btn" id="bBreak"><svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg><span>พัก</span></button>
+      <button class="btn" id="bStar"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span>เก็บเพลงนี้</span></button>
+    </div>
+    <div class="row rec-only">
+      <button class="btn" id="bDim"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><span id="bDimT">หรี่จอ</span></button>
+      <button class="btn stop" id="bStop"><svg class="ic fill" aria-hidden="true"><use href="#i-stop"/></svg><span id="bStopT">หยุดบันทึก</span></button>
+    </div>
+  </footer>
+
+  <div id="gHold" hidden><span id="gHoldT"></span><i id="gHoldB"></i></div>
+  <div id="gFlash" aria-hidden="true"></div>
+  <div id="gDot" hidden></div>
+</section>
+
+<!-- รายละเอียดวิดีโอ -->
+<section id="detail" class="page" hidden>
+  <button class="btn ghost" id="dBack" style="margin-left:-6px"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span>หน้าแรก</span></button>
+  <label class="lbl" for="dTitle">ชื่อโชว์</label>
+  <input class="title-in" id="dTitle" placeholder="เช่น ชื่อร้าน" maxlength="60" autocomplete="off">
+  <p class="meta" id="dMeta"></p>
+  <video id="dVid" controls playsinline hidden></video>
+
+  <h2>เลือกเพลงที่อยากเก็บ</h2>
+  <p class="hint" style="margin:0 0 8px">ทั้งโชว์ยังอยู่ในแอป ยังไม่ได้ลงเครื่อง ติ๊กเพลงที่อยากได้แล้วกดบันทึกด้านล่าง เพลงที่ติดดาวไว้ติ๊กมาให้แล้ว</p>
+  <div class="pickbar">
+    <button class="btn ghost" id="dAll">เลือกทั้งหมด</button>
+    <button class="btn ghost" id="dNone">ไม่เลือกเลย</button>
+  </div>
+  <ul class="marks" id="dMarks"></ul>
+
+  <details class="fold">
+    <summary>ปรับจุดตัด</summary>
+    <label class="field"><span>เผื่อภาพก่อนจุดที่กดเริ่มเพลง (กันกดช้า)</span>
+      <select id="dPre"><option value="0">ไม่เผื่อ</option><option value="3">3 วินาที</option><option value="5">5 วินาที</option><option value="10">10 วินาที</option><option value="20">20 วินาที</option></select></label>
+    <label class="lbl" for="dAddT" style="margin-bottom:4px">เพิ่มจุดตัดเอง พิมพ์เป็น นาที.วินาที</label>
+    <div class="typed">
+      <input id="dAddT" inputmode="decimal" autocomplete="off" placeholder="เช่น 12.30">
+      <button class="btn" id="dAdd">เพิ่มจุดตัด</button>
+    </div>
+  </details>
+
+  <div class="dbar">
+    <p class="status" id="dStatus" role="status" aria-live="polite"></p>
+    <button class="btn solid" id="dSaveSel">บันทึกเพลงที่เลือก</button>
+  </div>
+
+  <details class="fold">
+    <summary>ตัวเลือกอื่น</summary>
+    <div class="actions">
+      <button class="btn" id="dSave">บันทึกทั้งโชว์เป็นไฟล์เดียว</button>
+      <button class="btn" id="dCopy">คัดลอกรายชื่อเพลงพร้อมเวลา</button>
+      <button class="btn" id="dTxt">บันทึกรายชื่อเพลงเป็นไฟล์ .txt</button>
+    </div>
+    <p class="hint" style="margin-bottom:12px">รายชื่อเพลงพร้อมเวลา วางในคำอธิบาย YouTube แล้วจะกลายเป็นตอนให้กดข้ามไปแต่ละเพลงได้</p>
+  </details>
+
+  <h2>คืนพื้นที่เครื่อง</h2>
+  <p class="hint" style="margin:0 0 12px">บันทึกเพลงที่อยากได้ลงเครื่องให้ครบก่อน แล้วลบโชว์นี้ออกจากแอป ลบแล้วกู้คืนไม่ได้</p>
+  <button class="btn danger" id="dDel">ลบโชว์นี้ออกจากแอป</button>
+</section>
+
+<!-- เลือกเพลง -->
+<div class="sheet" id="songSheet" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="songH">
+    <div class="box-head"><h3 id="songH">เพลงที่กำลังเริ่ม</h3><button class="btn ghost" id="bCloseSong" aria-label="ปิด"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="box-body">
+      <p>จะมาร์กที่เวลา <b id="sheetT"></b> คือตอนที่เปิดหน้านี้ ไม่ต้องรีบพิมพ์</p>
+      <div class="typed">
+        <input id="newSong" placeholder="พิมพ์ชื่อเพลง" aria-label="ชื่อเพลง" autocomplete="off" enterkeyhint="done">
+        <button class="btn solid" id="bTyped">มาร์ก</button>
+      </div>
+      <div id="songList"></div>
+      <button class="btn" id="bUndo" style="width:100%;margin-top:8px">ยกเลิกมาร์กล่าสุด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ตั้งค่า -->
+<div class="sheet" id="setSheet" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="setH">
+    <div class="box-head"><h3 id="setH">ตั้งค่า</h3><button class="btn solid" id="bCloseSet">เสร็จ</button></div>
+    <div class="box-body">
+      <div class="seg" role="tablist">
+        <button role="tab" id="tabA" aria-selected="true" aria-controls="setA">ภาพและเสียง</button>
+        <button role="tab" id="tabB" aria-selected="false" aria-controls="setB">สั่งด้วยนิ้ว</button>
+      </div>
+
+      <div id="setA" role="tabpanel" aria-labelledby="tabA">
+        <label class="field"><span>ความละเอียด</span>
+          <select id="sRes"><option value="720">HD 720p</option><option value="1080">Full HD 1080p (แนะนำ)</option><option value="2160">4K (เครื่องอาจร้อนถ้าอัดยาว)</option></select></label>
+        <label class="field"><span>เฟรมเรต</span>
+          <select id="sFps"><option value="30">30 เฟรม/วินาที</option><option value="60">60 เฟรม/วินาที</option></select></label>
+        <label class="field"><span>คุณภาพภาพ</span>
+          <select id="sQ"><option value="0.6">ประหยัดพื้นที่</option><option value="1">มาตรฐาน</option><option value="1.6">คมชัดสูง</option></select></label>
+        <label class="field"><span>ชนิดไฟล์</span><select id="sFmt"></select></label>
+        <label class="field"><span>ไมโครโฟน</span><select id="sMic"></select></label>
+        <label class="field"><span>ระดับเสียง</span>
+          <select id="sAud"><option value="0">ดนตรี ไม่ปรับแต่ง</option><option value="1">ปรับระดับอัตโนมัติ (ลองใช้ถ้าขึ้นเสียงแตกบ่อย)</option></select></label>
+        <div id="est" role="status"></div>
+        <p style="margin-top:4px">เปลี่ยนแล้วภาพในจอจะอัปเดตทันที</p>
+      </div>
+
+      <div id="setB" role="tabpanel" aria-labelledby="tabB" hidden>
+        <label class="chk main"><input type="checkbox" id="gOn"> เปิดตัวอ่านนิ้ว</label>
+        <p class="status" id="gStat" role="status"></p>
+        <div id="gOpts">
+          <ol class="steps">
+            <li>ชูมือให้กล้องเห็นทั้งมือ หันฝ่ามือหรือหลังมือเข้ากล้อง ชี้ขึ้นหรือเอียงก็ได้ (ยกเว้นชี้ลงพื้น)</li>
+            <li>ค้างไว้ราว 1 วินาที (เริ่มอัดค้าง 2 วินาที) จอจะกะพริบสีเมื่อรับคำสั่ง</li>
+            <li>เอามือลงก่อน แล้วจึงสั่งครั้งต่อไป</li>
+          </ol>
+          <h4>ชูกี่นิ้ว ทำอะไร</h4>
+          <div id="gMapBox"></div>
+          <h4>ตั้งกล้องไกล</h4>
+          <p>แตะบนภาพตรงที่จะชูมือ แอปจะซูมอ่านเฉพาะบริเวณนั้น อ่านได้ไกลขึ้นและไม่สนมือคนอื่น</p>
+          <button class="btn" id="gClear" style="width:100%">ล้างบริเวณที่เลือก (อ่านทั้งภาพ)</button>
+          <h4>อื่นๆ</h4>
+          <label class="chk"><input type="checkbox" id="gTorch"> กะพริบไฟแฟลชเมื่อรับคำสั่ง (กล้องหลัง)</label>
+          <label class="chk"><input type="checkbox" id="gDbgOn"> แสดงค่าตรวจสอบบนจอ (ไว้ส่งภาพมาปรับจูน)</label>
+          <p>กล่องด้านขวาของจอกล้องบอกตลอดว่าเห็นกี่นิ้ว ใช้ลองระยะก่อนเล่นจริง เปิดใช้ครั้งแรกต้องมีเน็ต</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const pad = n => String(n).padStart(2, '0');
+function fmtT(s, forceH){
+  s = Math.max(0, Math.floor(s));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return (h || forceH) ? h + ':' + pad(m) + ':' + pad(x) : pad(m) + ':' + pad(x);
+}
+function fmtB(b){ return b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : Math.round(b / 1e6) + ' MB'; }
+function fmtDur(sec){
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
+  return h ? h + ' ชม. ' + m + ' นาที' : m + ' นาที';
+}
+let toastTimer;
+function toast(msg, ms){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms || 2600);
+}
+const ico = (n, c) => '<svg class="ic' + (c || '') + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>';
+function buzz(n){ try { navigator.vibrate && navigator.vibrate(n || 30); } catch(e){} }
+
+/* บันทึกเหตุขัดข้อง: ข้อผิดพลาดทุกอย่างถูกดักไว้ที่นี่ ไม่ปล่อยให้แอปค้าง */
+const LOG = LS.get('as_log', []);
+function log(msg){
+  try {
+    const d = new Date();
+    LOG.push(d.getDate() + '/' + (d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + '  ' + String(msg).slice(0, 220));
+    while (LOG.length > 40) LOG.shift();
+    LS.set('as_log', LOG);
+  } catch(e){}
+}
+window.addEventListener('error', e => log('error: ' + e.message + ' @' + e.lineno));
+window.addEventListener('unhandledrejection', e => {
+  const r = e.reason; log('reject: ' + ((r && (r.message || r.name)) || r)); e.preventDefault();
+});
+
+/* ---------- ที่เก็บข้อมูล (IndexedDB) ---------- */
+let dbp;
+function db(){
+  return dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('at-show', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('sessions', { keyPath: 'id' });
+      d.createObjectStore('chunks', { keyPath: ['sid', 'seq'] });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+}
+async function tx(store, mode, fn){
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction(store, mode);
+    let out;
+    const rq = fn(t.objectStore(store));
+    if (rq) rq.onsuccess = () => { out = rq.result; };
+    t.oncomplete = () => res(out);
+    t.onerror = t.onabort = () => rej(t.error || new Error('db'));
+  });
+}
+const sesRange = id => IDBKeyRange.bound([id, 0], [id, Infinity]);
+const putSession = s => tx('sessions', 'readwrite', st => { st.put(s); });
+const getSession = id => tx('sessions', 'readonly', st => st.get(id));
+const getSessions = () => tx('sessions', 'readonly', st => st.getAll());
+async function delSession(id){
+  await tx('chunks', 'readwrite', st => { st.delete(sesRange(id)); });
+  await tx('sessions', 'readwrite', st => { st.delete(id); });
+}
+
+/* ---------- ค่าตั้ง ---------- */
+const cfg = Object.assign({ res: 1080, fps: 30, q: 1, fmt: '', mic: '', cam: '', facing: 'environment', agc: false, gest: false, gTorch: false, anchor: null, gMap: { 1: 'next', 2: 'star', 3: 'break', 4: 'undo', 5: 'start' } }, LS.get('as_cfg', {}));
+const saveCfg = () => LS.set('as_cfg', cfg);
+let setlist = [];
+function readSetlist(){
+  setlist = $('setlist').value.split('\n').map(s => s.trim()).filter(Boolean);
+  LS.set('as_setlist', $('setlist').value);
+  $('setCount').textContent = setlist.length ? setlist.length + ' เพลง' : '';
+}
+$('setlist').value = LS.get('as_setlist', '');
+$('setlist').addEventListener('input', readSetlist);
+readSetlist();
+
+const FORMATS = [
+  { id: 'mp4h264', label: 'MP4 H.264 เปิดได้ทุกเครื่อง', ext: 'mp4',
+    mimes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs="avc1.640033,mp4a.40.2"', 'video/mp4'] },
+  { id: 'mp4hevc', label: 'MP4 HEVC ภาพคมกว่าที่ขนาดเท่ากัน', ext: 'mp4',
+    mimes: ['video/mp4;codecs=hvc1,mp4a.40.2', 'video/mp4;codecs="hvc1.1.6.L153.B0,mp4a.40.2"'] },
+  { id: 'webm', label: 'WebM VP9 ตัดแยกเพลงไม่ได้', ext: 'webm',
+    mimes: ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'] }
+];
+function supported(){
+  if (!window.MediaRecorder) return [];
+  return FORMATS.map(f => Object.assign({}, f, { mime: f.mimes.find(m => { try { return MediaRecorder.isTypeSupported(m); } catch(e){ return false; } }) }))
+                .filter(f => f.mime);
+}
+function curFormat(){ const s = supported(); return s.find(f => f.id === cfg.fmt) || s[0]; }
+function bitrate(){
+  const base = ({ 720: 5e6, 1080: 10e6, 2160: 32e6 })[cfg.res] || 10e6;
+  return Math.round(base * cfg.q * (cfg.fps > 30 ? 1.4 : 1));
+}
+const AUDIO_BPS = 256000;
+const bytesPerSec = () => (bitrate() + AUDIO_BPS) / 8;
+
+/* ---------- สลับหน้า ---------- */
+function show(name){
+  ['home', 'cam', 'detail'].forEach(n => { $(n).hidden = n !== name; });
+  window.scrollTo(0, 0);
+}
+
+/* ---------- กล้องและไมค์ ---------- */
+let stream = null, vTrack = null, aTrack = null;
+let actx = null, srcNode = null, anL = null, anR = null, mono = true;
+const mbuf = new Float32Array(1024);
+let devices = { v: [], a: [] };
+
+function stopStream(){
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = vTrack = aTrack = null; anL = anR = null;
+  if (srcNode) { try { srcNode.disconnect(); } catch(e){} srcNode = null; }
+}
+async function openCam(){
+  stopStream();
+  const H = cfg.res, W = ({ 720: 1280, 1080: 1920, 2160: 3840 })[H] || 1920;
+  const video = { width: { ideal: W }, height: { ideal: H }, frameRate: { ideal: cfg.fps } };
+  if (cfg.cam) video.deviceId = { exact: cfg.cam }; else video.facingMode = { ideal: cfg.facing };
+  // ปิดตัวตัดเสียงรบกวน/ปรับระดับอัตโนมัติ เพราะมันทำให้เสียงดนตรีเพี้ยน
+  const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: !!cfg.agc, channelCount: { ideal: 2 }, sampleRate: { ideal: 48000 } };
+  if (cfg.mic) audio.deviceId = { exact: cfg.mic };
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video, audio });
+  } catch (e) {
+    if (cfg.cam || cfg.mic) { cfg.cam = ''; cfg.mic = ''; saveCfg(); return openCam(); }
+    throw e;
+  }
+  vTrack = stream.getVideoTracks()[0];
+  aTrack = stream.getAudioTracks()[0];
+  const v = $('vid');
+  v.srcObject = stream;
+  v.play().catch(() => {});
+  const st = vTrack.getSettings();
+  v.style.transform = st.facingMode === 'user' ? 'scaleX(-1)' : '';
+  vTrack.onended = () => kick('video track ended');
+  if (aTrack) aTrack.onended = () => kick('audio track ended');
+  setupZoom();
+  setupMeter();
+  await refreshDevices();
+}
+function setupZoom(){
+  const wrap = $('zoomWrap'), z = $('zoom');
+  let caps = {};
+  try { caps = vTrack.getCapabilities ? vTrack.getCapabilities() : {}; } catch(e){}
+  if (caps.zoom && caps.zoom.max > caps.zoom.min) {
+    z.min = caps.zoom.min; z.max = caps.zoom.max; z.step = caps.zoom.step || 0.1;
+    z.value = vTrack.getSettings().zoom || caps.zoom.min;
+    wrap.hidden = false;
+  } else wrap.hidden = true;
+}
+$('zoom').addEventListener('input', e => {
+  if (vTrack) vTrack.applyConstraints({ advanced: [{ zoom: Number(e.target.value) }] }).catch(() => {});
+});
+function setupMeter(){
+  if (!aTrack) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    actx.resume();
+    srcNode = actx.createMediaStreamSource(stream);
+    const sp = actx.createChannelSplitter(2);
+    srcNode.connect(sp);
+    anL = actx.createAnalyser(); anR = actx.createAnalyser();
+    anL.fftSize = anR.fftSize = 1024;
+    sp.connect(anL, 0); sp.connect(anR, 1);
+    mono = (aTrack.getSettings().channelCount || 1) < 2;
+  } catch (e) { anL = anR = null; }
+}
+async function refreshDevices(){
+  try {
+    const list = await navigator.mediaDevices.enumerateDevices();
+    devices.v = list.filter(d => d.kind === 'videoinput');
+    devices.a = list.filter(d => d.kind === 'audioinput');
+  } catch(e){}
+}
+
+/* มิเตอร์เสียง */
+let dL = 0, dR = 0, clipUntil = 0, clipCount = 0, lastClip = 0;
+function peakOf(an){
+  an.getFloatTimeDomainData(mbuf);
+  let p = 0;
+  for (let i = 0; i < mbuf.length; i++) { const a = Math.abs(mbuf[i]); if (a > p) p = a; }
+  return p;
+}
+function meterStep(){
+  if (anL && !$('cam').hidden) {
+    const pl = peakOf(anL), pr = mono ? pl : peakOf(anR);
+    const toPct = p => Math.min(1, Math.max(0, (20 * Math.log10(p || 1e-6) + 60) / 60));
+    dL = Math.max(toPct(pl), dL - 0.02); dR = Math.max(toPct(pr), dR - 0.02);
+    $('mL').style.height = (100 - dL * 100) + '%';
+    $('mR').style.height = (100 - dR * 100) + '%';
+    const now = performance.now();
+    if (Math.max(pl, pr) >= 0.985) {
+      clipUntil = now + 1500;
+      if (rec && now - lastClip > 400) clipCount++;
+      lastClip = now;
+    }
+    $('clip').classList.toggle('on', now < clipUntil);
+  }
+}
+function meterLoop(){ try { meterStep(); } catch(e){} requestAnimationFrame(meterLoop); }
+requestAnimationFrame(meterLoop);
+
+/* จอไม่ดับ */
+let wl = null;
+async function wakeOn(){
+  try {
+    if ('wakeLock' in navigator && !wl) {
+      wl = await navigator.wakeLock.request('screen');
+      wl.addEventListener('release', () => { wl = null; });
+    }
+  } catch(e){ wl = null; }
+}
+function wakeOff(){ try { wl && wl.release(); } catch(e){} wl = null; }
+
+let battery = null;
+try { navigator.getBattery && navigator.getBattery().then(b => { battery = b; }).catch(() => {}); } catch(e){}
+let freeBytes = null, lastEst = 0;
+async function estimate(){
+  try {
+    const e = await navigator.storage.estimate();
+    freeBytes = Math.max(0, (e.quota || 0) - (e.usage || 0));
+  } catch(e){ freeBytes = null; }
+}
+
+/* ---------- การบันทึก ---------- */
+let rec = null, ses = null, t0 = 0, seq = 0, markN = 0, played = new Set();
+let pend = new Set(), win = [], lastSave = 0, diskFailed = false, lowWarned = false;
+let userStop = false, resuming = false, cancelResume = false, lastChunkAt = 0, kicked = false, quickFails = 0, maxGap = 0;
+const elapsed = () => (performance.now() - t0) / 1000;
+function tracksLive(){ return !!stream && !!vTrack && vTrack.readyState === 'live' && (!aTrack || aTrack.readyState === 'live'); }
+
+function preflight(){
+  const w = [];
+  if (battery && !battery.charging && battery.level < 0.3) w.push('แบตเหลือ ' + Math.round(battery.level * 100) + '% ควรเสียบชาร์จ');
+  if (freeBytes != null && freeBytes / bytesPerSec() < 3600) w.push('พื้นที่อัดได้ไม่ถึง 1 ชั่วโมง');
+  if (w.length) toast(w.join(' และ'), 6000);
+}
+// opts.prev = ส่วนก่อนหน้าของโชว์เดียวกัน (กรณีอัดต่ออัตโนมัติ), opts.auto = ไม่ได้เริ่มจากการแตะปุ่ม
+async function startRec(opts){
+  opts = opts || {};
+  if (rec) return false;
+  if (!tracksLive()) await openCam();
+  const f = curFormat();
+  if (!f) { toast('เบราว์เซอร์นี้อัดวิดีโอไม่ได้ ให้เปิดด้วย Chrome', 5000); return false; }
+  if (!opts.auto) {
+    // เต็มจอและล็อกแนวจอ เพื่อไม่ให้ภาพพลิกกลางโชว์
+    try {
+      const p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      if (p && p.then) p.then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock(screen.orientation.type)).catch(() => {});
+    } catch(e){}
+    preflight();
+  }
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch(e){}
+  readSetlist();
+  const st = vTrack.getSettings(), prev = opts.prev;
+  const s = { id: Date.now(), title: prev ? (prev.title || '') : '', part: prev ? (prev.part || 1) + 1 : 1,
+              mime: f.mime.split(';')[0], ext: f.ext, marks: [], bytes: 0, dur: 0, done: false, touch: Date.now(),
+              w: st.width, h: st.height, played: prev ? (prev.played || []) : [] };
+  let r;
+  try {
+    r = new MediaRecorder(stream, { mimeType: f.mime, videoBitsPerSecond: bitrate(), audioBitsPerSecond: AUDIO_BPS, videoKeyFrameIntervalDuration: 2000 });
+  } catch (e) {
+    log('MediaRecorder: ' + (e && e.message));
+    if (!opts.auto) toast('เริ่มบันทึกไม่ได้ ลองเปลี่ยนชนิดไฟล์หรือลดความละเอียดในตั้งค่า', 5000);
+    return false;
+  }
+  ses = s; rec = r; seq = 0; markN = 0; win = []; diskFailed = false; lowWarned = false;
+  played = new Set(s.played);
+  if (!prev) clipCount = 0;
+  userStop = false; kicked = false; maxGap = 0;
+  r.ondataavailable = e => { if (rec === r) onData(e); };
+  r.onstop = () => { if (rec === r) onStop(); };
+  r.onerror = ev => { log('recorder error: ' + ((ev.error && ev.error.name) || '')); kick('recorder error'); };
+  r.onstart = () => { t0 = performance.now(); };
+  t0 = performance.now(); lastSave = t0; lastChunkAt = t0;
+  try { r.start(2000); }
+  catch (e) { log('start: ' + (e && e.message)); rec = null; ses = null; return false; }
+  putSession(s).catch(() => {});
+  try { if (!history.state || !history.state.rec) history.pushState({ rec: 1 }, ''); } catch(e){}
+  $('cam').classList.add('rec');
+  wakeOn(); buzz(60);
+  tick();
+  return true;
+}
+function writeChunk(row, tries){
+  return tx('chunks', 'readwrite', st => { st.put(row); }).catch(err => {
+    if (tries > 0 && !(err && err.name === 'QuotaExceededError')) return sleep(300).then(() => writeChunk(row, tries - 1));
+    throw err;
+  });
+}
+function onData(e){
+  const s = ses;
+  if (!s || !e.data || !e.data.size) return;
+  const n = ++seq, tNow = performance.now();
+  if (n > 1 && tNow - lastChunkAt > maxGap) maxGap = tNow - lastChunkAt;   // เครื่องนี้ส่งข้อมูลห่างสุดแค่ไหน
+  s.bytes += e.data.size;
+  lastChunkAt = tNow;
+  win.push([lastChunkAt, e.data.size]);
+  const p = writeChunk({ sid: s.id, seq: n, blob: e.data }, 2)
+    .catch(err => {
+      if (diskFailed) return;
+      diskFailed = true;
+      log('write failed: ' + ((err && err.name) || err));
+      buzz([300, 100, 300]);
+      toast('พื้นที่เก็บข้อมูลไม่พอ หยุดบันทึกแล้ว ส่วนที่อัดไว้ยังอยู่', 8000);
+      stopRec();
+    });
+  pend.add(p);
+  p.then(() => pend.delete(p));
+}
+// ผู้ใช้กดหยุดเอง
+function stopRec(){
+  userStop = true;
+  if (!rec) { if (resuming) cancelResume = true; return; }
+  const r = rec;
+  try { if (r.state !== 'inactive') r.stop(); else onStop(); }
+  catch (e) { onStop(); }
+}
+// ตัวบันทึกค้างหรือกล้องหลุด: ปิดส่วนนี้ให้เรียบร้อยแล้วอัดต่อเป็นส่วนใหม่
+function kick(why){
+  if (!rec || kicked) return;
+  kicked = true; log(why);
+  const r = rec;
+  try { if (r.state !== 'inactive') r.stop(); } catch(e){}
+  setTimeout(() => { if (rec === r) onStop(); }, 2500);
+}
+async function onStop(){
+  const s = ses;
+  if (!s) return;
+  const byUser = userStop; userStop = false;
+  s.dur = elapsed(); s.touch = Date.now();
+  rec = null; ses = null;
+  await Promise.all(Array.from(pend));
+  s.done = true;
+  try { await putSession(s); } catch(e){}
+  if (!byUser && !diskFailed) {
+    quickFails = s.dur < 4 ? quickFails + 1 : 0;
+    if (quickFails <= 3) {
+      log('recording interrupted at ' + fmtT(s.dur, true) + ', auto resume');
+      buzz([150, 80, 150]);
+      toast('การบันทึกสะดุด กำลังอัดต่อให้อัตโนมัติ ส่วนที่อัดไว้ยังอยู่', 5000);
+      autoResume(s, 0);
+      return;
+    }
+  }
+  endShow(s);
+}
+function endShow(s){
+  resuming = false; cancelResume = false; quickFails = 0;
+  $('cam').classList.remove('rec', 'dim');
+  disarmStop();
+  closeSheets();
+  try { document.fullscreenElement && document.exitFullscreen().catch(() => {}); } catch(e){}
+  try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch(e){}
+  buzz(120);
+  stopStream(); wakeOff();
+  openDetail(s.id).catch(() => { show('home'); renderLib(); });
+}
+async function autoResume(prev, n){
+  resuming = true;
+  if (cancelResume) { endShow(prev); return; }
+  try {
+    if (!tracksLive()) await openCam();
+    const ok = await startRec({ prev, auto: true });
+    if (!ok) throw new Error('start failed');
+    resuming = false;
+    if (cancelResume) { cancelResume = false; stopRec(); return; }
+    toast('อัดต่อแล้ว เป็นไฟล์ส่วนที่ ' + ses.part, 4000);
+    if (cfg.gest) loadPose();
+  } catch (e) {
+    if (n === 0) log('resume: ' + ((e && (e.name || e.message)) || e));
+    if (n < 12 && !cancelResume) setTimeout(() => autoResume(prev, n + 1), 5000);
+    else { toast('อัดต่อไม่ได้ ส่วนที่อัดไว้ยังอยู่ครบ', 7000); endShow(prev); }
+  }
+}
+
+/* มาร์กเพลง */
+function nextIdx(){ for (let i = 0; i < setlist.length; i++) if (!played.has(i)) return i; return -1; }
+function mark(type, name, t, si){
+  if (!ses) return;
+  const m = { t: t == null ? elapsed() : t, type, name, n: ++markN };
+  if (si != null) m.si = si;
+  ses.marks.push(m);
+  ses.marks.sort((a, b) => a.t - b.t);
+  ses.played = Array.from(played);
+  putSession(ses).catch(() => {});
+  buzz(35);
+  const el = $('now'); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 120);
+  renderNow();
+}
+function nextSong(){
+  if (!ses) return;
+  const i = nextIdx();
+  if (i >= 0) { played.add(i); mark('song', setlist[i], null, i); }
+  else mark('song', 'เพลงที่ ' + (ses.marks.filter(m => m.type === 'song').length + 1));
+}
+function undoMark(){
+  if (!ses || !ses.marks.length) { toast('ยังไม่มีมาร์ก'); return; }
+  let k = 0;
+  ses.marks.forEach((m, i) => { if (m.n > ses.marks[k].n) k = i; });
+  const m = ses.marks.splice(k, 1)[0];
+  if (m.si != null) played.delete(m.si);
+  ses.played = Array.from(played);
+  putSession(ses).catch(() => {});
+  toast('ยกเลิกแล้ว: ' + m.name);
+  renderNow();
+}
+function currentMark(el){
+  let c = null;
+  for (const m of ses.marks) { if (m.t > el) break; if (m.type === 'song' || m.type === 'break') c = m; }
+  return c;
+}
+function renderNow(){
+  if (!ses) return;
+  const el = elapsed(), c = currentMark(el);
+  $('now').innerHTML = '<span>' + (c ? esc(c.name) : 'ยังไม่ได้มาร์กเพลง') + '</span>' + (c ? '<small>' + fmtT(el - c.t) + '</small>' : '');
+  const i = nextIdx();
+  $('bNext').textContent = i >= 0 ? 'เริ่มเพลง: ' + setlist[i] : 'เริ่มเพลงใหม่';
+}
+
+/* จอมอนิเตอร์ */
+let lastAlerts = '';
+function renderStats(){
+  const out = [], al = [], now = performance.now();
+  if (rec && ses) {
+    out.push('<span class="k">' + fmtB(ses.bytes) + '</span>');
+    while (win.length && now - win[0][0] > 10000) win.shift();
+    const span = Math.min(10, Math.max(2, elapsed()));
+    const bits = win.reduce((a, x) => a + x[1], 0) * 8;
+    out.push('<span>' + (bits / span / 1e6).toFixed(1) + ' Mbps</span>');
+  } else {
+    out.push('<span>ราว ' + (bytesPerSec() * 3600 / 1e9).toFixed(1) + ' GB ต่อชั่วโมง</span>');
+  }
+  if (vTrack) {
+    const st = vTrack.getSettings();
+    out.push('<span>' + st.width + '×' + st.height + ' ' + Math.round(st.frameRate || 0) + 'fps</span>');
+  }
+  const f = curFormat();
+  if (f) out.push('<span>' + (f.id === 'mp4hevc' ? 'HEVC' : f.id === 'webm' ? 'WebM' : 'MP4') + '</span>');
+  if (freeBytes != null) {
+    const left = freeBytes / bytesPerSec();
+    if (left < 900) al.push('<span class="bad">พื้นที่เหลือราว ' + fmtDur(left) + '</span>');
+    else if (left < 3600) al.push('<span class="w">พื้นที่เหลือราว ' + fmtDur(left) + '</span>');
+    else out.push('<span>อัดได้อีกราว ' + fmtDur(left) + '</span>');
+  }
+  if (battery) {
+    const pc = Math.round(battery.level * 100);
+    if (!battery.charging && pc <= 15) al.push('<span class="bad">แบตเหลือ ' + pc + '%</span>');
+    else if (!battery.charging && pc < 30) al.push('<span class="w">แบตเหลือ ' + pc + '% ควรเสียบชาร์จ</span>');
+    else out.push('<span>แบต ' + pc + '%' + (battery.charging ? ' ชาร์จอยู่' : '') + '</span>');
+  }
+  if (aTrack) out.push('<span>' + (mono ? 'เสียงโมโน' : 'เสียงสเตอริโอ') + '</span>');
+  const d = new Date();
+  out.push('<span>' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' น.</span>');
+  if (!wl) al.push('<span class="w">จออาจดับเอง อย่าปล่อยจอนิ่งนาน</span>');
+  if (rec && ses && ses.part > 1) al.push('<span class="w">ไฟล์ส่วนที่ ' + ses.part + '</span>');
+  if (resuming) al.push('<span class="bad">สะดุด กำลังอัดต่อ</span>');
+  if (rec && !document.hidden && now - lastChunkAt > 6000) al.push('<span class="w">รอข้อมูลจากกล้อง ' + Math.round((now - lastChunkAt) / 1000) + ' วิ</span>');
+  if (clipCount) al.push('<span class="bad">เสียงแตก ' + clipCount + ' ครั้ง</span>');
+  $('stats').innerHTML = out.join('');
+  const a = al.join('');
+  if (a !== lastAlerts) { lastAlerts = a; $('alerts').innerHTML = a; }       // เปลี่ยนเฉพาะเมื่อข้อความเปลี่ยน ไม่ให้ตัวอ่านจอพูดซ้ำ
+  $('recTag').textContent = resuming ? 'กำลังอัดต่อ' : rec ? 'กำลังอัด' : 'พร้อม';
+  if (!rec) $('idleInfo').textContent = 'แตะปุ่มแดงเพื่อเริ่มอัด' + (setlist.length ? '  เซ็ตลิสต์ ' + setlist.length + ' เพลง' : '');
+}
+function tick(){ try { tick0(); } catch (e) { log('tick: ' + (e && e.message)); } }
+function tick0(){
+  if ($('cam').hidden) return;
+  const now = performance.now();
+  if (rec && ses) {
+    $('tcode').textContent = fmtT(elapsed(), true);
+    renderNow();
+    if (now - lastSave > 4000) { lastSave = now; ses.dur = elapsed(); ses.touch = Date.now(); putSession(ses).catch(() => {}); }
+    // บางเครื่องส่งข้อมูลเป็นช่วงห่างๆ: ก้อนแรกรอได้ 25 วินาที หลังจากนั้นรอตามจังหวะจริงของเครื่อง อย่างน้อย 12 วินาที
+    const limit = seq === 0 ? 25000 : Math.max(12000, maxGap * 2.5 + 4000);
+    if (!document.hidden && now - lastChunkAt > limit) kick('no data for ' + Math.round(limit / 1000) + 's');
+    if (!lowWarned && freeBytes != null && freeBytes / bytesPerSec() < 600) { lowWarned = true; buzz([200, 100, 200]); toast('พื้นที่ใกล้เต็ม อัดได้อีกไม่ถึง 10 นาที', 8000); }
+  } else $('tcode').textContent = '0:00:00';
+  if (now - lastEst > 5000) { lastEst = now; estimate(); }
+  renderStats();
+}
+setInterval(tick, 500);
+
+/* ---------- ปุ่มหน้ากล้อง ---------- */
+async function enterCam(){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('หน้านี้เปิดกล้องไม่ได้ ต้องเปิดผ่านลิงก์เว็บแอป (https) ด้วย Chrome', 6000); return;
+  }
+  show('cam');
+  try {
+    await openCam();
+    wakeOn(); lastEst = 0; tick();
+    if (cfg.gest) loadPose();
+  } catch (e) {
+    show('home');
+    const n = e && e.name;
+    toast(n === 'NotAllowedError' ? 'ยังไม่ได้อนุญาตกล้องและไมค์ แตะรูปกุญแจบนแถบที่อยู่เว็บแล้วเปิดสิทธิ์'
+        : n === 'NotFoundError' ? 'ไม่พบกล้องหรือไมค์ในเครื่องนี้'
+        : n === 'NotReadableError' ? 'กล้องถูกแอปอื่นใช้อยู่ ปิดแอปนั้นแล้วลองใหม่'
+        : 'เปิดกล้องไม่ได้ ' + (n || ''), 6000);
+  }
+}
+function leaveCam(){
+  if (rec || resuming) return;
+  stopStream(); wakeOff();
+  show('home'); renderLib();
+}
+$('openCam').onclick = enterCam;
+$('bBack').onclick = leaveCam;
+$('bRec').onclick = () => { startRec().catch(e => { log('start: ' + (e && (e.name || e.message))); toast('เริ่มบันทึกไม่ได้ กล้องหรือไมค์ไม่พร้อม', 5000); }); };
+$('bNext').onclick = nextSong;
+$('bBreak').onclick = () => mark('break', 'พัก');
+$('bStar').onclick = () => { mark('star', 'ไฮไลต์'); toast('ติดดาวแล้ว เพลงนี้จะถูกติ๊กไว้ให้ตอนเลือกเก็บ', 1600); };
+$('bDim').onclick = () => {
+  const on = $('cam').classList.toggle('dim');
+  $('bDimT').textContent = on ? 'เปิดจอ' : 'หรี่จอ';
+  $('bDim').setAttribute('aria-pressed', on ? 'true' : 'false');
+};
+let stopArm = null;
+function disarmStop(){
+  clearTimeout(stopArm); stopArm = null;
+  $('bStop').classList.remove('armed'); $('bStopT').textContent = 'หยุดบันทึก';
+  $('bDimT').textContent = 'หรี่จอ';
+}
+$('bStop').onclick = () => {
+  if (stopArm) { stopRec(); return; }
+  $('bStop').classList.add('armed'); $('bStopT').textContent = 'แตะอีกครั้งเพื่อหยุด';
+  stopArm = setTimeout(() => { stopArm = null; $('bStop').classList.remove('armed'); $('bStopT').textContent = 'หยุดบันทึก'; }, 3000);
+};
+$('bFlip').onclick = async () => {
+  if (rec || resuming) return;
+  cfg.anchor = null;
+  await refreshDevices();
+  const side = d => /back|rear|environment/i.test(d.label) ? 0 : /front|user/i.test(d.label) ? 1 : 2;
+  const list = devices.v.slice().sort((a, b) => side(a) - side(b));
+  const thName = d => {
+    const k = side(d), same = list.filter(x => side(x) === k);
+    const base = k === 0 ? 'กล้องหลัง' : k === 1 ? 'กล้องหน้า' : 'กล้อง';
+    return same.length > 1 ? base + ' มุมที่ ' + (same.indexOf(d) + 1) + ' จาก ' + same.length : base;
+  };
+  try {
+    if (list.length < 2 || !list[0].deviceId) {
+      cfg.cam = ''; cfg.facing = cfg.facing === 'user' ? 'environment' : 'user';
+      saveCfg(); await openCam(); return;
+    }
+    const cur = vTrack ? vTrack.getSettings().deviceId : '';
+    const i = list.findIndex(d => d.deviceId === cur);
+    const n = list[(i + 1) % list.length];
+    cfg.cam = n.deviceId; saveCfg();
+    await openCam();
+    toast(thName(n), 1800);
+  } catch (e) { toast('สลับกล้องไม่ได้'); }
+};
+
+/* เลือกเพลง */
+let sheetT = 0;
+function closeSheets(){ $('songSheet').hidden = true; $('setSheet').hidden = true; }
+$('bPick').onclick = () => {
+  if (!ses) return;
+  sheetT = elapsed();
+  $('sheetT').textContent = fmtT(sheetT, true);
+  const box = $('songList'); box.innerHTML = '';
+  setlist.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.className = 'pick' + (played.has(i) ? ' done' : '');
+    b.textContent = name;
+    b.onclick = () => { played.add(i); mark('song', name, sheetT, i); closeSheets(); };
+    box.appendChild(b);
+  });
+  $('newSong').value = '';
+  $('songSheet').hidden = false;
+};
+function markTyped(){
+  const name = $('newSong').value.trim();
+  if (!name) { $('newSong').focus(); return; }
+  mark('song', name, sheetT); closeSheets();
+}
+$('bTyped').onclick = markTyped;
+$('newSong').addEventListener('keydown', e => { if (e.key === 'Enter') markTyped(); });
+$('bUndo').onclick = () => { undoMark(); closeSheets(); };
+$('bCloseSong').onclick = closeSheets;
+document.querySelectorAll('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s) closeSheets(); }));
+
+/* ตั้งค่า */
+function fillSettings(){
+  $('sRes').value = String(cfg.res); $('sFps').value = String(cfg.fps); $('sQ').value = String(cfg.q); $('sAud').value = cfg.agc ? '1' : '0';
+  const fs = supported();
+  $('sFmt').innerHTML = fs.map(f => '<option value="' + f.id + '">' + esc(f.label) + '</option>').join('') || '<option value="">เบราว์เซอร์นี้อัดไม่ได้</option>';
+  const cf = curFormat(); if (cf) $('sFmt').value = cf.id;
+  $('sMic').innerHTML = '<option value="">ไมค์ที่เครื่องเลือกให้</option>' +
+    devices.a.filter(d => d.deviceId && d.deviceId !== 'default').map((d, i) => '<option value="' + esc(d.deviceId) + '">' + esc(d.label || 'ไมค์ ' + (i + 1)) + '</option>').join('');
+  $('sMic').value = cfg.mic; if ($('sMic').value !== cfg.mic) $('sMic').value = '';
+  $('gOn').checked = !!cfg.gest; $('gTorch').checked = !!cfg.gTorch; $('gDbgOn').checked = !!cfg.gDbg;
+  $('gOpts').classList.toggle('off', !cfg.gest);
+  for (let n = 1; n <= 5; n++) $('gM' + n).value = cfg.gMap[n] || 'none';
+  showEst();
+}
+function showEst(){ $('est').textContent = 'ราว ' + (bytesPerSec() * 3600 / 1e9).toFixed(1) + ' GB ต่อชั่วโมง'; }
+$('bSet').onclick = async () => { if (rec) return; await refreshDevices(); fillSettings(); $('setSheet').hidden = false; };
+$('bCloseSet').onclick = closeSheets;
+function setTab(b){
+  $('tabA').setAttribute('aria-selected', b ? 'false' : 'true'); $('tabB').setAttribute('aria-selected', b ? 'true' : 'false');
+  $('setA').hidden = !!b; $('setB').hidden = !b;
+}
+$('tabA').onclick = () => setTab(false);
+$('tabB').onclick = () => setTab(true);
+async function applySettings(reopen){
+  cfg.res = Number($('sRes').value); cfg.fps = Number($('sFps').value); cfg.q = Number($('sQ').value);
+  cfg.fmt = $('sFmt').value; cfg.mic = $('sMic').value; cfg.agc = $('sAud').value === '1';
+  saveCfg(); showEst();
+  if (reopen && !rec) { try { await openCam(); } catch(e){ toast('เครื่องนี้ใช้ค่านี้ไม่ได้'); } }
+  renderStats();
+}
+['sRes', 'sFps', 'sMic', 'sAud'].forEach(id => $(id).addEventListener('change', () => applySettings(true)));
+['sQ', 'sFmt'].forEach(id => $(id).addEventListener('change', () => applySettings(false)));
+
+/* กันออกจากหน้าโดยไม่ตั้งใจ */
+window.addEventListener('beforeunload', e => { if (rec) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('popstate', () => {
+  if (rec) { try { history.pushState({ rec: 1 }, ''); } catch(e){} toast('กำลังบันทึกอยู่ กดหยุดบันทึกก่อนถึงจะออกได้'); }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (!$('cam').hidden) wakeOn();
+    if (rec) { lastChunkAt = performance.now(); toast('กลับมาแล้ว ช่วงที่ออกจากแอปภาพอาจขาดหาย', 4000); if (!tracksLive()) kick('tracks lost in background'); }
+  } else if (rec) {
+    mark('warn', 'ออกจากหน้าแอป ภาพช่วงนี้อาจขาด');
+  }
+});
+
+/* ---------- คลังวิดีโอ ---------- */
+function sesName(s){
+  const d = new Date(s.id);
+  const when = d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  return { when, name: (s.title || 'โชว์ ' + when) + (s.part > 1 ? ' ส่วนที่ ' + s.part : '') };
+}
+async function renderReady(){
+  await estimate();
+  const rows = [];
+  if (freeBytes != null) {
+    const left = freeBytes / bytesPerSec(), ok = left >= 3600;
+    rows.push([ok, ok ? 'พร้อม' : 'ควรเช็ก', 'พื้นที่อัดได้ราว ' + fmtDur(left) + (ok ? '' : ' ลบวิดีโอเก่าหรือลดคุณภาพในตั้งค่า')]);
+  }
+  if (battery) {
+    const pc = Math.round(battery.level * 100), ok = battery.charging || pc >= 30;
+    rows.push([ok, ok ? 'พร้อม' : 'ควรเช็ก', 'แบต ' + pc + '%' + (battery.charging ? ' กำลังชาร์จ' : ok ? '' : ' เสียบชาร์จก่อนอัดยาว')]);
+  }
+  rows.push([null, 'อย่าลืม', 'เปิดโหมดห้ามรบกวน กันสายเข้าทำให้กล้องหลุด']);
+  $('ready').innerHTML = rows.map(r => '<li class="' + (r[0] === null ? '' : r[0] ? 'ok' : 'warn') + '"><b>' + r[1] + '</b><span>' + esc(r[2]) + '</span></li>').join('');
+}
+async function renderLib(){
+  renderReady().catch(() => {});
+  let list = [];
+  try { list = (await getSessions()) || []; } catch(e){}
+  list = list.filter(s => !ses || s.id !== ses.id).sort((a, b) => b.id - a.id);
+  const ul = $('lib'); ul.innerHTML = '';
+  if (!list.length) { ul.innerHTML = '<li class="empty">ยังไม่มีวิดีโอ กดเปิดกล้องเพื่อเริ่มอัดโชว์แรก</li>'; $('libHint').textContent = ''; return; }
+  let total = 0;
+  list.forEach(s => {
+    total += s.bytes || 0;
+    const n = sesName(s);
+    const songs = s.marks.filter(m => m.type === 'song').length;
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.innerHTML = '<div><b>' + esc(n.name) + '</b><span>' + esc(n.when) + '  ยาว ' + fmtT(s.dur, true) + '  ' + fmtB(s.bytes) + '  ' + songs + ' เพลง</span>' +
+      (s.done && !s.crashed ? '' : '<span class="warn">ปิดไม่สมบูรณ์ กู้ส่วนที่อัดไว้ให้แล้ว</span>') + '</div>' + ico('go');
+    b.onclick = () => openDetail(s.id);
+    li.appendChild(b); ul.appendChild(li);
+  });
+  $('libHint').textContent = 'วิดีโอในแอปใช้พื้นที่รวม ' + fmtB(total) + ' บันทึกลงเครื่องแล้วลบออกจากแอปเพื่อคืนพื้นที่';
+}
+
+/* ---------- อ่านโครงไฟล์ MP4 เพื่อตัดเป็นช่วงโดยไม่ต้องเข้ารหัสใหม่ ---------- */
+async function rd(blob, pos, len){
+  return new DataView(await blob.slice(pos, Math.min(blob.size, pos + len)).arrayBuffer());
+}
+const fourcc = (dv, o) => String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
+function boxAt(dv, o, limit){
+  if (o + 8 > dv.byteLength) return null;
+  let size = dv.getUint32(o), hdr = 8;
+  const type = fourcc(dv, o + 4);
+  if (size === 1) { if (o + 16 > dv.byteLength) return null; size = Number(dv.getBigUint64(o + 8)); hdr = 16; }
+  else if (size === 0) size = limit - o;
+  return { type, size, hdr };
+}
+function kids(dv, start, end){
+  const out = []; let o = start;
+  end = Math.min(end, dv.byteLength);
+  while (o + 8 <= end) {
+    const b = boxAt(dv, o, end);
+    if (!b || b.size < 8 || o + b.size > end) break;
+    out.push({ type: b.type, body: o + b.hdr, end: o + b.size });
+    o += b.size;
+  }
+  return out;
+}
+function parseMoov(dv){
+  const tracks = {}, top = boxAt(dv, 0, dv.byteLength);
+  kids(dv, top.hdr, top.size).filter(k => k.type === 'trak').forEach(k => {
+    let id = 0, ts = 0, hd = '';
+    kids(dv, k.body, k.end).forEach(a => {
+      if (a.type === 'tkhd') id = dv.getUint32(a.body + (dv.getUint8(a.body) === 1 ? 20 : 12));
+      if (a.type === 'mdia') kids(dv, a.body, a.end).forEach(m => {
+        if (m.type === 'mdhd') ts = dv.getUint32(m.body + (dv.getUint8(m.body) === 1 ? 20 : 12));
+        if (m.type === 'hdlr') hd = fourcc(dv, m.body + 8);
+      });
+    });
+    if (id && ts) tracks[id] = { ts, hd };
+  });
+  return tracks;
+}
+function parseMoof(dv){
+  const out = [], top = boxAt(dv, 0, dv.byteLength);
+  kids(dv, top.hdr, top.size).filter(k => k.type === 'traf').forEach(k => {
+    const tr = { id: 0, at: -1, v: 0, base: 0n, bdo: -1, dur: 0, dsd: -1 };
+    kids(dv, k.body, k.end).forEach(a => {
+      if (a.type === 'tfhd') {
+        const fl = dv.getUint32(a.body) & 0xffffff; let o = a.body + 8;
+        tr.id = dv.getUint32(a.body + 4);
+        if (fl & 1) { tr.bdo = o; o += 8; }
+        if (fl & 2) o += 4;
+        if (fl & 8) tr.dsd = dv.getUint32(o);
+      }
+      if (a.type === 'trun') {                            // รวมความยาวของทุกเฟรมในท่อนนี้
+        const fl = dv.getUint32(a.body) & 0xffffff, n = dv.getUint32(a.body + 4);
+        let o = a.body + 8; if (fl & 1) o += 4; if (fl & 4) o += 4;
+        const per = ((fl & 0x100) ? 4 : 0) + ((fl & 0x200) ? 4 : 0) + ((fl & 0x400) ? 4 : 0) + ((fl & 0x800) ? 4 : 0);
+        if (fl & 0x100) { for (let i = 0; i < n && o + i * per + 4 <= a.end; i++) tr.dur += dv.getUint32(o + i * per); }
+        else if (tr.dsd >= 0) tr.dur += n * tr.dsd;
+        else tr.dur = NaN;
+      }
+      if (a.type === 'tfdt') {
+        tr.v = dv.getUint8(a.body); tr.at = a.body + 4;
+        tr.base = tr.v === 1 ? dv.getBigUint64(tr.at) : BigInt(dv.getUint32(tr.at));
+      }
+    });
+    out.push(tr);
+  });
+  return out;
+}
+// สร้างสารบัญ: ไฟล์แบ่งเป็นท่อนสั้นๆ (ราว 2 วินาที) แต่ละท่อนเริ่มที่เวลาไหน อยู่ตรงไหนของไฟล์
+async function buildIndex(blob, onProg){
+  const size = blob.size, WIN = 24576, fr = [];
+  let pos = 0, tracks = null, init = 0, hasVideoTrack = false;
+  while (pos + 8 <= size) {
+    let dv = await rd(blob, pos, WIN);
+    const b = boxAt(dv, 0, size - pos);
+    if (!b || b.size < 8) break;
+    if (b.type === 'moov') {
+      if (b.size > dv.byteLength) dv = await rd(blob, pos, b.size);
+      if (dv.byteLength < b.size) break;
+      tracks = parseMoov(dv);
+      hasVideoTrack = Object.keys(tracks).some(k => tracks[k].hd === 'vide');
+    } else if (b.type === 'moof') {
+      if (!tracks) break;
+      if (b.size + 16 > dv.byteLength) dv = await rd(blob, pos, b.size + 16);
+      if (dv.byteLength < b.size) break;
+      const trs = parseMoof(new DataView(dv.buffer, 0, b.size));
+      const nb = boxAt(dv, b.size, size - pos);
+      const end = pos + b.size + (nb && nb.type === 'mdat' ? nb.size : 0);
+      if (end > size) break;                       // ท่อนสุดท้ายเขียนไม่ครบ (แอปปิดกะทันหัน) ตัดทิ้ง
+      const vt = trs.find(t => tracks[t.id] && tracks[t.id].hd === 'vide');
+      const ref = vt || trs.find(t => tracks[t.id]);
+      if (ref) {
+        if (!fr.length) init = pos;
+        fr.push([Number(ref.base) / tracks[ref.id].ts, pos, b.size, end, (vt || !hasVideoTrack) ? 1 : 0]);
+        if (onProg && fr.length % 40 === 0) onProg(Math.round(pos / size * 100));
+      }
+      pos = end; continue;
+    }
+    pos += b.size;
+  }
+  return { fr, tracks: tracks || {}, init, t0: fr.length ? fr[0][0] : 0 };
+}
+// หัวไฟล์ที่ Chrome เขียนไว้บอกความยาวแค่ท่อนแรก (ราว 2 วินาที) แอปเล่นวิดีโอเลยโชว์ความยาวผิด: เขียนความยาวจริงทับ
+function patchInit(buf, sec){
+  const dv = new DataView(buf);
+  const setDur = (off, v1, val) => {
+    val = Math.max(0, Math.round(val));
+    if (v1) dv.setBigUint64(off, BigInt(val)); else dv.setUint32(off, Math.min(val, 0xffffffff));
+  };
+  const isV1 = body => dv.getUint8(body) === 1;
+  let o = 0;
+  while (o + 8 <= dv.byteLength) {
+    const b = boxAt(dv, o, dv.byteLength);
+    if (!b || b.size < 8) break;
+    if (b.type === 'moov') {
+      const ks = kids(dv, o + b.hdr, o + b.size);
+      let mts = 1000;
+      const mv = ks.find(k => k.type === 'mvhd');
+      if (mv) { const v1 = isV1(mv.body); mts = dv.getUint32(mv.body + (v1 ? 20 : 12)); setDur(mv.body + (v1 ? 24 : 16), v1, sec * mts); }
+      ks.forEach(k => {
+        if (k.type === 'trak') kids(dv, k.body, k.end).forEach(a => {
+          if (a.type === 'tkhd') { const v1 = isV1(a.body); setDur(a.body + (v1 ? 28 : 20), v1, sec * mts); }
+          if (a.type === 'mdia') kids(dv, a.body, a.end).forEach(m => {
+            if (m.type === 'mdhd') { const v1 = isV1(m.body); setDur(m.body + (v1 ? 24 : 16), v1, sec * dv.getUint32(m.body + (v1 ? 20 : 12))); }
+          });
+        });
+        if (k.type === 'mvex') kids(dv, k.body, k.end).forEach(a => {
+          if (a.type === 'mehd') setDur(a.body + 4, isV1(a.body), sec * mts);
+        });
+      });
+    }
+    o += b.size;
+  }
+  return buf;
+}
+// ตัดช่วง a ถึง b วินาที: หยิบเฉพาะท่อนที่อยู่ในช่วง แล้วแก้เวลาให้เริ่มนับจากศูนย์
+async function makeClip(blob, idx, a, b){
+  const fr = idx.fr; a += idx.t0; b += idx.t0;
+  let i0 = -1;
+  for (let i = 0; i < fr.length; i++) { if (!fr[i][4]) continue; if (fr[i][0] <= a + 0.01) i0 = i; else break; }
+  if (i0 < 0) i0 = Math.max(0, fr.findIndex(f => f[4]));
+  let i1 = fr.length;
+  for (let i = i0 + 1; i < fr.length; i++) { if (fr[i][4] && fr[i][0] >= b) { i1 = i; break; } }
+  const T0 = fr[i0][0];
+  const lastGap = i1 - i0 > 1 ? fr[i1 - 1][0] - fr[i1 - 2][0] : 2;
+  let endT = i1 < fr.length ? fr[i1][0] : fr[i1 - 1][0] + lastGap;
+  const body = [];
+  let outPos = idx.init;
+  for (let i = i0; i < i1; i++) {
+    const pos = fr[i][1], msz = fr[i][2], end = fr[i][3];
+    const buf = await blob.slice(pos, pos + msz).arrayBuffer();
+    const dv = new DataView(buf);
+    parseMoof(dv).forEach(tr => {
+      const tk = idx.tracks[tr.id] || {}, ts = tk.ts || 1;
+      if (tr.at >= 0) {
+        let nb = tr.base - BigInt(Math.round(T0 * ts));
+        if (nb < 0n) nb = 0n;
+        if (tr.v === 1) dv.setBigUint64(tr.at, nb); else dv.setUint32(tr.at, Number(nb));
+      }
+      if (tr.bdo >= 0) dv.setBigUint64(tr.bdo, BigInt(outPos));
+      // ท่อนสุดท้ายของไฟล์: ใช้ความยาวจริงที่เขียนอยู่ในท่อนนั้น แทนการประมาณ
+      if (i === fr.length - 1 && tk.hd === 'vide' && tr.dur > 0) endT = Number(tr.base) / ts + tr.dur / ts;
+    });
+    body.push(buf, blob.slice(pos + msz, end));
+    outPos += end - pos;
+  }
+  let head = blob.slice(0, idx.init);
+  try { head = patchInit(await head.arrayBuffer(), endT - T0); } catch (e) { log('patchInit: ' + (e && e.message)); }
+  const parts = [head].concat(body);
+  return new Blob(parts, { type: 'video/mp4' });
+}
+
+/* ---------- รายละเอียดวิดีโอ ---------- */
+let cur = null, curBlob = null, urls = [], busy = false;
+const status = t => { $('dStatus').textContent = t || ''; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function freeUrls(){ urls.forEach(u => URL.revokeObjectURL(u)); urls = []; }
+function closePreview(){
+  const v = $('dVid'); try { v.pause(); } catch(e){}
+  if (v.dataset.url) { URL.revokeObjectURL(v.dataset.url); v.dataset.url = ''; }
+  v.removeAttribute('src'); v.load(); v.hidden = true;
+}
+async function run(fn){
+  if (busy) { toast('กำลังทำงานอยู่ รอสักครู่'); return; }
+  busy = true; $('detail').classList.add('busy'); $('detail').setAttribute('aria-busy', 'true');
+  try { await fn(); }
+  catch (e) { status(''); log('detail: ' + ((e && e.message) || e)); toast('ทำไม่สำเร็จ ' + ((e && e.message) || ''), 6000); }
+  finally { busy = false; $('detail').classList.remove('busy'); $('detail').removeAttribute('aria-busy'); }
+}
+async function openDetail(id){
+  const s = await getSession(id);
+  if (!s) { show('home'); renderLib(); return; }
+  cur = s; curBlob = null; freeUrls(); closePreview(); status('');
+  show('detail');
+  $('dTitle').value = s.title || '';
+  $('dPre').value = String(LS.get('as_pre', 5));
+  const n = sesName(s);
+  $('dMeta').textContent = n.when + '  ยาว ' + fmtT(s.dur, true) + '  ' + fmtB(s.bytes) + '  ' + (s.w || '?') + '×' + (s.h || '?') + '  .' + s.ext +
+    (s.done && !s.crashed ? '' : '  (ปิดไม่สมบูรณ์ ความยาวเป็นค่าประมาณ)');
+  renderMarks();
+}
+function segments(s){
+  const ch = s.marks.filter(m => m.type === 'song' || m.type === 'break');
+  const segs = [], first = ch.length ? ch[0].t : s.dur;
+  if (!ch.length || first >= 5) segs.push({ a: 0, b: first, name: ch.length ? 'ก่อนเพลงแรก' : 'ทั้งโชว์ (ไม่ได้มาร์กเพลง)', m: null });
+  ch.forEach((m, i) => segs.push({ a: m.t, b: i + 1 < ch.length ? ch[i + 1].t : Math.max(s.dur, m.t), name: m.name, m }));
+  segs.forEach((g, i) => {
+    g.last = i === segs.length - 1;
+    g.stars = s.marks.filter(x => x.type === 'star' && x.t >= g.a && (g.last || x.t < g.b)).length;
+  });
+  return segs;
+}
+function kept(g){ const v = g.m ? g.m.keep : cur.keep0; return v != null ? v : g.stars > 0; }
+function clipRange(g){
+  const pre = g.a > 0 ? Number($('dPre').value) || 0 : 0;
+  return [Math.max(0, g.a - pre), g.last ? 1e9 : g.b + 2];
+}
+const segBytes = g => cur.bytes * Math.max(0, g.b - g.a) / Math.max(1, cur.dur);
+function updSel(){
+  const k = segments(cur).filter(kept);
+  $('dSaveSel').textContent = k.length
+    ? 'บันทึก ' + k.length + ' คลิปที่เลือก ราว ' + fmtB(k.reduce((a, g) => a + segBytes(g), 0))
+    : 'ติ๊กเลือกเพลงก่อน';
+  $('dSaveSel').disabled = !k.length;
+}
+function setKeep(g, v){ if (g.m) g.m.keep = v; else cur.keep0 = v; }
+function renderMarks(){
+  const ul = $('dMarks'); ul.innerHTML = '';
+  const H = cur.dur >= 3600;
+  segments(cur).forEach(g => {
+    const li = document.createElement('li'); li.className = g.m ? g.m.type : 'lead';
+    const lab = document.createElement('label'); lab.className = 'cbx';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = kept(g);
+    cb.setAttribute('aria-label', 'เก็บ ' + g.name);
+    cb.onchange = () => { setKeep(g, cb.checked); putSession(cur).catch(() => {}); updSel(); };
+    lab.appendChild(cb);
+    const mid = document.createElement('div'); mid.style.minWidth = '0';
+    const t = document.createElement('time');
+    t.innerHTML = '<span>' + fmtT(g.a, H) + '</span><i>ยาว ' + fmtT(g.b - g.a) + '</i><i>ราว ' + fmtB(segBytes(g)) + '</i>' + (g.stars ? '<span class="star">ติดดาว</span>' : '');
+    const inp = document.createElement('input'); inp.type = 'text'; inp.value = g.name; inp.setAttribute('aria-label', 'ชื่อเพลง แตะเพื่อแก้');
+    if (g.m) inp.addEventListener('change', () => { g.m.name = inp.value.trim() || g.m.name; putSession(cur).catch(() => {}); });
+    else inp.disabled = true;
+    mid.append(t, inp);
+    const pv = document.createElement('button'); pv.className = 'btn pv'; pv.innerHTML = ico('play', ' fill') + '<span>ดู</span>';
+    pv.setAttribute('aria-label', 'ดู ' + g.name);
+    pv.onclick = () => run(() => preview(g));
+    const x = document.createElement('button'); x.className = 'x'; x.innerHTML = ico('x');
+    x.setAttribute('aria-label', 'ลบจุดตัดนี้ (รวมกับคลิปก่อนหน้า)');
+    if (g.m) x.onclick = () => { cur.marks.splice(cur.marks.indexOf(g.m), 1); putSession(cur).catch(() => {}); renderMarks(); toast('ลบจุดตัดแล้ว คลิปนี้รวมกับคลิปก่อนหน้า'); };
+    else x.style.visibility = 'hidden';
+    li.append(lab, mid, pv, x); ul.appendChild(li);
+  });
+  cur.marks.filter(m => m.type === 'warn').forEach(m => {
+    const li = document.createElement('li'); li.className = 'note';
+    li.textContent = 'ออกจากหน้าแอปที่ ' + fmtT(m.t, H) + ' ภาพช่วงนั้นอาจขาด';
+    ul.appendChild(li);
+  });
+  updSel();
+}
+function keepAll(v){ if (!cur) return; segments(cur).forEach(g => setKeep(g, v)); putSession(cur).catch(() => {}); renderMarks(); }
+$('dAll').onclick = () => keepAll(true);
+$('dNone').onclick = () => keepAll(false);
+$('dPre').addEventListener('change', () => LS.set('as_pre', Number($('dPre').value)));
+$('dTitle').addEventListener('change', () => { if (cur) { cur.title = $('dTitle').value.trim(); putSession(cur).catch(() => {}); } });
+$('dBack').onclick = () => { closePreview(); show('home'); renderLib(); };
+$('dAdd').onclick = () => {
+  if (!cur) return;
+  const p = $('dAddT').value.trim().split(/[:.,\s]+/).filter(Boolean).map(Number);
+  if (!p.length || p.some(isNaN)) { toast('พิมพ์เวลาเป็น นาที.วินาที เช่น 12.30'); return; }
+  const t = p.length === 1 ? p[0] * 60 : p.reduce((a, x) => a * 60 + x, 0);
+  if (t <= 0 || (cur.dur && t >= cur.dur)) { toast('เวลานี้อยู่นอกความยาววิดีโอ'); return; }
+  const n = cur.marks.reduce((a, m) => Math.max(a, m.n || 0), 0) + 1;
+  cur.marks.push({ t, type: 'song', name: 'จุดตัด ' + fmtT(t, cur.dur >= 3600), n });
+  cur.marks.sort((a, b) => a.t - b.t);
+  putSession(cur).catch(() => {});
+  $('dAddT').value = ''; renderMarks();
+};
+
+async function fullBlob(){
+  if (curBlob) return curBlob;
+  const rows = await tx('chunks', 'readonly', st => st.getAll(sesRange(cur.id)));
+  if (!rows || !rows.length) throw new Error('ไม่พบข้อมูลวิดีโอของรายการนี้');
+  curBlob = new Blob(rows.map(r => r.blob), { type: cur.mime });
+  return curBlob;
+}
+async function getIndex(){
+  if (cur.idx && cur.idx.fr) return cur.idx;
+  let idx = { fr: [] };
+  if (cur.ext === 'mp4') {
+    const blob = await fullBlob();
+    status('กำลังอ่านไฟล์ (ครั้งแรกเท่านั้น) 0%');
+    idx = await buildIndex(blob, p => status('กำลังอ่านไฟล์ (ครั้งแรกเท่านั้น) ' + p + '%'));
+    status('');
+  }
+  cur.idx = idx;
+  if (cur.crashed && idx.fr.length) {
+    const f = idx.fr, real = f[f.length - 1][0] - idx.t0 + (f.length > 1 ? f[f.length - 1][0] - f[f.length - 2][0] : 2);
+    if (Math.abs(real - cur.dur) > 1) { cur.dur = real; renderMarks(); }
+  }
+  putSession(cur).catch(() => {});
+  return idx;
+}
+const NO_CUT = 'ไฟล์นี้ตัดแยกเพลงไม่ได้ ใช้ปุ่มบันทึกทั้งโชว์แทน';
+async function clipOf(g){
+  const idx = await getIndex();
+  if (!idx.fr.length) throw new Error(NO_CUT);
+  const r = clipRange(g);
+  return makeClip(await fullBlob(), idx, r[0], r[1]);
+}
+async function preview(g){
+  const blob = await clipOf(g);
+  const v = $('dVid');
+  if (v.dataset.url) URL.revokeObjectURL(v.dataset.url);
+  v.dataset.url = URL.createObjectURL(blob);
+  v.src = v.dataset.url; v.hidden = false;
+  v.play().catch(() => {});
+  v.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+function fileName(s){
+  const d = new Date(s.id);
+  const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
+  return clean(s.title || 'show') + '-' + stamp;
+}
+const clean = t => String(t).replace(/[\\/:*?"<>|.]+/g, ' ').trim().replace(/\s+/g, '-').slice(0, 50);
+function chaptersText(s){
+  const H = s.dur >= 3600;
+  const ch = s.marks.filter(m => m.type === 'song' || m.type === 'break');
+  const lines = [];
+  if (!ch.length || ch[0].t >= 1) lines.push(fmtT(0, H) + ' เริ่ม');
+  ch.forEach(m => lines.push(fmtT(m.t, H) + ' ' + m.name));
+  const st = s.marks.filter(m => m.type === 'star');
+  if (st.length) { lines.push('', 'ไฮไลต์'); st.forEach(m => lines.push(fmtT(m.t, H) + ' ' + m.name)); }
+  return lines.join('\n');
+}
+function download(blob, name){
+  const u = URL.createObjectURL(blob); urls.push(u);
+  const a = document.createElement('a');
+  a.href = u; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$('dSaveSel').onclick = () => run(async () => {
+  if (!cur) return;
+  const all = segments(cur), k = all.filter(kept);
+  if (!k.length) { toast('ติ๊กเลือกเพลงที่อยากเก็บก่อน'); return; }
+  for (let i = 0; i < k.length; i++) {
+    status('กำลังบันทึกคลิป ' + (i + 1) + ' จาก ' + k.length);
+    const blob = await clipOf(k[i]);
+    download(blob, fileName(cur) + '-' + pad(all.indexOf(k[i]) + 1) + '-' + clean(k[i].name) + '.mp4');
+    if (i < k.length - 1) await sleep(1500);
+  }
+  status('บันทึกแล้ว ' + k.length + ' คลิป อยู่ในโฟลเดอร์ Download เก็บครบแล้วลบโชว์ด้านล่างเพื่อคืนพื้นที่');
+});
+$('dSave').onclick = () => run(async () => {
+  if (!cur) return;
+  status('กำลังเตรียมไฟล์ทั้งโชว์');
+  let out = await fullBlob();
+  try { const idx = await getIndex(); if (idx.fr.length) out = await makeClip(out, idx, 0, 1e9); }   // แก้ความยาวในหัวไฟล์ให้ถูก
+  catch (e) { log('whole save index: ' + (e && e.message)); out = await fullBlob(); }
+  download(out, fileName(cur) + '.' + cur.ext);
+  status('บันทึกทั้งโชว์แล้ว อยู่ในโฟลเดอร์ Download');
+});
+$('dCopy').onclick = async () => {
+  if (!cur) return;
+  const text = chaptersText(cur);
+  try { await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว'); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('คัดลอกแล้ว'); } catch(_){ toast('คัดลอกไม่ได้ ใช้ปุ่มบันทึกเป็น .txt แทน'); }
+    ta.remove();
+  }
+};
+$('dTxt').onclick = () => { if (cur) download(new Blob([chaptersText(cur)], { type: 'text/plain;charset=utf-8' }), fileName(cur) + '.txt'); };
+$('dDel').onclick = () => run(async () => {
+  if (!cur) return;
+  if (!confirm('ลบวิดีโอทั้งโชว์นี้ออกจากแอปถาวร?\nคลิปที่บันทึกลงเครื่องไปแล้วไม่หาย')) return;
+  closePreview(); freeUrls(); curBlob = null;
+  await delSession(cur.id);
+  cur = null; show('home'); renderLib(); toast('ลบแล้ว');
+});
+
+/* ---------- สั่งงานด้วยการชูนิ้ว (แยกส่วนจากการอัด: พังเมื่อไหร่ก็ปิดตัวเอง การอัดเดินต่อ) ---------- */
+const ACTS = { none: 'ไม่ทำอะไร', next: 'เริ่มเพลงใหม่', star: '★ เก็บเพลงนี้', 'break': 'พัก', undo: 'ยกเลิกมาร์กล่าสุด', start: 'เริ่มอัด' };
+if (!cfg.gMap || typeof cfg.gMap !== 'object') cfg.gMap = { 1: 'next', 2: 'star', 3: 'break', 4: 'undo', 5: 'start' };
+$('gMapBox').innerHTML = [1, 2, 3, 4, 5].map(n =>
+  '<label class="field inline"><span>' + n + ' นิ้ว</span><select id="gM' + n + '">' +
+  Object.keys(ACTS).map(k => '<option value="' + k + '">' + ACTS[k] + '</option>').join('') + '</select></label>').join('');
+[1, 2, 3, 4, 5].forEach(n => $('gM' + n).addEventListener('change', () => { cfg.gMap[n] = $('gM' + n).value; saveCfg(); }));
+
+let pose = null, poseLoading = false, gFails = 0, gSkip = 0, roi = null;
+const G = { c: 0, since: 0, good: 0, bad: 0, gap: 0, conf: 0, zero: 0, armed: true, last: 0, px: null, py: 0 };
+const gStat = t => { $('gStat').textContent = t || ''; };
+function gSee(n, text){
+  const el = $('gSee');
+  if (!cfg.gest || $('cam').hidden) { el.hidden = true; return; }
+  el.hidden = false;
+  el.classList.toggle('off', !n);
+  $('gSeeN').textContent = n ? n : '–';
+  $('gSeeT').textContent = text;
+}
+async function loadPose(){
+  if (pose || poseLoading) return;
+  poseLoading = true; gStat('กำลังโหลดตัวอ่านนิ้ว ต้องมีเน็ต'); gSee(0, 'กำลังโหลด');
+  const model = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+  const bases = ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14', 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest'];
+  let why = '';
+  for (const base of bases) {
+    try {
+      const m = await import(base + '/vision_bundle.mjs');
+      const fs = await m.FilesetResolver.forVisionTasks(base + '/wasm');
+      const opt = d => ({ baseOptions: { modelAssetPath: model, delegate: d }, runningMode: 'VIDEO', numHands: 2,
+                          minHandDetectionConfidence: 0.3, minHandPresenceConfidence: 0.3, minTrackingConfidence: 0.3 });
+      try { pose = await m.HandLandmarker.createFromOptions(fs, opt('GPU')); }
+      catch (e) { pose = await m.HandLandmarker.createFromOptions(fs, opt('CPU')); }
+      break;
+    } catch (e) { why = (e && e.message) || String(e); log('hand model load: ' + why); pose = null; }
+  }
+  poseLoading = false;
+  if (pose) { gStat('ตัวอ่านนิ้วพร้อมใช้'); gSee(0, 'ไม่เห็นมือ'); }
+  else { gStat('โหลดตัวอ่านนิ้วไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วเปิดใหม่ การอัดใช้ได้ตามปกติ'); gSee(0, 'โหลดไม่ได้'); if ($('setSheet').hidden) toast('โหลดตัวอ่านนิ้วไม่สำเร็จ ตรวจอินเทอร์เน็ต', 5000); }
+}
+function gDisable(msg){
+  cfg.gest = false; saveCfg(); $('gOn').checked = false; $('gOpts').classList.add('off'); gHold(0); gSee(0, '');
+  log('gesture off: ' + msg); toast(msg, 5000); gStat(msg);
+}
+function gHold(n, p){
+  const el = $('gHold');
+  if (!n) { if (!el.hidden) el.hidden = true; return; }
+  $('gHoldT').textContent = n + ' นิ้ว ค้างไว้: ' + (ACTS[cfg.gMap[n]] || '');
+  $('gHoldB').style.width = Math.round(Math.min(1, p) * 100) + '%';
+  el.hidden = false;
+}
+function flash(text, color){
+  const el = $('gFlash');
+  el.style.background = color; el.textContent = text; el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 500);
+}
+function torchBlink(){
+  if (!cfg.gTorch || !vTrack) return;
+  try {
+    const c = vTrack.getCapabilities ? vTrack.getCapabilities() : null;
+    if (!c || !c.torch) return;
+    const t = vTrack;
+    t.applyConstraints({ advanced: [{ torch: true }] })
+      .then(() => setTimeout(() => { t.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {}); }, 350))
+      .catch(() => {});
+  } catch(e){}
+}
+// ที่มืด (เวที ร้าน) ตัวอ่านมือมองไม่ออก: วัดความสว่างของภาพทุกราว 1 วินาที ถ้ามืดจะเร่งแสงให้ภาพที่ส่งไปอ่าน (ไม่กระทบวิดีโอที่อัด)
+let gGain = 1, gLumaAt = 0, gProbe = null, gFull = null;
+function gMeasure(v, t){
+  if (t - gLumaAt < 1200) return;
+  gLumaAt = t;
+  try {
+    if (!gProbe) { gProbe = document.createElement('canvas'); gProbe.width = gProbe.height = 24; }
+    const c = gProbe.getContext('2d', { willReadFrequently: true });
+    c.drawImage(v, 0, 0, 24, 24);
+    const d = c.getImageData(0, 0, 24, 24).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += Math.max(d[i], d[i + 1], d[i + 2]);   // ใช้ช่องสีที่สว่างสุด เพราะไฟเวทีมักเป็นสีเดียว
+    const mean = sum / (d.length / 4);
+    gGain = mean < 95 ? Math.min(3.2, 110 / Math.max(12, mean)) : 1;
+  } catch (e) { gGain = 1; }
+}
+// ถ้าเลือกบริเวณไว้ ตัดภาพเฉพาะตรงนั้นมาขยายก่อนอ่าน มือที่อยู่ไกลจะใหญ่ขึ้นในสายตาตัวอ่าน
+function gSource(v, t){
+  gMeasure(v, t);
+  const boost = gGain > 1.1;
+  if (!cfg.anchor && !boost) return v;
+  let cv, c;
+  if (cfg.anchor) {
+    if (!roi) { roi = document.createElement('canvas'); roi.width = roi.height = 512; }
+    cv = roi; c = cv.getContext('2d');
+    const side = Math.min(v.videoWidth, v.videoHeight) * 0.5;
+    const x = Math.min(Math.max(0, cfg.anchor.x * v.videoWidth - side / 2), v.videoWidth - side);
+    const y = Math.min(Math.max(0, cfg.anchor.y * v.videoHeight - side / 2), v.videoHeight - side);
+    c.filter = boost ? 'brightness(' + gGain.toFixed(2) + ') contrast(1.15)' : 'none';
+    c.drawImage(v, x, y, side, side, 0, 0, 512, 512);
+  } else {
+    const k = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight));
+    const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
+    if (!gFull) gFull = document.createElement('canvas');
+    if (gFull.width !== w || gFull.height !== h) { gFull.width = w; gFull.height = h; }
+    cv = gFull; c = cv.getContext('2d');
+    c.filter = 'brightness(' + gGain.toFixed(2) + ') contrast(1.15)';
+    c.drawImage(v, 0, 0, w, h);
+  }
+  return cv;
+}
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// ---- เรขาคณิต 3 มิติของมือ (หน่วยเมตร จากตัวอ่านมือ) ใช้แทนภาพ 2 มิติ เพราะกำปั้นที่หันเข้ากล้องจะหลอกตาในภาพแบน ----
+const v3 = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: (a.z || 0) - (b.z || 0) });
+const len3 = v => Math.hypot(v.x, v.y, v.z);
+const d3 = (a, b) => len3(v3(a, b));
+function ang(a, b, c){                                   // มุมที่ข้อ b (องศา): 180 = เหยียดตรง
+  const u = v3(a, b), w = v3(c, b);
+  const d = (u.x * w.x + u.y * w.y + u.z * w.z) / Math.max(1e-9, len3(u) * len3(w));
+  return Math.acos(Math.max(-1, Math.min(1, d))) * 180 / Math.PI;
+}
+// อ่านมือหนึ่งข้าง คืนจำนวนนิ้วที่เหยียด: lm = จุดบนภาพ, wl = จุด 3 มิติ
+// หลักคือ "ไม่ชัวร์ = ไม่นับ": นิ้วก้ำกึ่ง มือหันข้าง หรือมือชี้เข้ากล้อง จะไม่ถูกเดา
+function fingerState(lm, wl, sx, sy){
+  const P = i => ({ x: lm[i].x * sx, y: lm[i].y * sy });
+  const W = wl && wl.length >= 21 ? wl : lm.map(q => ({ x: q.x * sx, y: q.y * sy, z: (q.z || 0) * sx }));
+  const w2 = P(0), m2 = P(9), palm2 = dist(w2, m2), palm = d3(W[9], W[0]);
+  const out = { n: 0, sure: true, palm: palm2, x: w2.x, y: w2.y, up: false };
+  if (!(palm > 0) || !(palm2 > 0)) return out;
+  // 1) มือชี้ทิศไหนก็ได้ (ขึ้น เฉียง หรือนอน เพราะกล้องอาจตั้งเอียง) ยกเว้นสองกรณี: ชี้ลงพื้น (มือห้อยข้างตัว) และชี้พุ่งเข้าหากล้อง
+  out.seen = true;
+  const flat = Math.hypot(W[9].x - W[0].x, W[9].y - W[0].y) / palm;     // 1 = มือแผ่อยู่ในระนาบภาพ, 0 = ชี้เข้ากล้อง
+  const downv = (m2.y - w2.y) / palm2;                                   // 1 = ชี้ลงตรงๆ
+  if (downv > 0.6) { out.why = 'มือชี้ลง'; return out; }
+  if (flat < 0.4) { out.sure = false; out.why = 'มือชี้เข้ากล้อง'; return out; }
+  out.up = true;
+  // 2) ฝ่ามือหรือหลังมือต้องหันเข้ากล้อง (เอียงได้ไม่เกินราว 55 องศา)
+  const a = v3(W[5], W[0]), b = v3(W[17], W[0]);
+  const nx = a.y * b.z - a.z * b.y, ny = a.z * b.x - a.x * b.z, nz = a.x * b.y - a.y * b.x;
+  const facing = Math.abs(nz) / Math.max(1e-9, Math.hypot(nx, ny, nz));
+  out.dbg = 'แผ่ ' + flat.toFixed(2) + ' ลง ' + downv.toFixed(2) + ' หัน ' + facing.toFixed(2);
+  if (facing < 0.35) { out.sure = false; out.why = 'มือหันข้าง'; return out; }
+  // 3) สี่นิ้ว: เหยียด = ปลายนิ้วไปไกลจากข้อมือชัดเจน และข้อนิ้วตรง / งอ = ปลายนิ้วพับกลับ หรือข้อกลางงอมาก
+  let n4 = 0, vague = false; const rs = [], bs = [];
+  [[5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]].forEach(f => {
+    const reach = d3(W[f[3]], W[0]) / Math.max(1e-9, d3(W[f[0]], W[0]));
+    const bend = ang(W[f[0]], W[f[1]], W[f[2]]), bend2 = ang(W[f[1]], W[f[2]], W[f[3]]);
+    // ความตรงของนิ้ว: ระยะโคนนิ้วถึงปลายนิ้ว เทียบกับความยาวนิ้วจริง (1 = ตรงเป๊ะ, กำ = ราว 0.3-0.5)
+    const straight = d3(W[f[3]], W[f[0]]) / Math.max(1e-9, d3(W[f[1]], W[f[0]]) + d3(W[f[2]], W[f[1]]) + d3(W[f[3]], W[f[2]]));
+    rs.push(reach.toFixed(2)); bs.push(straight.toFixed(2));
+    if (reach > 1.45 && straight > 0.8) n4++;                    // เหยียดชัดเจน
+    else if (!(reach < 1.25 || (straight < 0.6 && reach < 1.45))) vague = true;   // ไม่ใช่ทั้งเหยียดและงอ = ไม่เดา
+  });
+  out.dbg += '\nยื่น ' + rs.join(' ') + '\nตรง ' + bs.join(' ');
+  if (vague) { out.sure = false; out.why = 'นิ้วงอครึ่ง'; return out; }
+  if (n4 === 0) { out.why = 'กำมือ'; return out; }      // กำมือ = 0 เสมอ ไม่ว่านิ้วโป้งจะอยู่ท่าไหน (มือที่จับไม้กลอง)
+  // 4) นิ้วโป้ง นับเฉพาะเมื่อกางออกชัดเจน และมีนิ้วอื่นชูอยู่ด้วย
+  const tReach = d3(W[4], W[5]) / palm, tSide = d3(W[4], W[17]) / Math.max(1e-9, d3(W[2], W[17])), tBend = ang(W[2], W[3], W[4]);
+  let thumb = 0;
+  out.dbg += '\nโป้ง ' + tReach.toFixed(2) + ' ' + tSide.toFixed(2) + ' ' + Math.round(tBend);
+  if (tReach > 0.55 && tSide > 1.2) thumb = 1;
+  else if (!(tReach < 0.45 || tSide < 1.08)) { out.sure = false; out.why = 'นิ้วโป้งก้ำกึ่ง'; return out; }
+  out.n = n4 + thumb;
+  return out;
+}
+// คืน n: 1-5 = เห็นชัด, 0 = ไม่มีมือที่ชูอยู่, -1 = เห็นมือแต่ไม่ชัวร์ (ไม่นับ ไม่เดา)
+function readHands(list, worlds, sx, sy){
+  const minPalm = Math.min(sx, sy) * 0.035;
+  let best = null, far = false, unsure = false, why = '', dbg = '', idle = '';
+  const counts = new Set();
+  list.forEach((lm, i) => {
+    if (!lm || lm.length < 21) return;
+    const h = fingerState(lm, worlds && worlds[i], sx, sy);
+    if (h.dbg) dbg = h.dbg;
+    if (!h.sure) { unsure = true; why = h.why || ''; return; }
+    if (h.palm < minPalm) { far = true; return; }
+    if (h.n === 0) { idle = h.why || 'เห็นมือ'; return; }     // เห็นมือแล้ว แต่กำอยู่หรือชี้ลง: ไม่ใช่คำสั่ง
+    counts.add(h.n);
+    if (!best || h.palm > best.palm) best = h;
+  });
+  if (counts.size > 1) return { n: -1, text: 'สองมือไม่ตรงกัน', dbg };
+  if (best) return { n: best.n, text: 'นิ้ว', x: best.x, y: best.y, palm: best.palm, dbg };
+  if (unsure) return { n: -1, text: why || 'ไม่ชัด', dbg };
+  if (far) return { n: -1, text: 'ไกลไป', dbg };
+  return { n: 0, text: idle || 'ไม่เห็นมือ', dbg };
+}
+function gFire(n){
+  const act = cfg.gMap[n];
+  if (!act || act === 'none') return;
+  if (act === 'start') {
+    if (rec || resuming) return;                        // อัดอยู่แล้ว ใช้ซ้ำไม่ได้จนกว่าจะกดหยุด
+    buzz(80); torchBlink(); flash('เริ่มอัด', 'var(--red)');
+    startRec({ auto: true }).catch(e => { log('gesture start: ' + (e && (e.name || e.message))); toast('เริ่มบันทึกไม่ได้', 4000); });
+    return;
+  }
+  if (!rec || !ses) return;
+  buzz(80); torchBlink();
+  if (act === 'next') { nextSong(); const c = currentMark(elapsed() + 0.05); flash(c ? c.name : 'เพลงใหม่', 'var(--mark)'); }
+  else if (act === 'star') { mark('star', 'ไฮไลต์'); flash('★ เก็บเพลงนี้', 'var(--amber)'); }
+  else if (act === 'break') { mark('break', 'พัก'); flash('พัก', '#c9c2b6'); }
+  else if (act === 'undo') { undoMark(); flash('ยกเลิกมาร์กล่าสุด', 'var(--paper)'); }
+}
+const HOLD_MS = 1000, HOLD_START_MS = 2200, COOLDOWN_MS = 2500;
+// รวมผลหลายรอบก่อนตัดสิน: ต้องเห็นจำนวนนิ้วเดิมอย่างน้อย 75% ของช่วงที่ค้าง และรอบล่าสุดต้องตรงด้วย
+// อ่านพลาดแวบเดียวไม่ทำให้เริ่มนับใหม่ แต่ถ้าเห็นเลขอื่นติดกัน 3 รอบ ถือว่าเปลี่ยนใจ เริ่มนับใหม่
+function gVote(n, t){
+  if (n === 0) { if (++G.zero >= 3) { G.armed = true; G.c = 0; } } else G.zero = 0;   // เอามือลงแล้วจึงสั่งครั้งต่อไปได้
+  const begin = k => { G.c = k; G.since = t; G.good = 1; G.bad = 0; G.gap = 0; G.conf = 0; };
+  if (G.c === 0) { if (n > 0) begin(n); }
+  else if (n === G.c) { G.good++; G.gap = 0; G.conf = 0; }
+  else if (n > 0) { G.bad++; if (++G.conf >= 3) begin(n); }
+  else { G.bad++; if (++G.gap >= 3) G.c = 0; }
+  if (G.c === 0 || !G.armed || t - G.last < COOLDOWN_MS) return 0;
+  const need = cfg.gMap[G.c] === 'start' ? HOLD_START_MS : HOLD_MS;
+  const p = (t - G.since) / need;
+  if (p >= 1 && n === G.c && G.good >= 4 && G.good / (G.good + G.bad) >= 0.75) return -1;   // สั่งได้
+  return Math.min(0.99, p);
+}
+function gTick(){
+  if (!cfg.gest || $('cam').hidden) { gHold(0); $('gSee').hidden = true; $('gDbg').hidden = true; return; }
+  if (!pose) { gSee(0, poseLoading ? 'กำลังโหลด' : 'โหลดไม่ได้'); return; }
+  if (document.hidden || !tracksLive()) { gHold(0); return; }
+  const v = $('vid');
+  if (v.readyState < 2 || !v.videoWidth) return;
+  if (gSkip > 0) { gSkip--; return; }
+  const t = performance.now();
+  const src = gSource(v, t), sx = src === v ? v.videoWidth : src.width, sy = src === v ? v.videoHeight : src.height;
+  let res;
+  try { res = pose.detectForVideo(src, t); gFails = 0; }
+  catch (e) { if (++gFails >= 5) gDisable('ตัวอ่านนิ้วขัดข้อง ปิดให้แล้ว การอัดไม่กระทบ'); return; }
+  const cost = performance.now() - t;
+  if (cost > 110) gSkip = cost > 220 ? 3 : 1;          // เครื่องเริ่มหนัก ให้อ่านห่างขึ้น ไม่แย่งแรงจากการอัด
+  const h = readHands((res && res.landmarks) || [], res && res.worldLandmarks, sx, sy);
+  let n = h.n;
+  // มือขยับเล็กน้อยไม่เป็นไร แต่ถ้าเหวี่ยงเร็ว (ภาพเบลอ นับนิ้วไม่น่าเชื่อ) ข้ามรอบนั้น
+  if (n > 0) {
+    if (G.px != null && Math.hypot(h.x - G.px, h.y - G.py) > h.palm * 1.2) { n = -1; h.text = 'ขยับเร็ว'; }
+    G.px = h.x; G.py = h.y;
+  } else if (n === 0) G.px = null;
+  gSee(n > 0 ? n : 0, h.text);
+  $('gDbg').hidden = !cfg.gDbg; if (cfg.gDbg) $('gDbg').textContent = (gGain > 1.1 ? 'เร่งแสง x' + gGain.toFixed(1) + '\n' : '') + (h.dbg || 'ตัวอ่านไม่พบมือ');
+  // คำสั่งที่ใช้ไม่ได้ตอนนี้ ไม่นับ: "เริ่มอัด" ระหว่างที่อัดอยู่ และคำสั่งมาร์กเพลงตอนยังไม่ได้อัด
+  if (n > 0) {
+    const act = cfg.gMap[n], busy = !!(rec || resuming);
+    if (!act || act === 'none' || (act === 'start') === busy) n = -1;
+  }
+  const p = gVote(n, t);
+  if (p === -1) { const k = G.c; G.armed = false; G.last = t; gHold(0); gFire(k); }
+  else if (p > 0) gHold(G.c, p);
+  else gHold(0);
+}
+setInterval(() => { try { gTick(); } catch (e) { if (++gFails >= 5) gDisable('ตัวอ่านนิ้วขัดข้อง ปิดให้แล้ว การอัดไม่กระทบ'); } }, 150);
+$('gOn').addEventListener('change', () => { cfg.gest = $('gOn').checked; saveCfg(); gFails = 0; $('gOpts').classList.toggle('off', !cfg.gest); if (cfg.gest) loadPose(); else { gHold(0); gStat(''); $('gSee').hidden = true; } });
+$('gTorch').addEventListener('change', () => { cfg.gTorch = $('gTorch').checked; saveCfg(); });
+$('gDbgOn').addEventListener('change', () => { cfg.gDbg = $('gDbgOn').checked; saveCfg(); });
+$('gClear').onclick = () => { cfg.anchor = null; saveCfg(); toast('ล้างแล้ว จะอ่านนิ้วจากทั้งภาพ'); };
+// แตะบนภาพตรงที่จะชูมือ เพื่อให้ซูมอ่านเฉพาะบริเวณนั้น
+$('vid').addEventListener('click', e => {
+  if (!cfg.gest) return;
+  const v = $('vid'), r = v.getBoundingClientRect();
+  if (!v.videoWidth) return;
+  const sc = Math.min(r.width / v.videoWidth, r.height / v.videoHeight);
+  const dw = v.videoWidth * sc, dh = v.videoHeight * sc;
+  let nx = (e.clientX - r.left - (r.width - dw) / 2) / dw;
+  const ny = (e.clientY - r.top - (r.height - dh) / 2) / dh;
+  if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
+  if (v.style.transform) nx = 1 - nx;
+  cfg.anchor = { x: nx, y: ny }; saveCfg();
+  const side = Math.min(dw, dh) * 0.5, d = $('gDot');
+  d.style.width = d.style.height = side + 'px'; d.style.margin = (-side / 2) + 'px 0 0 ' + (-side / 2) + 'px'; d.style.borderRadius = '10px';
+  d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px'; d.hidden = false;
+  setTimeout(() => { d.hidden = true; }, 3000);
+  toast('จะอ่านนิ้วเฉพาะในกรอบนี้ ชูมือให้อยู่ในกรอบ');
+});
+
+/* ---------- เหตุขัดข้อง / เริ่มแอป ---------- */
+$('logBox').addEventListener('toggle', () => { $('logOut').textContent = LOG.length ? LOG.join('\n') : 'ยังไม่มีเหตุขัดข้อง'; });
+$('logCopy').onclick = () => { try { navigator.clipboard.writeText(LOG.join('\n')).then(() => toast('คัดลอกแล้ว')).catch(() => toast('คัดลอกไม่ได้')); } catch(e){ toast('คัดลอกไม่ได้'); } };
+$('logClear').onclick = () => { LOG.length = 0; LS.set('as_log', LOG); $('logOut').textContent = 'ยังไม่มีเหตุขัดข้อง'; };
+document.addEventListener('pointerdown', () => { try { if (actx && actx.state === 'suspended') actx.resume(); } catch(e){} });
+window.addEventListener('pagehide', () => { if (ses) { ses.dur = elapsed(); ses.touch = Date.now(); putSession(ses).catch(() => {}); } });
+
+// โชว์ที่ปิดไม่สมบูรณ์: นับขนาดและความยาวใหม่จากข้อมูลที่อยู่ในเครื่องจริง (ข้อมูล 1 ก้อน = วิดีโอราว 2 วินาที)
+async function repair(s){
+  try {
+    const rows = await tx('chunks', 'readonly', st => st.getAll(sesRange(s.id)));
+    if (!rows || !rows.length) return;
+    s.bytes = rows.reduce((a, r) => a + ((r.blob && r.blob.size) || 0), 0);
+    s.dur = Math.max(s.dur || 0, rows.length * 2);
+    await putSession(s);
+    if ($('cam').hidden && $('detail').hidden) renderLib();
+  } catch (e) { log('repair: ' + (e && e.message)); }
+}
+// ถ้าแอปถูกปิดหรือรีโหลดกลางการอัด: ปิดงานเก่าให้เรียบร้อย แล้วอัดต่อเองถ้าเพิ่งหลุดไปไม่เกิน 5 นาที
+async function boot(){
+  let open = [];
+  try { open = ((await getSessions()) || []).filter(s => !s.done); } catch(e){ log('db: ' + (e && e.message)); }
+  for (const s of open) { s.done = true; s.crashed = true; try { await putSession(s); } catch(e){} }
+  open.forEach(s => { repair(s); });
+  const last = open.sort((a, b) => b.id - a.id)[0];
+  if (last && Date.now() - (last.touch || last.id) < 5 * 60000 && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    log('app reloaded during recording, auto resume');
+    show('cam'); $('cam').classList.add('rec');
+    toast('แอปถูกปิดกลางการอัด กำลังอัดต่อให้อัตโนมัติ', 6000);
+    autoResume(last, 0);
+    return;
+  }
+  renderLib();
+}
+boot();
+</script>
+<!-- layer:10-drive-sync.js:start -->
+<script>
+/* ชั้นเว็บแอป: เก็บขึ้น Google Drive แบบเรียลไทม์ — tools/update-show.py ฝังไฟล์นี้ไว้ท้าย show/index.html
+
+   ทำอะไร
+     • ระหว่างอัด ส่งวิดีโอขึ้น Drive ตามไปทีละไม่กี่วินาที (resumable upload ไฟล์เดียวต่อหนึ่งส่วน)
+       อ่านจาก IndexedDB ที่แอปเขียนอยู่แล้ว ไม่แตะตัวอัดเลย เน็ตหลุด/ปิดแอป/รีโหลด ก็ส่งต่อจากจุดเดิม
+     • ชื่อโชว์ มาร์กเพลง ไฮไลต์ รายชื่อเพลงพร้อมเวลา เก็บเป็นไฟล์ .json ข้างวิดีโอ แก้เมื่อไหร่ก็ตามไป
+       ส่งครบแล้ว รายชื่อเพลงพร้อมเวลาไปอยู่ในช่อง "คำอธิบาย" ของวิดีโอบน Drive ด้วย
+     • เซ็ตลิสต์ซิงค์ระหว่างเครื่องที่เชื่อม Drive บัญชีเดียวกัน
+     • ทุกอย่างอยู่ในโฟลเดอร์ "อัดโชว์" ใน Drive ของผู้ใช้เอง สิทธิ์ drive.file = แอปเห็นแค่ไฟล์ที่แอปสร้าง
+
+   ที่ต้องรู้
+     • ใช้ OAuth Client ID ของผู้ใช้เอง (Google Cloud ฟรี) ใส่ครั้งเดียวในแอป หรือใส่ไว้ที่ DEFAULT_CLIENT_ID
+     • บัตรผ่านของ Google อยู่ได้ 1 ชั่วโมง และต่ออายุได้เฉพาะตอนผู้ใช้แตะ (ระบบเปิดหน้าต่างล็อกอินเองไม่ได้)
+       แอปจึงต่ออายุให้ตอนแตะ "เปิดกล้อง" แล้วเปิดช่องส่งวิดีโอไว้ตั้งแต่เริ่มอัด
+       ช่องส่งที่เปิดแล้วใช้ต่อได้ถึงหนึ่งสัปดาห์ วิดีโอจึงส่งต่อได้แม้โชว์ยาวเกินชั่วโมง
+       ส่วนที่ต้องใช้บัตร (ไฟล์ .json ชื่อไฟล์ ส่วนต่อที่เกิดใหม่) จะรอจนแตะเชื่อมต่ออีกครั้ง
+     • ไม่เคยเปิดหน้าต่างล็อกอินระหว่างอัด เพราะหน้าแอปจะหลุดไปอยู่ข้างหลังแล้วกล้องอาจดับ */
+(function () {
+  'use strict';
+  try {
+    void [$, esc, toast, log, LS, tx, sesRange, getSession, getSessions, fileName, chaptersText, sesName, fmtB,
+          writeChunk, delSession, renderLib, openDetail, renderStats, enterCam, readSetlist];
+  } catch (e) { window.__drive = 'missing: ' + e.message; return; }
+
+  const DEFAULT_CLIENT_ID = '';                  // ใส่ Client ID ตรงนี้ได้ ทุกเครื่องจะไม่ต้องวางเอง
+  const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  const API = 'https://www.googleapis.com/drive/v3/';
+  const UP = 'https://www.googleapis.com/upload/drive/v3/files';
+  const FOLDER = 'อัดโชว์', SETFILE = 'เซ็ตลิสต์.json';
+  const Q = 256 * 1024;                          // Drive รับทีละก้อนที่เป็นพหุคูณของ 256 KB (ยกเว้นก้อนสุดท้าย)
+  const MIN_PIECE = window.__drivePiece || 16 * Q, MAX_PIECE = 128 * Q;   // 4 MB ถึง 32 MB ต่อครั้ง
+
+  const D = Object.assign({ clientId: DEFAULT_CLIENT_ID, on: false, since: 0, video: true, wifiOnly: false, setSync: true,
+                            folder: null, email: '', free: null, setAt: 0, setFile: null, files: {} }, LS.get('as_drive', {}));
+  if (!D.clientId) D.clientId = DEFAULT_CLIENT_ID;
+  const saveD = () => LS.set('as_drive', D);
+  let tok = LS.get('as_drive_tok', null);
+  const tokenOk = sec => !!(tok && tok.t && tok.exp - Date.now() > (sec || 60) * 1000);
+  const ready = () => D.on && !!D.clientId;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ---------- สไตล์ ---------- */
+  const css = document.createElement('style');
+  css.textContent = `
+.drv{margin:20px 0 0;padding:14px 14px 12px;border:1px solid var(--line2);border-radius:var(--r2);background:#ffffff0a}
+.drv-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px}
+.drv-h b{font-size:17px}
+.drv-tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--line2);color:var(--mute);white-space:nowrap}
+.drv-tag.ok{color:var(--mark);border-color:#5fd3c480}
+.drv-tag.warn{color:#000;background:var(--amber);border-color:var(--amber)}
+.drv-tag.bad{color:#fff;background:var(--red);border-color:var(--red)}
+.drv p{margin:0 0 10px;color:var(--mute);font-size:14px;font-variant-numeric:tabular-nums}
+.drv .row{flex-wrap:wrap}
+.drv-bar{height:6px;border-radius:99px;background:#ffffff1f;overflow:hidden;margin:0 0 10px}
+.drv-bar i{display:block;height:100%;background:var(--mark);transition:width var(--med)}
+.drv a.btn{text-decoration:none}
+.lib .drvb{display:block;color:var(--mute)}
+.lib .drvb.ok{color:var(--mark)}
+.lib .drvb.warn{color:var(--amber)}
+#drvSheet input[type=text]{display:block;width:100%;min-height:50px;border-radius:var(--r1);border:1px solid var(--line2);background:#000;padding:0 10px;font-size:15px}
+#drvSheet code{font-family:inherit;color:var(--paper);background:#0000008c;padding:1px 6px;border-radius:6px;word-break:break-all}
+#drvSheet .steps b{color:var(--paper)}`;
+  document.head.appendChild(css);
+
+  /* ---------- ล็อกอิน Google (Google Identity Services) ---------- */
+  let gisP = null, client = null, waiters = [];
+  const gisReady = () => !!(window.google && google.accounts && google.accounts.oauth2);
+  function loadGis(){
+    if (gisReady()) return Promise.resolve();
+    if (gisP) return gisP;
+    gisP = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+      s.onload = () => res();
+      s.onerror = () => { gisP = null; s.remove(); rej(new Error('โหลดระบบล็อกอิน Google ไม่ได้ ต้องต่อเน็ต')); };
+      document.head.appendChild(s);
+    });
+    return gisP;
+  }
+  function settle(err){
+    const w = waiters; waiters = [];
+    w.forEach(f => f(err));
+  }
+  function tokenClient(){
+    if (client && client._cid === D.clientId) return client;
+    client = google.accounts.oauth2.initTokenClient({
+      client_id: D.clientId, scope: SCOPE,
+      callback: r => {
+        const granted = r && r.access_token && (!google.accounts.oauth2.hasGrantedAllScopes || google.accounts.oauth2.hasGrantedAllScopes(r, SCOPE));
+        if (!granted) { settle(new Error(r && r.error ? 'Google ปฏิเสธ (' + r.error + ')' : 'ยังไม่ได้อนุญาตให้แอปเก็บไฟล์ใน Drive')); return; }
+        tok = { t: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3599) * 1000 };
+        LS.set('as_drive_tok', tok);
+        settle(null);
+        afterSignIn();
+      },
+      error_callback: e => {
+        const t = e && e.type;
+        settle(new Error(t === 'popup_closed' ? 'ปิดหน้าต่างล็อกอินก่อนเสร็จ'
+          : t === 'popup_failed_to_open' ? 'เบราว์เซอร์บล็อกหน้าต่างล็อกอิน อนุญาตป๊อปอัปให้เว็บนี้แล้วลองใหม่'
+          : 'ล็อกอิน Google ไม่สำเร็จ'));
+      }
+    });
+    client._cid = D.clientId;
+    return client;
+  }
+  // ต้องเรียกตรงจากการแตะเท่านั้น ห้ามมี await ก่อนหน้า ไม่งั้นเบราว์เซอร์บล็อกหน้าต่างล็อกอิน
+  function signIn(){
+    return new Promise((res, rej) => {
+      if (!D.clientId) { rej(new Error('ยังไม่ได้ใส่ Client ID')); return; }
+      if (!gisReady()) { loadGis().catch(() => {}); rej(new Error('กำลังโหลดระบบล็อกอิน Google อีกสักครู่แตะอีกครั้ง')); return; }
+      waiters.push(err => err ? rej(err) : res());
+      try {
+        const o = { prompt: '' };
+        if (D.email) o.login_hint = D.email;
+        tokenClient().requestAccessToken(o);
+      } catch (e) { settle(new Error('ล็อกอิน Google ไม่สำเร็จ ตรวจ Client ID อีกครั้ง')); }
+    });
+  }
+  function signOut(){
+    try { if (tok && gisReady()) google.accounts.oauth2.revoke(tok.t, () => {}); } catch(e){}
+    tok = null; LS.set('as_drive_tok', null);
+  }
+
+  /* ---------- คุยกับ Drive ---------- */
+  function authErr(){ const e = new Error('ต้องเชื่อมต่อ Google Drive อีกครั้ง'); e.auth = true; return e; }
+  async function driveErr(r){
+    let reason = '';
+    try { const j = await r.json(); reason = (j.error && j.error.errors && j.error.errors[0] && j.error.errors[0].reason) || (j.error && (j.error.status || j.error.message)) || ''; } catch(e){}
+    const e = new Error('Drive ตอบ ' + r.status + (reason ? ' ' + reason : ''));
+    e.status = r.status; e.reason = reason;
+    e.full = /storageQuotaExceeded|quotaExceeded/i.test(reason);
+    e.retry = r.status >= 500 || r.status === 429 || /rateLimitExceeded/i.test(reason);
+    if (r.status === 401) { tok = null; LS.set('as_drive_tok', null); e.auth = true; }
+    return e;
+  }
+  async function api(method, url, body, type){
+    if (!tokenOk(20)) throw authErr();
+    const h = { Authorization: 'Bearer ' + tok.t };
+    if (type) h['Content-Type'] = type;
+    const r = await fetch(url, { method, headers: h, body });
+    if (!r.ok) throw await driveErr(r);
+    return r.status === 204 ? null : r.json();
+  }
+  const qs = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+  let folderP = null;                            // เรียกพร้อมกันหลายทาง ต้องได้โฟลเดอร์เดียว ไม่สร้างซ้ำ
+  function folder(){
+    if (D.folder) return Promise.resolve(D.folder);
+    return folderP || (folderP = findOrMakeFolder().finally(() => { folderP = null; }));
+  }
+  async function findOrMakeFolder(){
+    const q = 'mimeType=' + qs('application/vnd.google-apps.folder') + ' and name=' + qs(FOLDER) + ' and trashed=false';
+    const r = await api('GET', API + 'files?pageSize=1&fields=files(id)&q=' + encodeURIComponent(q));
+    let id = r.files && r.files[0] && r.files[0].id;
+    if (!id) id = (await api('POST', API + 'files?fields=id', JSON.stringify({ name: FOLDER, mimeType: 'application/vnd.google-apps.folder' }), 'application/json; charset=UTF-8')).id;
+    D.folder = id; saveD();
+    return id;
+  }
+  async function findInFolder(name){
+    const q = 'name=' + qs(name) + ' and ' + qs(await folder()) + ' in parents and trashed=false';
+    const r = await api('GET', API + 'files?pageSize=1&orderBy=modifiedTime desc&fields=files(id)&q=' + encodeURIComponent(q));
+    return r.files && r.files[0] ? r.files[0].id : null;
+  }
+  // สร้าง/แก้ไฟล์เล็ก (JSON) ทีเดียวทั้งชื่อและเนื้อ — ไฟล์ถูกลบไปจาก Drive ก็สร้างใหม่ให้
+  async function putJson(id, name, obj){
+    const b = 'as' + Math.random().toString(36).slice(2);
+    const meta = id ? { name } : { name, parents: [await folder()], mimeType: 'application/json' };
+    const body = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+                 '\r\n--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(obj, null, 1) + '\r\n--' + b + '--';
+    try {
+      return (await api(id ? 'PATCH' : 'POST', UP + (id ? '/' + id : '') + '?uploadType=multipart&fields=id', body, 'multipart/related; boundary=' + b)).id;
+    } catch (e) {
+      if (id && e.status === 404) return putJson(null, name, obj);
+      if (!id && e.status === 404) { D.folder = null; saveD(); }
+      throw e;
+    }
+  }
+  async function refreshAbout(){
+    try {
+      const a = await api('GET', API + 'about?fields=user(emailAddress),storageQuota(limit,usage)');
+      if (a.user && a.user.emailAddress) D.email = a.user.emailAddress;
+      const q = a.storageQuota || {};
+      D.free = q.limit ? Math.max(0, Number(q.limit) - Number(q.usage || 0)) : null;
+      D.aboutAt = Date.now(); saveD();
+    } catch (e) { if (!e.auth) log('drive about: ' + e.message); }
+  }
+
+  /* ---------- สถานะของแต่ละโชว์ ----------
+     D.files[sid] = { uri: ช่องส่งวิดีโอ, sent: ไบต์ที่ Drive ได้แล้ว, done, vid: id วิดีโอบน Drive,
+                      meta: id ไฟล์ .json, metaSig, vidSig: ชื่อ+คำอธิบายที่ตั้งไว้แล้ว, err } */
+  const st = { phase: 'idle', msg: '', live: 0 };
+  let backoff = 0, until = 0;
+  const tracked = s => !!D.files[s.id] || (D.since && s.id >= D.since);
+  function fileOf(s){ return D.files[s.id] || (D.files[s.id] = { uri: null, sent: 0, done: false, vid: null, meta: null, metaSig: '', vidSig: '' }); }
+  const baseName = s => fileName(s) + (s.part > 1 ? '-ส่วนที่' + s.part : '');
+  const onCell = () => { const c = navigator.connection; return !!(D.wifiOnly && c && c.type === 'cellular'); };
+
+  /* สารบัญก้อนวิดีโอใน IndexedDB ของแต่ละโชว์ (อ่านเฉพาะก้อนที่เพิ่มมาใหม่ ไม่โหลดตัววิดีโอขึ้นหน่วยความจำ) */
+  const lay = {};
+  async function layout(s, done){
+    let L = lay[s.id];
+    if (!L) L = lay[s.id] = { seq: [], end: [], last: 0, total: 0, closed: false };
+    if (L.closed) return L;
+    const rows = await tx('chunks', 'readonly', st => st.getAll(IDBKeyRange.bound([s.id, L.last + 1], [s.id, Infinity])));
+    for (const r of rows || []) {
+      // ระหว่างอัด รับเฉพาะก้อนที่ต่อเนื่อง (ก้อนที่เขียนซ้ำอาจลงช้ากว่าก้อนถัดไป) อัดจบแล้วรับทั้งหมด
+      if (!done && r.seq !== L.last + 1) break;
+      const n = (r.blob && r.blob.size) || 0;
+      L.total += n; L.seq.push(r.seq); L.end.push(L.total); L.last = r.seq;
+    }
+    if (done) L.closed = true;
+    return L;
+  }
+  async function readRange(sid, L, a, b){
+    let i = 0, lo = 0, hi = L.end.length - 1;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (L.end[m] > a) { i = m; hi = m - 1; } else lo = m + 1; }
+    let j = i;
+    while (j < L.end.length - 1 && L.end[j] < b) j++;
+    const rows = await tx('chunks', 'readonly', st => st.getAll(IDBKeyRange.bound([sid, L.seq[i]], [sid, L.seq[j]])));
+    const byseq = new Map((rows || []).map(r => [r.seq, r.blob]));
+    const parts = [];
+    for (let k = i; k <= j; k++) {
+      const bl = byseq.get(L.seq[k]);
+      if (!bl) throw new Error('ข้อมูลวิดีโอในเครื่องหายไประหว่างส่ง');
+      parts.push(bl);
+    }
+    const start = i ? L.end[i - 1] : 0;
+    return new Blob(parts).slice(a - start, b - start);
+  }
+
+  /* ส่งวิดีโอหนึ่งก้อน คืน true ถ้าได้ทำอะไรไปแล้ว */
+  let ctrl = null, upSid = 0;
+  async function openUpload(s, F){
+    if (!tokenOk(20)) throw authErr();
+    const r = await fetch(UP + '?uploadType=resumable&fields=id', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + tok.t, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': s.mime || 'video/mp4' },
+      body: JSON.stringify({ name: baseName(s) + '.' + (s.ext || 'mp4'), parents: [await folder()], mimeType: s.mime || 'video/mp4' })
+    });
+    if (!r.ok) {
+      const e = await driveErr(r);
+      if (r.status === 404) { D.folder = null; saveD(); e.retry = true; }    // โฟลเดอร์ถูกลบไปจาก Drive สร้างใหม่รอบหน้า
+      throw e;
+    }
+    const uri = r.headers.get('Location');
+    if (!uri) throw new Error('Drive ไม่ส่งที่อยู่สำหรับอัปโหลดกลับมา');
+    F.uri = uri; F.sent = 0; F.check = false; F.nul = 0; saveD();
+  }
+  async function put(F, headers, body, size){
+    const h = Object.assign({}, headers);
+    if (tokenOk(20)) h.Authorization = 'Bearer ' + tok.t;     // ช่องส่งที่เปิดแล้วไม่ต้องใช้บัตรก็ได้ แต่มีก็แนบไป
+    ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), Math.max(60000, size / 40000 * 1000));   // ช้ากว่า 40 KB/วินาที = ถือว่าค้าง
+    try { return await fetch(F.uri, { method: 'PUT', headers: h, body, signal: ctrl.signal }); }
+    finally { clearTimeout(timer); ctrl = null; }
+  }
+  // ถาม Drive ว่าได้ไปแล้วกี่ไบต์ (หลังเน็ตหลุดหรือเปิดแอปใหม่)
+  async function askSent(F){
+    const r = await put(F, { 'Content-Range': 'bytes */*' }, null, 0);
+    return answer(F, r, F.sent, null);
+  }
+  async function answer(F, r, b, total){
+    if (r.status === 200 || r.status === 201) {
+      let j = {}; try { j = await r.json(); } catch(e){}
+      F.vid = j.id || F.vid; F.done = true; F.uri = null; F.sent = total != null ? total : F.sent; F.vidSig = ''; F.err = '';
+      saveD(); return 'done';
+    }
+    if (r.status === 308) {
+      const range = r.headers.get('Range');
+      if (range) { F.sent = Number(range.match(/(\d+)\s*$/)[1]) + 1; F.nul = 0; }
+      else if (b > 0 && F.sent > 0) F.sent = b;                       // อ่านหัว Range ไม่ได้ ถือว่าก้อนนี้ถึงแล้ว
+      else if (b > 0 && ++F.nul >= 2) { F.sent = b; log('drive: no Range header'); }
+      else F.sent = 0;
+      saveD(); return 'more';
+    }
+    if (r.status === 404 || r.status === 410) {                       // ช่องส่งหมดอายุ (เกิน 1 สัปดาห์) เริ่มส่งใหม่ทั้งไฟล์
+      log('drive: upload session expired, restart'); F.uri = null; F.sent = 0; saveD(); return 'more';
+    }
+    throw await driveErr(r);
+  }
+  async function pushVideo(s, F, live){
+    if (F.done || !D.video || F.err === 'full') return false;
+    const L = await layout(s, !live);
+    if (!F.uri) {
+      if (live && !L.total) return false;          // เปิดช่องส่งตั้งแต่ก้อนแรก ตอนที่บัตรยังสดอยู่
+      if (!live && !L.total) { F.done = true; saveD(); return false; }
+      await openUpload(s, F);
+    }
+    upSid = s.id;
+    if (F.check && F.uri) { F.check = false; if (await askSent(F) === 'done') return true; }
+    const a = F.sent;
+    let b, total = null;
+    if (live) {
+      const n = Math.min(MAX_PIECE, Math.floor((L.total - a) / Q) * Q);
+      if (n < MIN_PIECE) return false;
+      b = a + n;
+    } else {
+      total = L.total;                                                 // อัดจบแล้ว รู้ขนาดรวม บอกไปทุกก้อน
+      if (a > total) { F.sent = 0; F.check = true; return true; }
+      b = a + Math.min(MAX_PIECE, total - a);
+    }
+    const body = b > a ? await readRange(s.id, L, a, b) : null;
+    const range = b > a ? 'bytes ' + a + '-' + (b - 1) + '/' + (live ? '*' : total) : 'bytes */' + total;
+    let r;
+    try { r = await put(F, { 'Content-Range': range }, body, b - a); }
+    catch (e) { F.check = true; throw Object.assign(new Error('ส่งไม่สำเร็จ ' + ((e && e.name) || '')), { retry: true }); }
+    await answer(F, r, b, live ? null : total);
+    return true;
+  }
+  function metaOf(s, F){
+    return { app: 'อัดโชว์', v: 1, id: s.id, title: s.title || '', name: sesName(s).name, part: s.part || 1,
+             recorded: new Date(s.id).toISOString(), duration: Math.round(s.dur || 0), bytes: s.bytes || 0,
+             width: s.w, height: s.h, mime: s.mime, ext: s.ext, done: !!s.done, crashed: !!s.crashed,
+             video: F.vid ? baseName(s) + '.' + s.ext : null, marks: s.marks || [], played: s.played || [],
+             chapters: chaptersText(s) };
+  }
+  async function pushMeta(s, F, live){
+    const m = metaOf(s, F), sig = JSON.stringify(m) + baseName(s);
+    // วิดีโอส่งครบแล้ว: ตั้งชื่อให้ตรงกับชื่อโชว์ล่าสุด และใส่รายชื่อเพลงพร้อมเวลาไว้ในคำอธิบาย
+    const name = baseName(s) + '.' + s.ext, desc = sesName(s).name + '\n\n' + chaptersText(s), vs = name + '\n' + desc;
+    const wantMeta = sig !== F.metaSig, wantVid = !!(F.done && F.vid && vs !== F.vidSig);
+    if (!wantMeta && !wantVid) return false;
+    if (!tokenOk(20)) throw authErr();
+    if (wantMeta && (!live || !F.metaAt || Date.now() - F.metaAt > 8000)) {      // ระหว่างอัด ส่งไม่ถี่กว่า 8 วินาที
+      F.meta = await putJson(F.meta, baseName(s) + '.json', m);
+      F.metaSig = sig; F.metaAt = Date.now(); saveD();
+      return true;
+    }
+    if (wantVid) {
+      try { await api('PATCH', API + 'files/' + F.vid + '?fields=id', JSON.stringify({ name, description: desc }), 'application/json; charset=UTF-8'); }
+      catch (e) { if (e.status !== 404) throw e; }
+      F.vidSig = vs; saveD();
+      return true;
+    }
+    return false;
+  }
+
+  /* ---------- ตัวเดินงาน: ทีละก้อน โชว์ที่กำลังอัดก่อน ---------- */
+  let running = false, again = false, list = null, listAt = 0;
+  function nudge(){ if (running) again = true; else pump(); }
+  async function sessions(){
+    if (!list || Date.now() - listAt > 8000) { list = (await getSessions()) || []; listAt = Date.now(); }
+    let out = list.filter(s => s && tracked(s) && !dropping.has(s.id));
+    if (typeof ses !== 'undefined' && ses && tracked(ses)) out = out.filter(s => s.id !== ses.id).concat([ses]);
+    return out;
+  }
+  async function step(){
+    if (!ready()) { st.phase = 'off'; return false; }
+    if (!navigator.onLine) { st.phase = 'offline'; return false; }
+    if (Date.now() < until) return false;
+    const cell = onCell();
+    const live = (typeof ses !== 'undefined' && ses) ? ses.id : 0;
+    const all = (await sessions()).sort((a, b) => (b.id === live) - (a.id === live) || a.id - b.id);
+    let needAuth = false, did = false;
+    if (!cell) for (const s of all) {
+      const F = fileOf(s), isLive = s.id === live || !s.done;
+      try {
+        if (await pushVideo(s, F, isLive)) { did = true; break; }
+      } catch (e) {
+        if (e.auth) { needAuth = true; continue; }
+        if (e.full) { F.err = 'full'; saveD(); st.phase = 'full'; continue; }
+        throw e;
+      }
+    }
+    if (!did) for (const s of all) {
+      const F = fileOf(s);
+      try { if (await pushMeta(s, F, s.id === live || !s.done)) { did = true; break; } }
+      catch (e) { if (e.auth) needAuth = true; else throw e; }
+    }
+    if (!did && D.setSync) {
+      try { did = await syncSetlist(); } catch (e) { if (e.auth) needAuth = true; else throw e; }
+    }
+    st.phase = did ? 'busy' : needAuth ? 'auth' : cell ? 'cell' : 'idle';
+    return did;
+  }
+  async function pump(){
+    if (running) { again = true; return; }
+    running = true;
+    try {
+      do {
+        again = false;
+        if (await step()) { backoff = 0; again = true; paint(); }
+      } while (again);
+    } catch (e) {
+      backoff = Math.min(60000, backoff ? backoff * 2 : 2000);
+      until = Date.now() + backoff;
+      st.phase = 'retry'; st.msg = e.message || String(e);
+      if (backoff >= 16000) log('drive: ' + st.msg);
+      setTimeout(nudge, backoff + 50);
+    } finally { running = false; upSid = 0; paint(); }
+  }
+
+  /* ---------- เซ็ตลิสต์ระหว่างเครื่อง ---------- */
+  let setPullAt = 0, setPushWant = false;
+  async function syncSetlist(){
+    if (!tokenOk(20)) return false;
+    if (!D.setFile) {
+      D.setFile = await findInFolder(SETFILE);
+      if (!D.setFile) { setPushWant = true; }
+      else setPullAt = 0;
+      saveD();
+    }
+    if (setPushWant) {
+      setPushWant = false;
+      D.setFile = await putJson(D.setFile, SETFILE, { app: 'อัดโชว์', setlist: $('setlist').value, at: D.setAt || Date.now() });
+      saveD();
+      return true;
+    }
+    const home = !$('home').hidden && document.visibilityState === 'visible';
+    if (D.setFile && home && Date.now() - setPullAt > 20000) {
+      setPullAt = Date.now();
+      let j;
+      try { j = await api('GET', API + 'files/' + D.setFile + '?alt=media'); }
+      catch (e) { if (e.status === 404) { D.setFile = null; saveD(); return false; } throw e; }
+      const ta = $('setlist');
+      if (j && typeof j.setlist === 'string' && (j.at || 0) > (D.setAt || 0) && document.activeElement !== ta) {
+        if (ta.value !== j.setlist) {
+          ta.value = j.setlist; LS.set('as_setlist', j.setlist); readSetlist();
+          toast('เซ็ตลิสต์อัปเดตจากอีกเครื่องแล้ว');
+        }
+        D.setAt = j.at; saveD();
+      } else if (j && (j.at || 0) < (D.setAt || 0)) setPushWant = true;
+    }
+    return false;
+  }
+  let setTimer = 0;
+  $('setlist').addEventListener('input', () => {
+    D.setAt = Date.now(); saveD();
+    clearTimeout(setTimer);
+    setTimer = setTimeout(() => { setPushWant = true; nudge(); }, 2500);
+  });
+
+  /* ---------- เกาะกับแอปเดิม ---------- */
+  // ทุกก้อนวิดีโอที่ลง IndexedDB แล้ว ปลุกตัวส่ง
+  const origWrite = writeChunk;
+  writeChunk = function (row, tries) {
+    const p = origWrite(row, tries);
+    p.then(() => { if (ready()) nudge(); }, () => {});
+    return p;
+  };
+  // ลบโชว์ออกจากแอป: ส่วนที่ส่งไปแล้วปิดเป็นไฟล์บน Drive ให้ (ไม่ทิ้งค้างเป็นช่องส่งที่ไม่มีใครเห็น)
+  const dropping = new Set();
+  const origDel = delSession;
+  delSession = async function (id) {
+    const F = D.files[id];
+    dropping.add(id);
+    try {
+      if (upSid === id && ctrl) try { ctrl.abort(); } catch(e){}
+      for (let i = 0; i < 50 && upSid === id; i++) await sleep(100);
+      if (F && F.uri && !F.done && navigator.onLine) {
+        const close = async () => {
+          await askSent(F);
+          if (!F.done && F.sent > 0) {
+            const r = await put(F, { 'Content-Range': 'bytes */' + F.sent }, null, 0);
+            await answer(F, r, F.sent, F.sent);
+          }
+        };
+        try { await Promise.race([close(), sleep(10000)]); } catch (e) { log('drive close partial: ' + e.message); }
+      }
+      await origDel(id);
+      delete D.files[id]; delete lay[id]; saveD();
+      list = null;
+    } finally { dropping.delete(id); }
+  };
+  // หน้ากล้อง: ต่ออายุบัตรตอนแตะ "เปิดกล้อง" (ระหว่างอัดจะไม่มีหน้าต่างเด้ง)
+  $('openCam').onclick = () => {
+    if (ready() && navigator.onLine && gisReady() && !tokenOk(50 * 60)) {
+      let gone = false;
+      const go = () => { if (!gone) { gone = true; enterCam(); } };
+      signIn().then(go, e => { toast(e.message + ' วิดีโอยังอัดลงเครื่องตามปกติ', 4000); go(); });
+      setTimeout(go, 60000);
+      return;
+    }
+    enterCam();
+  };
+  const origStats = renderStats;
+  renderStats = function () {
+    origStats.apply(this, arguments);
+    if (!ready() || typeof ses === 'undefined' || !ses || !D.files[ses.id]) return;
+    const F = D.files[ses.id], L = lay[ses.id], lag = Math.max(0, (L ? L.total : ses.bytes) - F.sent);
+    const txt = st.phase === 'offline' ? 'ไม่มีเน็ต ค้าง ' + fmtB(lag)
+      : st.phase === 'cell' ? 'รอ Wi-Fi ค้าง ' + fmtB(lag)
+      : st.phase === 'full' || F.err === 'full' ? 'Drive เต็ม'
+      : !F.uri && !F.sent ? (tokenOk(20) ? 'กำลังเริ่ม' : 'รอเชื่อมต่อใหม่')
+      : lag < 2 * MIN_PIECE ? 'ทัน' : 'ค้าง ' + fmtB(lag);
+    $('stats').insertAdjacentHTML('beforeend', '<span' + (/ทัน/.test(txt) ? '' : ' class="k"') + '>Drive ' + esc(txt) + '</span>');
+  };
+  const origLib = renderLib;
+  renderLib = async function () {
+    await origLib.apply(this, arguments);
+    paintLib().catch(() => {});
+  };
+  const origDetail = openDetail;
+  openDetail = async function (id) {
+    await origDetail.apply(this, arguments);
+    paintDetail();
+  };
+
+  /* ---------- หน้าจอ ---------- */
+  const card = document.createElement('section');
+  card.className = 'drv'; card.id = 'drvCard'; card.setAttribute('aria-label', 'Google Drive');
+  $('ready').after(card);
+  const box = document.createElement('div');
+  box.className = 'drv'; box.id = 'drvBox'; box.style.marginTop = '32px';
+  const h2s = Array.from(document.querySelectorAll('#detail h2'));
+  const anchor = h2s.find(h => /คืนพื้นที่/.test(h.textContent)) || $('dDel');
+  anchor.before(box);
+
+  function pct(F, total){ return total ? Math.min(100, Math.floor(F.sent / total * 100)) : 0; }
+  function stateLine(){
+    if (st.phase === 'offline') return ['warn', 'ไม่มีเน็ต', 'อัดลงเครื่องได้ตามปกติ เน็ตกลับมาจะส่งต่อเอง'];
+    if (st.phase === 'cell') return ['warn', 'รอ Wi-Fi', 'ตั้งไว้ว่าไม่ส่งวิดีโอผ่านเน็ตมือถือ'];
+    if (st.phase === 'full') return ['bad', 'Drive เต็ม', 'ลบไฟล์ใน Drive หรือเพิ่มพื้นที่ แล้วกดลองอีกครั้ง'];
+    if (!tokenOk(20)) return ['warn', 'ต้องเชื่อมต่อใหม่', 'แตะเชื่อมต่อเพื่อส่งส่วนที่ค้าง (วิดีโอที่เปิดช่องส่งไว้แล้วยังส่งต่อได้เอง)'];
+    if (st.phase === 'retry') return ['warn', 'กำลังลองใหม่', st.msg];
+    if (st.phase === 'busy') return ['ok', 'กำลังส่ง', ''];
+    return ['ok', 'เชื่อมแล้ว', ''];
+  }
+  async function backlog(){
+    let n = 0, c = 0;
+    for (const s of await sessions()) {
+      const F = D.files[s.id];
+      if (!F || F.done || !D.video) continue;
+      n += Math.max(0, ((lay[s.id] && lay[s.id].closed ? lay[s.id].total : s.bytes) || 0) - F.sent); c++;
+    }
+    return { n, c };
+  }
+  async function paintCard(){
+    if (!D.clientId || !D.on) {
+      card.innerHTML = '<div class="drv-h"><b>เก็บขึ้น Google Drive</b><span class="drv-tag">ปิดอยู่</span></div>' +
+        '<p>ส่งวิดีโอขึ้น Drive ของคุณตามไประหว่างอัด พร้อมรายชื่อเพลงและเวลา เครื่องพังหรือพื้นที่เต็มก็ไม่หาย</p>' +
+        '<div class="row"><button class="btn" data-a="setup">ตั้งค่า Google Drive</button></div>';
+      return;
+    }
+    const [k, tag, why] = stateLine(), b = await backlog();
+    const lines = [];
+    if (D.email) lines.push(esc(D.email));
+    if (D.free != null) lines.push('Drive ว่าง ' + fmtB(D.free));
+    if (b.c) lines.push('รอส่ง ' + fmtB(b.n) + ' (' + b.c + ' โชว์)');
+    else lines.push('ส่งครบทุกโชว์แล้ว');
+    let warn = '';
+    if (D.free != null && b.n > D.free) warn = '<p style="color:var(--amber)">พื้นที่ Drive ไม่พอสำหรับวิดีโอที่รอส่ง</p>';
+    card.innerHTML = '<div class="drv-h"><b>Google Drive</b><span class="drv-tag ' + k + '">' + tag + '</span></div>' +
+      '<p>' + lines.join(' · ') + (why ? '<br>' + esc(why) : '') + '</p>' + warn +
+      '<div class="row">' +
+      (tokenOk(20) ? '' : '<button class="btn solid" data-a="auth">เชื่อมต่อ</button>') +
+      (st.phase === 'full' || st.phase === 'retry' ? '<button class="btn" data-a="retry">ลองอีกครั้ง</button>' : '') +
+      (D.folder ? '<a class="btn" href="https://drive.google.com/drive/folders/' + encodeURIComponent(D.folder) + '" target="_blank" rel="noopener">เปิดโฟลเดอร์</a>' : '') +
+      '<button class="btn ghost" data-a="setup">ตั้งค่า</button></div>';
+  }
+  async function paintLib(){
+    if (!ready()) return;
+    let all = [];
+    try { all = (await getSessions()) || []; } catch(e){ return; }
+    all = all.filter(s => typeof ses === 'undefined' || !ses || s.id !== ses.id).sort((a, b) => b.id - a.id);
+    const lis = $('lib').querySelectorAll('li');
+    all.forEach((s, i) => {
+      const li = lis[i], F = D.files[s.id];
+      if (!li || !F) return;
+      const div = li.querySelector('button > div');
+      if (!div) return;
+      let el = div.querySelector('.drvb');
+      if (!el) { el = document.createElement('span'); div.appendChild(el); }
+      const done = F.done || !D.video;
+      el.className = 'drvb ' + (done ? 'ok' : 'warn');
+      el.textContent = done ? 'อยู่บน Drive แล้ว' : 'Drive ' + pct(F, s.bytes) + '%';
+    });
+  }
+  async function paintDetail(){
+    if ($('detail').hidden || typeof cur === 'undefined' || !cur) { box.hidden = true; return; }
+    box.hidden = false;
+    const s = cur, F = D.files[s.id];
+    if (!ready()) {
+      box.innerHTML = '<div class="drv-h"><b>Google Drive</b><span class="drv-tag">ปิดอยู่</span></div>' +
+        '<p>เปิดเก็บขึ้น Drive แล้ววิดีโอจะไม่หายแม้ลบออกจากแอป</p><div class="row"><button class="btn" data-a="setup">ตั้งค่า Google Drive</button></div>';
+      return;
+    }
+    if (!F) {
+      box.innerHTML = '<div class="drv-h"><b>Google Drive</b><span class="drv-tag">ยังไม่ได้ส่ง</span></div>' +
+        '<p>โชว์นี้อัดก่อนเปิดเก็บขึ้น Drive ส่งขึ้นไปเก็บตอนนี้ได้ ' + fmtB(s.bytes || 0) + '</p>' +
+        '<div class="row"><button class="btn solid" data-a="track">ส่งโชว์นี้ขึ้น Drive</button></div>';
+      return;
+    }
+    const L = lay[s.id], total = (L && L.closed ? L.total : s.bytes) || 0, p = F.done ? 100 : pct(F, total);
+    let tag, k, line;
+    if (!D.video) { k = F.meta ? 'ok' : 'warn'; tag = F.meta ? 'เก็บรายชื่อเพลงแล้ว' : 'รอส่ง'; line = 'ตั้งไว้ว่าส่งแค่รายชื่อเพลงและมาร์ก ไม่ส่งวิดีโอ'; }
+    else if (F.done) { k = 'ok'; tag = 'ครบแล้ว'; line = 'วิดีโอทั้งโชว์ ' + fmtB(total) + ' อยู่บน Drive แล้ว ลบออกจากแอปเพื่อคืนพื้นที่ได้ไม่ต้องกลัวหาย'; }
+    else if (F.err === 'full') { k = 'bad'; tag = 'Drive เต็ม'; line = 'ส่งไปแล้ว ' + fmtB(F.sent) + ' จาก ' + fmtB(total); }
+    else {
+      const sl = stateLine();
+      k = 'warn'; tag = sl[0] === 'ok' ? 'ส่งแล้ว ' + p + '%' : sl[1];
+      line = 'ส่งไปแล้ว ' + fmtB(F.sent) + ' จาก ' + fmtB(total) + (sl[2] ? ' · ' + sl[2] : '') +
+             '<br><span style="color:var(--amber)">ถ้าลบโชว์นี้ตอนนี้ บน Drive จะเหลือแค่ส่วนที่ส่งไปแล้ว</span>';
+    }
+    box.innerHTML = '<div class="drv-h"><b>Google Drive</b><span class="drv-tag ' + k + '">' + esc(tag) + '</span></div>' +
+      (D.video ? '<div class="drv-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + p + '" aria-label="ส่งขึ้น Drive"><i style="width:' + p + '%"></i></div>' : '') +
+      '<p>' + line + '</p><div class="row">' +
+      (tokenOk(20) ? '' : '<button class="btn solid" data-a="auth">เชื่อมต่อ</button>') +
+      (F.vid ? '<a class="btn" href="https://drive.google.com/file/d/' + encodeURIComponent(F.vid) + '/view" target="_blank" rel="noopener">เปิดใน Drive</a>'
+             : D.folder ? '<a class="btn" href="https://drive.google.com/drive/folders/' + encodeURIComponent(D.folder) + '" target="_blank" rel="noopener">เปิดโฟลเดอร์</a>' : '') +
+      '</div>';
+  }
+  let paintQ = false;
+  function paint(){
+    if (paintQ) return;
+    paintQ = true;
+    requestAnimationFrame(() => {
+      paintQ = false;
+      if (!$('home').hidden) { paintCard().catch(() => {}); paintLib().catch(() => {}); }
+      if (!$('detail').hidden) paintDetail();
+    });
+  }
+
+  /* ---------- หน้าตั้งค่า ---------- */
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet'; sheet.id = 'drvSheet'; sheet.hidden = true;
+  sheet.innerHTML = `
+<div class="box" role="dialog" aria-modal="true" aria-labelledby="drvH">
+  <div class="box-head"><h3 id="drvH">เก็บขึ้น Google Drive</h3><button class="btn solid" id="drvClose">เสร็จ</button></div>
+  <div class="box-body">
+    <p>วิดีโอส่งขึ้น Drive ของคุณเองตามไประหว่างอัด ไม่ผ่านเซิร์ฟเวอร์ของใคร แอปเห็นได้เฉพาะไฟล์ที่แอปสร้างในโฟลเดอร์ "อัดโชว์"</p>
+    <div id="drvIdBox">
+      <h4>ทำครั้งเดียว: สร้าง Client ID (ฟรี ไม่ต้องผูกบัตร ราว 5 นาที)</h4>
+      <ol class="steps">
+        <li>เปิด <b>console.cloud.google.com</b> ล็อกอินด้วย Gmail ที่จะเก็บวิดีโอ → สร้างโปรเจกต์ใหม่ ชื่ออะไรก็ได้</li>
+        <li>เมนู <b>APIs &amp; Services → Library</b> ค้น <b>Google Drive API</b> → กด <b>Enable</b></li>
+        <li>เมนู <b>Google Auth Platform</b> (หรือ OAuth consent screen) → Get started → ตั้งชื่อแอป เลือก <b>External</b>
+            แล้วที่หัวข้อ <b>Audience → Test users</b> ใส่ Gmail ของตัวเอง</li>
+        <li>หัวข้อ <b>Clients → Create client</b> → ชนิด <b>Web application</b> → ช่อง <b>Authorized JavaScript origins</b> ใส่
+            <code id="drvOrigin"></code> → Create</li>
+        <li>ก๊อบ <b>Client ID</b> (ลงท้ายด้วย .apps.googleusercontent.com) มาวางด้านล่าง</li>
+      </ol>
+      <label class="lbl" for="drvId" style="margin-bottom:4px">Client ID</label>
+      <input type="text" id="drvId" autocomplete="off" spellcheck="false" placeholder="xxxx.apps.googleusercontent.com">
+      <p class="hint" style="margin:6px 0 12px">เครื่องที่สองใช้ Client ID เดิมได้เลย ไม่ต้องสร้างใหม่</p>
+    </div>
+    <button class="btn solid" id="drvGo" style="width:100%">เชื่อมต่อ Google Drive</button>
+    <p class="status" id="drvMsg" role="status" aria-live="polite" style="margin-top:8px"></p>
+    <div id="drvOpts">
+      <h4>ส่งอะไรบ้าง</h4>
+      <label class="chk"><input type="checkbox" id="drvVideo"> ส่งวิดีโอด้วย (ปิด = ส่งแค่รายชื่อเพลงและมาร์ก)</label>
+      <label class="chk"><input type="checkbox" id="drvWifi"> ไม่ส่งวิดีโอผ่านเน็ตมือถือ รอต่อ Wi-Fi</label>
+      <label class="chk"><input type="checkbox" id="drvSet"> ซิงค์เซ็ตลิสต์ระหว่างเครื่อง</label>
+      <p id="drvRate"></p>
+      <button class="btn" id="drvOld" style="width:100%;margin-bottom:8px" hidden></button>
+      <button class="btn danger" id="drvOff" style="width:100%">หยุดเก็บขึ้น Drive บนเครื่องนี้</button>
+      <p class="hint">หยุดแล้วไฟล์ที่อยู่บน Drive ไม่หาย วิดีโอในแอปก็ยังอยู่</p>
+    </div>
+  </div>
+</div>`;
+  document.body.appendChild(sheet);
+  const drvMsg = t => { $('drvMsg').textContent = t || ''; };
+  async function fillSheet(){
+    $('drvOrigin').textContent = location.origin;
+    $('drvId').value = D.clientId || '';
+    $('drvIdBox').hidden = !!(D.on && D.clientId && D.email);
+    $('drvGo').textContent = D.on && tokenOk(20) ? 'เชื่อมต่ออยู่ ' + (D.email || '') : D.on ? 'เชื่อมต่ออีกครั้ง' : 'เชื่อมต่อ Google Drive';
+    $('drvOpts').hidden = !D.on;
+    $('drvVideo').checked = !!D.video; $('drvWifi').checked = !!D.wifiOnly; $('drvSet').checked = !!D.setSync;
+    const bps = typeof bytesPerSec === 'function' ? bytesPerSec() : 1.3e6;
+    $('drvRate').textContent = 'ค่าภาพตอนนี้ใช้เน็ตขาขึ้นราว ' + (bps * 8 / 1e6).toFixed(1) + ' Mbps และราว ' + (bps * 3600 / 1e9).toFixed(1) +
+      ' GB ต่อชั่วโมง เน็ตช้ากว่านี้ก็อัดได้ปกติ แค่ส่งตามไม่ทัน แล้วส่งต่อหลังจบโชว์';
+    let old = [];
+    try { old = ((await getSessions()) || []).filter(s => !tracked(s)); } catch(e){}
+    $('drvOld').hidden = !D.on || !old.length;
+    $('drvOld').textContent = 'ส่งวิดีโอเก่าที่อยู่ในแอปขึ้นไปด้วย ' + old.length + ' โชว์';
+    $('drvOld').onclick = () => { old.forEach(s => fileOf(s)); saveD(); list = null; fillSheet(); toast('เพิ่มเข้าคิวแล้ว'); nudge(); };
+  }
+  function openSheet(){
+    loadGis().catch(() => {});
+    drvMsg(''); fillSheet(); sheet.hidden = false;
+  }
+  function closeSheet(){ sheet.hidden = true; paint(); }
+  $('drvClose').onclick = closeSheet;
+  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+  $('drvId').addEventListener('input', () => { loadGis().catch(() => {}); });
+  $('drvGo').onclick = () => {
+    const id = $('drvId').value.trim();
+    if (!/^[\w.-]+\.apps\.googleusercontent\.com$/.test(id)) { drvMsg('Client ID ไม่ถูกต้อง ต้องลงท้ายด้วย .apps.googleusercontent.com'); $('drvId').focus(); return; }
+    if (id !== D.clientId) { D.clientId = id; D.folder = null; D.setFile = null; client = null; tok = null; LS.set('as_drive_tok', null); }
+    saveD();
+    drvMsg('กำลังเปิดหน้าล็อกอิน Google');
+    signIn().then(async () => {
+      if (!D.on) { D.on = true; D.since = D.since || Date.now(); }
+      saveD();
+      drvMsg('กำลังเตรียมโฟลเดอร์ "อัดโชว์" ใน Drive');
+      try { await folder(); await refreshAbout(); drvMsg('เชื่อมต่อแล้ว โชว์ที่อัดจากนี้จะส่งขึ้น Drive เอง'); }
+      catch (e) { drvMsg(/403|accessNotConfigured|disabled/i.test(e.message) ? 'ยังไม่ได้เปิด Google Drive API ในโปรเจกต์ (ขั้นที่ 2)' : e.message); }
+      fillSheet(); nudge();
+    }, e => drvMsg(e.message));
+  };
+  $('drvVideo').onchange = () => { D.video = $('drvVideo').checked; saveD(); nudge(); };
+  $('drvWifi').onchange = () => { D.wifiOnly = $('drvWifi').checked; saveD(); nudge(); };
+  $('drvSet').onchange = () => { D.setSync = $('drvSet').checked; if (D.setSync) D.setFile = null; saveD(); nudge(); };
+  $('drvOff').onclick = () => {
+    if (!confirm('หยุดเก็บขึ้น Drive บนเครื่องนี้?\nไฟล์บน Drive ไม่หาย วิดีโอในแอปก็ยังอยู่')) return;
+    signOut(); D.on = false; D.files = {}; D.since = 0; saveD();
+    fillSheet(); paint(); toast('หยุดแล้ว');
+  };
+
+  function onAction(e){
+    const b = e.target.closest('[data-a]');
+    if (!b) return;
+    const a = b.dataset.a;
+    if (a === 'setup') openSheet();
+    else if (a === 'auth') signIn().then(() => { toast('เชื่อมต่อ Drive แล้ว'); }, err => toast(err.message, 5000));
+    else if (a === 'retry') { Object.values(D.files).forEach(F => { if (F.err === 'full') F.err = ''; }); saveD(); until = 0; backoff = 0; st.phase = 'idle'; nudge(); }
+    else if (a === 'track' && cur) { fileOf(cur); saveD(); list = null; nudge(); paintDetail(); toast('เริ่มส่งขึ้น Drive แล้ว'); }
+  }
+  card.addEventListener('click', onAction);
+  box.addEventListener('click', onAction);
+
+  function afterSignIn(){
+    st.phase = 'idle'; until = 0; backoff = 0;
+    Promise.resolve().then(async () => {
+      try { await folder(); if (!D.aboutAt || Date.now() - D.aboutAt > 600000 || !D.email) await refreshAbout(); } catch(e){}
+      nudge(); paint();
+    });
+  }
+
+  /* ปลุกตัวส่ง */
+  window.addEventListener('online', () => { until = 0; backoff = 0; nudge(); paint(); });
+  window.addEventListener('offline', () => paint());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { setPullAt = 0; nudge(); paint(); } });
+  try { navigator.connection && navigator.connection.addEventListener('change', () => nudge()); } catch(e){}
+  setInterval(() => { if (ready()) { nudge(); if (!$('detail').hidden || !$('home').hidden) paint(); } }, 3000);
+
+  if (D.clientId && navigator.onLine) loadGis().catch(() => {});
+  if (D.files) for (const k in D.files) { if (D.files[k].uri && !D.files[k].done) D.files[k].check = true; }
+  paint();
+  nudge();
+  window.__drive = { D, st, nudge, tokenOk, lay, expire: () => { if (tok) { tok.exp = Date.now(); LS.set('as_drive_tok', tok); } } };   // ไว้ให้ชุดทดสอบใช้
+})();
+</script>
+<!-- layer:10-drive-sync.js:end -->
+</body>
+</html>

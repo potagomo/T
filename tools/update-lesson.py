@@ -8,7 +8,8 @@
   2. ดึงไอคอนที่ฝังในไฟล์ออกมาเป็น lesson/icons/*.png
   3. เปลี่ยน manifest ที่สร้างเป็น data: URL ให้เป็นไฟล์จริง lesson/manifest.webmanifest
      (Chrome บน Android/Samsung ติดตั้งเป็นแอปเต็มตัวได้แน่นอนกว่า และ iOS ได้ไอคอนคมชัด)
-  4. ฝังชั้นเสริมทุกไฟล์ใน tools/lesson-layer/ ไว้ท้ายไฟล์ (ล็อกหน้าจอแบบเข้ารหัส ฯลฯ)
+  4. ฝังชั้นเสริมทุกไฟล์ใน tools/lesson-layer/ ไว้ท้ายไฟล์ (ล็อกหน้าจอ ลบนักเรียน แจ้งเตือน)
+     และคัดลอก push-worker/worker.js เป็น lesson/push-worker.js
   5. เขียนผลลัพธ์ลง lesson/index.html
 
 ตรรกะของโปรแกรม (บันทึก ซิงค์ ฯลฯ) ไม่ถูกแตะเลย
@@ -86,6 +87,10 @@ def main():
 
     # ชั้นเสริมใน tools/lesson-layer/*.js (เรียงตามชื่อไฟล์) — ฝังท้ายไฟล์ แทนบล็อกเดิมถ้ามี จึงรันซ้ำได้
     html = re.sub(r"<!-- (?:secure-lock|layer:[\w.-]+):start -->.*?<!-- (?:secure-lock|layer:[\w.-]+):end -->\n?", "", html, flags=re.S)
+    # โค้ดตัวส่งแจ้งเตือน ให้ปุ่ม "คัดลอกโค้ดตัวส่ง" ในแอปโหลดได้จากเว็บเดียวกัน
+    io.open(os.path.join(OUT, "push-worker.js"), "w", encoding="utf-8").write(
+        io.open(os.path.join(ROOT, "push-worker", "worker.js"), encoding="utf-8").read())
+
     if html.count("</body>") != 1:
         die("หา </body> ไม่เจอหรือมีมากกว่าหนึ่ง — ฝังชั้นเสริมไม่ได้")
     layer_dir = os.path.join(ROOT, "tools", "lesson-layer")

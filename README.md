@@ -39,6 +39,17 @@ Samsung S26 Ultra: เปิดด้วย Chrome หรือ Samsung Internet
 **ลบนักเรียน** — หน้า 🪪 ข้อมูล / รหัส บอกว่าติดอะไรอยู่ (คาบ ตารางประจำ คอร์ส ถังขยะ) และถ้าเหลือแต่ของค้าง
 (ไม่มีคาบที่สอนจริงหรือคอร์ส) ล้างแล้วลบชื่อได้ในแตะเดียว ซิงค์ไปอีกเครื่องด้วย · โค้ดอยู่ที่ `tools/lesson-layer/20-student-delete.js`
 
+**🔔 แจ้งเตือนคาบถัดไป** — เตือนก่อนคาบเริ่ม (10 นาที–2 ชั่วโมง ปรับในแอป) แม้ปิดแอปอยู่ ทั้ง iPad และ Samsung
+เว็บแอปตั้งเวลาเตือนเองไม่ได้ จึงมีตัวส่งเล็ก ๆ `push-worker/worker.js` ที่วางไว้ใน Cloudflare Workers ของครูเอง (ฟรี ไม่ผูกบัตร)
+
+1. ในแอป ⚙ → **🔔 แจ้งเตือนคาบถัดไป** → ทำตามขั้นตอนบนจอ (สร้าง Worker · วางโค้ดจากปุ่มคัดลอก · ผูก KV ชื่อตัวแปร `KV` · Cron `* * * * *`)
+2. วางที่อยู่ `https://kruta-push.….workers.dev` → **เชื่อมต่อ** → **เปิดแจ้งเตือนบนเครื่องนี้**
+3. อีกเครื่องได้ค่าตามการซิงค์ เปิดหน้าเดียวกันแล้วกด **เปิดแจ้งเตือนบนเครื่องนี้** อย่างเดียว
+
+เตือนจากคาบที่วางแผนไว้และตารางประจำสัปดาห์ 3 สัปดาห์ข้างหน้า แอปส่งรายการใหม่เองทุกครั้งที่ข้อมูลเปลี่ยน
+iPad ต้องเป็น iPadOS 16.4 ขึ้นไปและเปิดจากไอคอนหน้าโฮม · ถ้าเปิดโหมดโฟกัส/ห้ามรบกวน ระบบจะเก็บแจ้งเตือนไว้ไม่เด้ง
+โควตาฟรีของ Cloudflare (คำขอ 100,000/วัน · KV เขียน 1,000/วัน) ใช้จริงไม่ถึง 5% · ตรวจตัวส่งได้ด้วย `node tools/test-push-worker.mjs`
+
 ส่วนเสริมทุกอย่างอยู่ใน `tools/lesson-layer/` — แก้ที่นั่นแล้วรัน `update-lesson.py` อย่าแก้ใน `lesson/index.html` ตรง ๆ
 ข้อจำกัด: ล็อกนี้ปกป้อง*ตัวรหัสผ่าน* ส่วนข้อมูลบันทึกการสอนในเครื่องยังไม่ได้เข้ารหัส กันคนอื่นด้วยรหัสปลดล็อกเครื่อง
 
@@ -46,7 +57,7 @@ Samsung S26 Ultra: เปิดด้วย Chrome หรือ Samsung Internet
 
 ```bash
 python3 tools/update-lesson.py ~/Downloads/index.html   # ไฟล์ดิบไป upstream/kruta-lesson.html ผลลัพธ์ไป lesson/
-npm i playwright && node tools/smoke-test-lesson.js     # ตรวจ: เปิดได้ ออฟไลน์ได้ ซิงค์สองเครื่องได้
+npm i playwright http_ece && node tools/smoke-test-lesson.js   # ตรวจ: ออฟไลน์ ล็อก ซิงค์ แจ้งเตือน
 git add -A && git commit -m "ครูต้า รุ่นใหม่" && git push
 ```
 
@@ -244,7 +255,9 @@ tools/smoke-test.js          ตรวจเว็บแอปด้วยเบ
 lesson/                      แอปที่สอง: ครูต้า — บันทึกการสอนกลอง (index.html, sw.js, manifest, icons)
 upstream/kruta-lesson.html   ไฟล์ดิบของครูต้ารุ่นล่าสุด
 tools/update-lesson.py       รับไฟล์ครูต้ารุ่นใหม่เข้า lesson/
-tools/lesson-layer/          ส่วนเสริมของครูต้า (ล็อกหน้าจอ ลบนักเรียน) ฝังเข้า lesson/index.html
+tools/lesson-layer/          ส่วนเสริมของครูต้า (ล็อกหน้าจอ ลบนักเรียน แจ้งเตือน) ฝังเข้า lesson/index.html
+push-worker/                 ตัวส่งแจ้งเตือนสำหรับ Cloudflare Workers (worker.js + wrangler.toml)
+tools/test-push-worker.mjs   ตรวจตัวส่ง: เข้ารหัสข้อความ ลายเซ็น VAPID และจังหวะ cron
 tools/smoke-test-lesson.js   ตรวจครูต้า: ออฟไลน์ ติดตั้ง และซิงค์สองเครื่อง
 .claude/skills/drum-pro-ui/     แนวทางออกแบบ UI/UX ของโปรเจกต์นี้ (ดูข้อ 9)
 ```

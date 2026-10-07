@@ -113,3 +113,26 @@ self.addEventListener("fetch", (e) => {
     return res;
   })());
 });
+
+/* ── แจ้งเตือนคาบถัดไป (ข้อความมาจากตัวส่งบน Cloudflare — push-worker/worker.js) ── */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "ครูต้า", {
+    body: d.body || "",
+    tag: d.tag || "kruta",
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
+    data: { url: "./" }
+  }));
+});
+
+/* แตะแจ้งเตือน → เปิดแอป (ถ้าเปิดค้างอยู่แล้วก็สลับไปหน้านั้น) */
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const c of list) if (c.url.startsWith(self.registration.scope) && "focus" in c) return c.focus();
+    return self.clients.openWindow(self.registration.scope);
+  })());
+});

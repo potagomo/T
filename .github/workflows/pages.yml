@@ -54,7 +54,7 @@ jobs:
                    icons/icon-512.png icons/apple-touch-icon.png \
                    fonts/ibm-plex-sans-thai.css fonts/prompt.css \
                    theme/klong-theme.css theme/klong-theme.js \
-                   lesson/index.html lesson/manifest.webmanifest lesson/sw.js \
+                   lesson/index.html lesson/manifest.webmanifest lesson/sw.js lesson/push-worker.js \
                    lesson/icons/icon-512.png lesson/icons/apple-touch-icon.png; do
             test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
           done

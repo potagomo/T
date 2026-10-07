@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /* ตรวจแอป "ครูต้า — บันทึกการสอน" (/lesson/) ด้วยเบราว์เซอร์จริง
  *
- *   npm i playwright && node tools/smoke-test-lesson.js
+ *   npm i playwright http_ece && node tools/smoke-test-lesson.js
  *
  * เสิร์ฟโปรเจกต์ใต้ /T/ เลียนแบบ GitHub Pages แล้วตรวจว่า
  *   เปิดขึ้นทั้งจอ iPad และจอมือถือ · manifest/ไอคอนโหลดได้ (ติดตั้งลงหน้าโฮมได้)
  *   Service Worker ของ /lesson/ ทำงาน · ตัดเน็ตแล้วยังเปิดได้
  *   Service Worker ของกลอง → MIDI ไม่เก็บหน้า /lesson/ ไปทับสำเนาของตัวเอง
  *   ล็อกหน้าจอเก็บรหัสแบบ PBKDF2 · รหัสแบบเก่ายังเข้าได้และถูกอัปเกรด
- *   ซิงค์สองเครื่องแบบเรียลไทม์ (ใช้คลาวด์จำลองแทน Firebase ผ่านช่อง
+ *   ซิงค์สองเครื่องแบบเรียลไทม์ · ลบนักเรียนข้ามเครื่อง
+ *   แจ้งเตือนคาบถัดไป: ตัวส่งจริง (push-worker) + KV จำลอง ถอดรหัสข้อความด้วย http_ece (ใช้คลาวด์จำลองแทน Firebase ผ่านช่อง
  *   window.__syncTransportFactory ที่แอปเปิดไว้ให้ทดสอบ)
  *
  * ออก 0 = ผ่าน, 1 = ไม่ผ่าน
@@ -33,8 +34,30 @@ function chromiumPath() {
   } catch (_) { return undefined; }
 }
 
+/* ตัวส่งแจ้งเตือน (push-worker/worker.js ตัวจริง) เสียบไว้ที่ /T/push ใช้ KV จำลอง */
+let WORKER = null;
+const kv = new Map();
+const WENV = { KV: { get: async (k) => kv.has(k) ? kv.get(k) : null, put: async (k, v) => { kv.set(k, v); }, delete: async (k) => { kv.delete(k); } } };
+const pushed = [];                       // ข้อความที่ตัวส่งยิงออกไปหาเครื่อง
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, init) => {
+  if (String(url).includes("/pushsvc/")) { pushed.push({ url: String(url), body: Buffer.from(init.body) }); return new Response(null, { status: 201 }); }
+  return realFetch(url, init);
+};
+function serveWorker(req, res, rest) {
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", async () => {
+    const init = { method: req.method, headers: req.headers };
+    if (req.method !== "GET" && req.method !== "HEAD") init.body = Buffer.concat(chunks);
+    const r = await WORKER.fetch(new Request("http://worker.test" + (rest || "/"), init), WENV);
+    res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer()));
+  });
+}
+
 const server = http.createServer((req, res) => {
   let u = decodeURIComponent(req.url.split("?")[0]);
+  if (u === PREFIX + "push" || u.startsWith(PREFIX + "push/")) return serveWorker(req, res, u.slice((PREFIX + "push").length));
   if (!u.startsWith(PREFIX)) { res.writeHead(404); return res.end(); }
   let rel = u.slice(PREFIX.length);
   if (rel === "lesson") { res.writeHead(301, { Location: PREFIX + "lesson/" }); return res.end(); }
@@ -63,6 +86,28 @@ const FAKE = `
   };
   try { if (!localStorage.getItem("td_sync")) localStorage.setItem("td_sync", JSON.stringify({ cfg:{ apiKey:"x", projectId:"test", appId:"a" }, first:true })); } catch(e) {}
 `;
+const crypto = require("crypto");
+let ece = null; try { ece = require("http_ece"); } catch (_) {}
+async function wirePush(page, name, base) {
+  const ecdh = crypto.createECDH("prime256v1"); ecdh.generateKeys();
+  const auth = crypto.randomBytes(16);
+  const sub = { endpoint: "https://push.test/pushsvc/" + name, keys: { p256dh: ecdh.getPublicKey().toString("base64url"), auth: auth.toString("base64url") } };
+  await page.addInitScript((sub) => {
+    // จำลองระบบแจ้งเตือนของเครื่อง: อนุญาตแล้ว และ subscribe คืนค่าที่มีกุญแจจริง
+    let current = null;
+    Object.defineProperty(Notification, "permission", { get: () => window.__perm || "default" });
+    Notification.requestPermission = () => { window.__perm = "granted"; return Promise.resolve("granted"); };
+    const mk = () => ({ endpoint: sub.endpoint, toJSON: () => sub, unsubscribe: () => { current = null; return Promise.resolve(true); } });
+    PushManager.prototype.subscribe = function (o) { window.__appKey = o && o.applicationServerKey; current = mk(); return Promise.resolve(current); };
+    PushManager.prototype.getSubscription = function () { return Promise.resolve(current); };
+  }, sub);
+  return { endpoint: sub.endpoint, ecdh, auth };
+}
+function decrypt(dev, body) {
+  return JSON.parse(ece.decrypt(body, { version: "aes128gcm", privateKey: dev.ecdh, authSecret: dev.auth.toString("base64url") }).toString("utf8"));
+}
+const tick = (at) => new Promise((res) => WORKER.scheduled({ scheduledTime: at }, WENV, { waitUntil: (p) => p.then(res, res) }));
+
 async function wireCloud(page) {
   await page.exposeBinding("__cloud", async ({ page: from }, op, arg) => {
     const since = (ms) => [...cloud.values()].filter((d) => d.ts > (ms || 0));
@@ -85,6 +130,7 @@ async function login(page) {
 }
 
 (async () => {
+  WORKER = (await import(require("url").pathToFileURL(path.join(ROOT, "push-worker", "worker.js")).href)).default;
   await new Promise((r) => server.listen(0, r));
   const BASE = "http://localhost:" + server.address().port + PREFIX;
   const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -112,6 +158,22 @@ async function login(page) {
     ok(man.icons.every(Boolean) && man.apple, "ไอคอนติดตั้งโหลดได้ครบ");
     await page.waitForFunction(() => navigator.serviceWorker.controller && /\/lesson\/sw\.js$/.test(navigator.serviceWorker.controller.scriptURL), null, { timeout: 15000 })
       .then(() => ok(true, "Service Worker ของ /lesson/ คุมหน้านี้"), () => ok(false, "Service Worker ของ /lesson/ ไม่ทำงาน"));
+    // Service Worker แสดงแจ้งเตือนเมื่อมี push เข้ามา (ยิง push จริงผ่าน DevTools Protocol)
+    await ctx.grantPermissions(["notifications"], { origin: new URL(BASE).origin });
+    const cdp = await ctx.newCDPSession(page);
+    const regId = new Promise((res) => cdp.on("ServiceWorker.workerRegistrationUpdated", (e) => {
+      const r = e.registrations.find((x) => /\/lesson\/$/.test(x.scopeURL) && !x.isDeleted); if (r) res(r.registrationId);
+    }));
+    await cdp.send("ServiceWorker.enable");
+    await cdp.send("ServiceWorker.deliverPushMessage", { origin: new URL(BASE).origin, registrationId: await regId,
+      data: JSON.stringify({ title: "🥁 อีก 30 นาที · 17:00 น้องมิ้น", body: "ส่วนตัว", tag: "kruta-x" }) });
+    let notes = [];
+    for (let i = 0; i < 40 && !notes.length; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      notes = await page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map((x) => x.title + "|" + x.body));
+    }
+    ok(notes.includes("🥁 อีก 30 นาที · 17:00 น้องมิ้น|ส่วนตัว"), "Service Worker แสดงแจ้งเตือนเมื่อได้รับ push");
+
     await page.reload({ waitUntil: "load" });
     await ctx.setOffline(true);
     await page.reload({ waitUntil: "load" }).catch(() => {});
@@ -136,7 +198,7 @@ async function login(page) {
       await page.waitForFunction(() => !document.getElementById("login-btn").disabled, null, { timeout: 10000 });
     };
     await page.goto(BASE + "lesson/", { waitUntil: "load" });
-    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete) + ")");
+    ok(await page.evaluate(() => window.__secureLock === "on" && window.__studentDelete === "on" && window.__push === "on"), "ชั้นเสริมทำงานครบ (" + await page.evaluate(() => window.__secureLock + "/" + window.__studentDelete + "/" + window.__push) + ")");
 
     // ตั้งรหัสครั้งแรกด้วยการแตะปุ่มจริง
     const t0 = Date.now();
@@ -189,11 +251,12 @@ async function login(page) {
   /* 3) ซิงค์เรียลไทม์ iPad ↔ Samsung */
   console.log("ซิงค์ iPad ↔ Samsung (คลาวด์จำลอง)");
   {
-    const mk = async (dev) => {
-      const ctx = await browser.newContext({ ...dev, serviceWorkers: "block" });
+    const mk = async (dev, name) => {
+      const ctx = await browser.newContext({ ...dev, serviceWorkers: "allow" });
       const p = await ctx.newPage(); const errs = [];
       p.on("pageerror", (e) => errs.push(String(e)));
       await wireCloud(p);
+      const push = await wirePush(p, name, BASE);
       await p.goto(BASE + "lesson/", { waitUntil: "load" });
       await login(p);
       // เครื่องที่สองที่มีข้อมูลตัวอย่างอยู่ แอปจะถามก่อนว่าจะรวมหรือใช้ของบนคลาวด์ — เลือกใช้ของบนคลาวด์
@@ -203,11 +266,11 @@ async function login(page) {
         await p.evaluate(() => syFirstChoice("cloud"));
       }
       await p.waitForFunction(() => !SY.st.first, null, { timeout: 5000 });
-      return { ctx, p, errs };
+      return { ctx, p, errs, push };
     };
-    const ipad = await mk(devices["iPad Pro 11"]);
+    const ipad = await mk(devices["iPad Pro 11"], "ipad");
     const phone = await mk({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 3.5, isMobile: true, hasTouch: true,
-      userAgent: "Mozilla/5.0 (Linux; Android 16; SM-S948B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/29.0 Chrome/136.0 Mobile Safari/537.36" });
+      userAgent: "Mozilla/5.0 (Linux; Android 16; SM-S948B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/29.0 Chrome/136.0 Mobile Safari/537.36" }, "phone");
     const N = await phone.p.evaluate(() => S.lessons.length);
 
     const t0 = Date.now();
@@ -259,6 +322,87 @@ async function login(page) {
     ok(await ipad.p.evaluate(() => /คาบที่สอนแล้ว/.test((document.getElementById("sd-box") || {}).innerText || "") && !document.getElementById("sd-go")),
       "มีคาบที่สอนจริง: บอกเหตุผล ไม่มีปุ่มล้างให้");
     await ipad.p.evaluate(() => closeModal());
+
+    /* แจ้งเตือนคาบถัดไป */
+    console.log("แจ้งเตือนคาบถัดไป (ตัวส่งจริง + KV จำลอง)");
+    if (!ece) ok(false, "ต้องติดตั้ง http_ece ก่อน: npm i http_ece");
+    await ipad.p.evaluate(() => openMenu());
+    ok(await ipad.p.evaluate(() => /แจ้งเตือนคาบถัดไป/.test((document.getElementById("pu-row") || {}).textContent || "")), "หน้าตั้งค่ามีแถว 🔔 แจ้งเตือนคาบถัดไป");
+    await ipad.p.click("#pu-row");
+    await ipad.p.fill("#pu-url", BASE + "push");
+    await ipad.p.evaluate(() => pushConnect());
+    await ipad.p.waitForFunction(() => S.settings.push && S.settings.push.key && document.getElementById("pu-enable"), null, { timeout: 10000 })
+      .catch(async (e) => { console.log("    pu-err:", await ipad.p.evaluate(() => (document.getElementById("pu-err") || {}).textContent), JSON.stringify(await ipad.p.evaluate(() => S.settings.push || null))); throw e; });
+    ok(kv.get("token") === await ipad.p.evaluate(() => S.settings.push.token), "เชื่อมต่อตัวส่งได้ และตั้งรหัสเข้าใช้ของแอปนี้แล้ว");
+    await ipad.p.click("#pu-enable");
+    await ipad.p.waitForFunction(() => /เปิดแจ้งเตือนบนเครื่องนี้แล้ว/.test(document.getElementById("modal-root").innerText), null, { timeout: 10000 })
+      .catch(async (e) => { console.log("    dbg:", JSON.stringify(await ipad.p.evaluate(async () => ({ toast: (document.getElementById("toast") || {}).innerText, ctrl: !!navigator.serviceWorker.controller, regs: (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope), perm: Notification.permission, err: window.__pushErr, dev: localStorage.getItem("td_push_dev"), modal: document.getElementById("modal-root").innerText.slice(0, 300) }))), kv.get("subs")); throw e; });
+    ok(JSON.parse(kv.get("subs") || "[]").some((x) => x.endpoint === ipad.push.endpoint), "iPad: เปิดแจ้งเตือนแล้ว ตัวส่งรู้จักเครื่องนี้");
+    ok(await ipad.p.evaluate(() => { const k = window.__appKey, u = new Uint8Array(k.buffer || k); return u.length === 65 && u[0] === 4; }), "ใช้กุญแจ VAPID ของตัวส่งตอนสมัคร");
+
+    // คาบที่วางแผนไว้อีก 40 นาที (ปัดเป็นนาทีเต็ม) → เตือนก่อน 30 นาที
+    const start = new Date(Math.ceil((Date.now() + 40 * 60000) / 60000) * 60000);
+    const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const hm = String(start.getHours()).padStart(2, "0") + ":" + String(start.getMinutes()).padStart(2, "0");
+    await ipad.p.evaluate(([d, t]) => {
+      S.lessons.unshift({ id: 990010, date: d, time: t, kind: "private", duration: 1, rate: 0, heads: 1, courseId: null, attendance: "planned",
+        student: "น้องเตือน", topic: "", notes: "", videoLink: "", nextLesson: "", media: null, scores: [], practiceItems: [], updatedAt: nowISO() });
+      save();
+    }, [iso(start), hm]);
+    const remOf = () => JSON.parse(kv.get("rem") || "[]").find((r) => /น้องเตือน/.test(r.title));
+    const tr0 = Date.now();
+    while (!remOf() && Date.now() - tr0 < 12000) await new Promise((r) => setTimeout(r, 300));
+    const rem = remOf();
+    ok(rem && rem.at === start.getTime() - 30 * 60000, "บันทึกคาบแล้ว รายการเตือนขึ้นตัวส่งเอง (เตือนก่อน 30 นาที)");
+
+    await phone.p.waitForFunction(() => S.settings.push && S.settings.push.token, null, { timeout: 10000 });
+    await phone.p.evaluate(() => openPush());
+    ok(await phone.p.evaluate(() => !!document.getElementById("pu-enable") && !document.getElementById("pu-url")), "มือถือได้ค่าตัวส่งตามการซิงค์ เหลือแค่กดเปิดบนเครื่อง");
+    await phone.p.click("#pu-enable");
+    await phone.p.waitForFunction(() => /เปิดแจ้งเตือนบนเครื่องนี้แล้ว/.test(document.getElementById("modal-root").innerText), null, { timeout: 10000 });
+    ok(JSON.parse(kv.get("subs") || "[]").length === 2, "มือถือ: เปิดแจ้งเตือนแล้ว (ตัวส่งรู้จัก 2 เครื่อง)");
+
+    pushed.length = 0;
+    await tick(rem.at - 60000);
+    ok(pushed.length === 0, "นาทีก่อนเวลาเตือน: ยังไม่ส่ง");
+    await tick(rem.at);
+    ok(pushed.length === 2, "ถึงเวลา: ส่งไปทั้ง iPad และมือถือ");
+    if (ece && pushed.length) {
+      const got = decrypt(ipad.push, pushed.find((x) => x.url === ipad.push.endpoint).body);
+      ok(got.title === "🥁 อีก 30 นาที · " + hm + " น้องเตือน" && /ส่วนตัว/.test(got.body), "ข้อความที่เครื่องได้รับ: “" + got.title + " — " + got.body + "”");
+      const got2 = decrypt(phone.push, pushed.find((x) => x.url === phone.push.endpoint).body);
+      ok(got2.title === got.title, "มือถือถอดรหัสได้ข้อความเดียวกัน");
+    }
+
+    // เปลี่ยนเวลาเตือนบนมือถือ → ค่าใหม่ไปถึงตัวส่ง
+    await phone.p.evaluate(() => pushSetLead(15));
+    const t1 = Date.now();
+    while ((remOf() || {}).at !== start.getTime() - 15 * 60000 && Date.now() - t1 < 10000) await new Promise((r) => setTimeout(r, 300));
+    ok((remOf() || {}).at === start.getTime() - 15 * 60000, "เปลี่ยนเป็นเตือนก่อน 15 นาทีบนมือถือ ตัวส่งได้เวลาใหม่");
+    await ipad.p.waitForFunction(() => S.settings.pushLead === 15, null, { timeout: 10000 })
+      .then(() => ok(true, "iPad ได้ค่า 15 นาทีตามการซิงค์"), () => ok(false, "iPad ไม่ได้ค่าเวลาเตือนใหม่"));
+
+    // ตารางประจำสัปดาห์ก็เตือนด้วย (ทั้งที่ลงเป็นคาบล่วงหน้าแล้ว และที่ยังไม่ได้ลง)
+    const roster = await ipad.p.evaluate(() => {
+      const d = addDays(todayStr(), 5);
+      addScheduleEntry({ student: "ประจำพุธ", day: new Date(d + "T00:00:00").getDay(), time: "18:30", kind: "private" });
+      const d2 = addDays(todayStr(), 19);
+      return [d, d2].map((x) => __pushReminders().some((r) => r.id === x + "T18:30" && /ประจำพุธ/.test(r.title)));
+    });
+    ok(roster[0] && roster[1], "ตารางประจำสัปดาห์: เตือนทุกสัปดาห์ล่วงหน้า 3 สัปดาห์");
+    await ipad.p.evaluate(() => { S.schedule = S.schedule.filter((e) => e.student !== "ประจำพุธ"); S.lessons = S.lessons.filter((l) => l.student !== "ประจำพุธ"); S.students = S.students.filter((r) => r.key !== "ประจำพุธ"); save(); });
+
+    // ยกเลิกคาบ → รายการเตือนหาย
+    await ipad.p.evaluate(() => { trashLessonQuiet(990010); save(); });
+    const t2 = Date.now();
+    while (remOf() && Date.now() - t2 < 12000) await new Promise((r) => setTimeout(r, 300));
+    ok(!remOf(), "ลบคาบแล้ว รายการเตือนของคาบนั้นหายจากตัวส่ง");
+
+    pushed.length = 0;
+    await ipad.p.evaluate(() => { openPush(); pushTest(); });
+    await ipad.p.waitForFunction(() => /ส่งทดสอบแล้ว 2 เครื่อง/.test(document.body.innerText), null, { timeout: 10000 })
+      .then(() => ok(true, "ปุ่มส่งทดสอบ: ส่งถึง 2 เครื่อง"), () => ok(false, "ปุ่มส่งทดสอบไม่ทำงาน"));
+    await ipad.p.evaluate(() => closeModal()); await phone.p.evaluate(() => closeModal());
 
     const shot = path.join(process.env.SHOT_DIR || ROOT, "lesson-phone.png");
     await phone.p.screenshot({ path: shot });

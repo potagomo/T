@@ -1,0 +1,309 @@
+/* ชั้นเว็บแอป: แจ้งเตือนก่อนถึงคาบ — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
+
+   เว็บแอปตั้งเวลาแจ้งเตือนตอนปิดแอปอยู่เองไม่ได้ จึงใช้ตัวส่ง (push-worker/worker.js)
+   ที่ครูวางไว้ใน Cloudflare ของตัวเอง:
+     • แอปคำนวณ "รายการเตือน" 3 สัปดาห์ข้างหน้า (คาบที่วางแผนไว้ + ตารางประจำ ลบด้วยเวลาเตือนล่วงหน้า)
+       แล้วส่งไปเก็บที่ตัวส่งทุกครั้งที่ข้อมูลเปลี่ยน
+     • ตัวส่งตื่นทุกนาที ถึงเวลาก็ยิง Web Push ไปทุกเครื่องที่เปิดแจ้งเตือนไว้
+     • ที่อยู่ตัวส่ง รหัสเข้าใช้ และเวลาเตือนล่วงหน้า เก็บใน S.settings จึงซิงค์ไปอีกเครื่องเอง
+       แต่ละเครื่องแค่กด "เปิดแจ้งเตือนบนเครื่องนี้" ครั้งเดียว (ระบบบังคับให้ขออนุญาตทีละเครื่อง) */
+(function () {
+  "use strict";
+  var NEED = ["save", "openMenu", "startApp", "showModal", "closeModal", "toast", "esc", "jsArg", "seg", "todayStr", "addDays",
+              "rosterForDate", "rosterSkipped", "isClosedDate", "rosterEntryExists", "displayName", "getPlace", "copyText", "isStandalone", "isIOS"];
+  for (var i = 0; i < NEED.length; i++) if (typeof window[NEED[i]] !== "function") {
+    window.__push = "missing:" + NEED[i];
+    return;
+  }
+
+  var DAYS = 21, LEADS = [10, 15, 30, 45, 60, 90, 120];
+  var WORKER_CODE = null;          // โหลดไว้ก่อน เพื่อให้ปุ่มคัดลอกทำงานบน iPad (ต้องคัดลอกทันทีที่แตะ)
+
+  function cfg() { var p = S.settings && S.settings.push; return p && p.url && p.token ? p : null; }
+  function lead() { var n = parseInt(S.settings.pushLead, 10); return LEADS.indexOf(n) >= 0 ? n : 30; }
+  function lsj(k, v) {
+    try {
+      if (v === undefined) return JSON.parse(localStorage.getItem(k) || "null");
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) { return null; }
+  }
+  function dev() { return lsj("td_push_dev"); }
+  function deviceId() {
+    var d = lsj("td_push_id");
+    if (!d) { d = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); lsj("td_push_id", d); }
+    return d;
+  }
+  function supported() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+  function api(path, body) {
+    var c = cfg(); if (!c) return Promise.reject(new Error("ยังไม่ได้ตั้งค่าตัวส่ง"));
+    body = body || {}; body.token = c.token;
+    // ส่งเป็น text/plain เพื่อไม่ต้องมีคำขอ preflight
+    return fetch(c.url + path, { method: "POST", body: JSON.stringify(body) }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, error: "ตัวส่งตอบกลับไม่ถูกต้อง (" + r.status + ")" }; });
+    }).then(function (j) { if (!j.ok) throw new Error(j.error || "ตัวส่งปฏิเสธ"); return j; });
+  }
+  function b64uToBytes(s) {
+    s = String(s).replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "=";
+    var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u;
+  }
+  function randToken() {
+    var u = crypto.getRandomValues(new Uint8Array(32)), s = "";
+    for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function hhmm(t) { var m = String(t || "").match(/^(\d{1,2})[:.](\d{2})/); return m ? ("0" + parseInt(m[1], 10)).slice(-2) + ":" + m[2] : ""; }
+  function leadText(n) { return n >= 60 && n % 60 === 0 ? "อีก " + (n / 60) + " ชั่วโมง" : "อีก " + n + " นาที"; }
+
+  /* ── รายการเตือน: คาบที่วางแผนไว้ + ตารางประจำที่ยังไม่ได้ลงเป็นคาบ ── */
+  function upcoming() {
+    var slots = {}, t = todayStr();
+    function add(d, time, student, kind, placeId) {
+      time = hhmm(time); if (!time || !student) return;
+      var k = d + " " + time, s = slots[k] = slots[k] || { date: d, time: time, people: [] };
+      if (!s.people.some(function (p) { return p.student === student; })) s.people.push({ student: student, kind: kind, placeId: placeId });
+    }
+    for (var i = 0; i < DAYS; i++) {
+      var d = addDays(t, i);
+      S.lessons.forEach(function (l) { if (l.date === d && l.attendance === "planned") add(d, l.time, l.student, l.kind, l.placeId); });
+      rosterForDate(d).forEach(function (e) {
+        if (e.paused || (e.from && d < e.from) || rosterSkipped(e.id, d) || isClosedDate(d, e.kind) || rosterEntryExists(e, d)) return;
+        add(d, e.time, e.student, e.kind, e.placeId);
+      });
+    }
+    return Object.keys(slots).sort().map(function (k) { return slots[k]; });
+  }
+  function reminders() {
+    var n = lead(), now = Date.now();
+    return upcoming().map(function (s) {
+      var start = new Date(s.date + "T" + s.time + ":00").getTime();
+      var names = s.people.map(function (p) { return displayName(p.student); });
+      var p0 = s.people[0], place = p0.placeId != null && getPlace(p0.placeId);
+      var kind = (KIND[p0.kind] || KIND.school).label;
+      return {
+        id: s.date + "T" + s.time,
+        at: start - n * 60000,
+        start: start,
+        title: "🥁 " + leadText(n) + " · " + s.time + " " + names.join(", "),
+        body: kind + (place && place.name ? " · " + place.name : "") + (names.length > 1 ? " · " + names.length + " คน" : "")
+      };
+    }).filter(function (r) { return r.at > now - 30000; });
+  }
+
+  /* ── ส่งรายการขึ้นตัวส่ง (เฉพาะเมื่อเปลี่ยน หรือทุก 6 ชั่วโมงเพื่อเลื่อนหน้าต่างเวลา) ── */
+  var syncT = null, syncing = false;
+  function pushSyncSoon(ms) { clearTimeout(syncT); syncT = setTimeout(function () { pushSync(false); }, ms == null ? 4000 : ms); }
+  function pushSync(force) {
+    if (!cfg() || syncing || !navigator.onLine) return Promise.resolve(false);
+    var list = reminders().map(function (r) { return { id: r.id, at: r.at, title: r.title, body: r.body }; });
+    var h = JSON.stringify(list), last = lsj("td_push_last") || {};
+    if (!force && last.h === h && Date.now() - (last.at || 0) < 6 * 3600 * 1000) return Promise.resolve(false);
+    syncing = true;
+    return api("/schedule", { reminders: list }).then(function () {
+      lsj("td_push_last", { h: h, at: Date.now() }); syncing = false; return true;
+    }, function (e) { syncing = false; window.__pushErr = e.message; return false; });
+  }
+
+  /* ── ลงทะเบียนเครื่องนี้ ── */
+  function subscribe() {
+    var c = cfg();
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (old) {
+        var d = dev();
+        if (old && d && d.key === c.key) return old;
+        return (old ? old.unsubscribe() : Promise.resolve()).then(function () {
+          return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(c.key) });
+        });
+      });
+    }).then(function (sub) {
+      var j = sub.toJSON ? sub.toJSON() : sub;
+      return api("/subscribe", { sub: { endpoint: j.endpoint, keys: j.keys }, device: deviceId() }).then(function () {
+        lsj("td_push_dev", { endpoint: j.endpoint, key: c.key, at: Date.now() });
+        return pushSync(true);
+      });
+    });
+  }
+  window.pushEnableHere = function () {
+    if (!supported()) { toast(isIOS() && !isStandalone() ? "เปิดแอปจากไอคอนบนหน้าโฮมก่อน" : "เครื่องนี้ไม่รองรับการแจ้งเตือน"); return; }
+    var btn = document.getElementById("pu-enable"); if (btn) { btn.disabled = true; btn.textContent = "กำลังเปิด…"; }
+    // iPad/iPhone ต้องขออนุญาตทันทีที่แตะ ห้ามมีงานอื่นคั่นก่อน
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") throw new Error(perm === "denied" ? "ไม่ได้รับอนุญาต — เปิดได้ที่ การตั้งค่าเครื่อง › การแจ้งเตือน › ครูต้า" : "ยังไม่ได้อนุญาต");
+      return subscribe();
+    }).then(function () { toast("เปิดแจ้งเตือนบนเครื่องนี้แล้ว"); openPush(); },
+      function (e) { toast(e.message || "เปิดไม่สำเร็จ"); openPush(); });
+  };
+  window.pushDisableHere = function () {
+    var d = dev();
+    navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); })
+      .then(function (s) { return s && s.unsubscribe(); })
+      .catch(function () {})
+      .then(function () { return api("/unsubscribe", { endpoint: d && d.endpoint, device: deviceId() }).catch(function () {}); })
+      .then(function () { lsj("td_push_dev", null); toast("ปิดแจ้งเตือนบนเครื่องนี้แล้ว"); openPush(); });
+  };
+  window.pushTest = function () {
+    api("/test").then(function (j) {
+      toast(j.sent ? "ส่งทดสอบแล้ว " + j.sent + " เครื่อง" : "ยังไม่มีเครื่องไหนเปิดแจ้งเตือน");
+    }, function (e) { toast(e.message); });
+  };
+  window.pushSetLead = function (v) {
+    S.settings.pushLead = parseInt(v, 10); save({ noSnap: true, noCount: true });
+    pushSync(true).then(function (ok) { if (ok) toast("เตือนก่อน " + leadText(lead()).replace("อีก ", "")); }); openPush();
+  };
+  window.pushConnect = function () {
+    var inp = document.getElementById("pu-url"), box = document.getElementById("pu-err");
+    var err = box && { set textContent(t) { box.textContent = t; box.style.display = t ? "block" : "none"; } };
+    var url = String(inp && inp.value || "").trim().replace(/\/+$/, "");
+    // https เท่านั้น (ยกเว้น localhost ไว้ให้ชุดทดสอบ)
+    if (!/^https:\/\/[^\s/]+/.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(url)) { if (err) err.textContent = "ใส่ที่อยู่ที่ขึ้นต้นด้วย https:// เช่น https://kruta-push.ชื่อคุณ.workers.dev"; return; }
+    if (err) err.textContent = "กำลังเชื่อมต่อ…";
+    fetch(url + "/").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || j.app !== "kruta-push") throw new Error(j && j.error ? j.error : "ที่อยู่นี้ไม่ใช่ตัวส่งของครูต้า");
+      var old = S.settings.push && S.settings.push.token;
+      var token = old || randToken();
+      return fetch(url + "/claim", { method: "POST", body: JSON.stringify({ token: token }) }).then(function (r) { return r.json(); }).then(function (c) {
+        if (!c.ok) throw new Error(c.error || "เชื่อมต่อไม่สำเร็จ");
+        S.settings.push = { url: url, token: token, key: c.publicKey };
+        save({ noSnap: true, noCount: true });
+        lsj("td_push_last", null);
+        return pushSync(true);
+      });
+    }).then(function () { toast("เชื่อมต่อตัวส่งแล้ว"); openPush(); }, function (e) {
+      if (err) err.textContent = /Failed to fetch|NetworkError|Load failed/i.test(e.message) ? "ติดต่อที่อยู่นี้ไม่ได้ — ตรวจที่อยู่ หรือยังไม่ได้กด Deploy" : e.message;
+    });
+  };
+  window.pushForget = function () {
+    var b = document.getElementById("pu-forget");
+    if (b && !b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "แตะอีกครั้งเพื่อยืนยัน"; return; }
+    var go = dev() ? window.pushDisableHere : function () {};
+    go();
+    delete S.settings.push; save({ noSnap: true, noCount: true });
+    lsj("td_push_dev", null); lsj("td_push_last", null);
+    toast("เลิกใช้แจ้งเตือนแล้ว"); openPush();
+  };
+  window.pushCopyWorker = function () {
+    if (WORKER_CODE) copyText(WORKER_CODE);
+    else toast("ยังโหลดโค้ดไม่เสร็จ ลองอีกครั้ง");
+  };
+
+  /* ── หน้าตั้งค่าแจ้งเตือน ── */
+  function steps() {
+    return '<details class="more"' + (cfg() ? '' : ' open') + '><summary>ตั้งตัวส่งบน Cloudflare (ครั้งเดียว · ฟรี · ประมาณ 15 นาที)</summary><ol class="syguide">' +
+      '<li>เปิด <b>dash.cloudflare.com</b> › <b>Sign up</b> ด้วยอีเมล (ไม่ต้องผูกบัตร) › ยืนยันอีเมล</li>' +
+      '<li>เมนู <b>Workers &amp; Pages</b> › <b>Create</b> › เลือก <b>Start with Hello World</b> › ตั้งชื่อ <b>kruta-push</b> › <b>Deploy</b></li>' +
+      '<li>กด <b>Edit code</b> › ลบโค้ดเดิมทั้งหมด › วางโค้ดตัวส่ง › <b>Deploy</b>' +
+        '<button class="btn-g" type="button" style="min-height:40px;margin-top:6px;width:100%;" onclick="pushCopyWorker()">📋 คัดลอกโค้ดตัวส่ง</button>' +
+        '<div class="hint">หรือเปิด <a href="push-worker.js" target="_blank" rel="noopener">ไฟล์โค้ด</a> แล้วเลือกทั้งหมด</div></li>' +
+      '<li>เมนู <b>Storage &amp; Databases</b> › <b>KV</b> › <b>Create</b> › ตั้งชื่อ <b>kruta</b></li>' +
+      '<li>กลับไปที่ Worker <b>kruta-push</b> › <b>Settings</b> › <b>Bindings</b> › <b>Add</b> › <b>KV namespace</b> › ชื่อตัวแปร <b>KV</b> (ตัวใหญ่) › เลือก <b>kruta</b> › Deploy</li>' +
+      '<li><b>Settings</b> › <b>Trigger Events</b> › <b>Add</b> › <b>Cron Triggers</b> › <b>Every minute</b> (<code>* * * * *</code>) › Add</li>' +
+      '<li>คัดลอกที่อยู่ของ Worker (ลงท้าย <b>.workers.dev</b>) มาวางด้านล่าง</li>' +
+      '</ol><div class="hint">ชื่อเมนูของ Cloudflare อาจต่างไปเล็กน้อย ทำตามความหมายได้เลย</div></details>';
+  }
+  function deviceState() {
+    if (!supported()) {
+      return '<div class="warnline">' + (isIOS() && !isStandalone()
+        ? "บน iPad/iPhone ต้องเปิดแอปจาก <b>ไอคอนบนหน้าโฮม</b> ถึงจะแจ้งเตือนได้ (iPadOS 16.4 ขึ้นไป)"
+        : "เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน") + "</div>";
+    }
+    var d = dev(), perm = Notification.permission;
+    if (d && perm === "granted") {
+      return '<div class="vline ok" style="margin-bottom:10px;">🔔 เปิดแจ้งเตือนบนเครื่องนี้แล้ว</div>' +
+        '<div style="display:flex;gap:8px;"><button class="btn-brass" type="button" style="flex:2;" onclick="pushTest()">ส่งทดสอบ</button>' +
+        '<button class="btn-g" type="button" style="flex:1;" onclick="pushDisableHere()">ปิดบนเครื่องนี้</button></div>';
+    }
+    if (perm === "denied") {
+      return '<div class="warnline">เครื่องนี้ปิดการแจ้งเตือนของแอปไว้ — เปิดได้ที่ <b>การตั้งค่าเครื่อง › การแจ้งเตือน › ครูต้า</b> แล้วกลับมากดอีกครั้ง</div>' +
+        '<button class="btn-g" id="pu-enable" type="button" style="width:100%;margin-top:8px;" onclick="pushEnableHere()">ลองอีกครั้ง</button>';
+    }
+    return '<div class="hint" style="margin-bottom:8px;">ต้องกดเปิดทีละเครื่อง (ทั้ง iPad และมือถือ)</div>' +
+      '<button class="btn-brass" id="pu-enable" type="button" style="width:100%;" onclick="pushEnableHere()">🔔 เปิดแจ้งเตือนบนเครื่องนี้</button>';
+  }
+  function preview() {
+    var list = reminders().slice(0, 3);
+    if (!list.length) return '<div class="hint">ยังไม่มีคาบใน 3 สัปดาห์ข้างหน้า (ใส่เวลาให้คาบหรือตารางประจำ แล้วจะเตือนให้)</div>';
+    return list.map(function (r) {
+      var at = new Date(r.at), when = at.toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" }) + " " +
+        ("0" + at.getHours()).slice(-2) + ":" + ("0" + at.getMinutes()).slice(-2);
+      return '<div style="padding:8px 0;border-bottom:1px solid #0002;"><div class="mono" style="font-size:12px;">' + esc(when) + '</div>' +
+        '<div style="font-weight:700;">' + esc(r.title) + '</div><div class="hint">' + esc(r.body) + '</div></div>';
+    }).join("");
+  }
+  function openPush() {
+    if (!WORKER_CODE) fetch("push-worker.js").then(function (r) { return r.ok ? r.text() : null; }).then(function (t) { if (t) WORKER_CODE = t; }).catch(function () {});
+    var c = cfg(), body;
+    if (!c) {
+      body = '<div class="hint" style="margin-bottom:12px;">เตือนก่อนถึงคาบแม้ปิดแอปอยู่ ทั้ง iPad และมือถือ ต้องมีตัวส่งบน Cloudflare ของคุณเอง (ฟรี) ตั้งครั้งเดียวบนเครื่องไหนก็ได้ อีกเครื่องจะได้ค่าตามการซิงค์</div>' +
+        steps() +
+        '<div class="rc-group" style="margin-top:12px;"><label>ที่อยู่ตัวส่ง</label><input id="pu-url" type="url" inputmode="url" autocomplete="off" placeholder="https://kruta-push.xxxx.workers.dev"></div>' +
+        '<div id="pu-err" class="warnline" style="margin-bottom:8px;display:none;"></div>' +
+        '<button class="btn-brass" type="button" style="width:100%;" onclick="pushConnect()">เชื่อมต่อ</button>';
+    } else {
+      body = '<div class="vline ok" style="margin-bottom:12px;">☁ เชื่อมต่อตัวส่งแล้ว · <span class="mono" style="font-size:11px;">' + esc(c.url.replace(/^https:\/\//, "")) + '</span></div>' +
+        '<div class="rc-group"><label>เตือนก่อนคาบเริ่ม</label>' +
+          seg(LEADS.map(function (n) { return [n, n >= 60 ? (n / 60) + " ชม." : n + " นาที"]; }), lead(), "pushSetLead") +
+          '<div class="hint" style="margin-top:6px;">ใช้ค่าเดียวกันทุกเครื่อง</div></div>' +
+        '<div class="rc-group"><label>เครื่องนี้</label>' + deviceState() + '</div>' +
+        '<div class="rc-group"><label>เตือนครั้งถัดไป</label>' + preview() + '</div>' +
+        '<div class="hint" style="margin:10px 0;">ชื่อนักเรียนและเวลาคาบ 3 สัปดาห์ข้างหน้าจะถูกส่งไปเก็บใน Cloudflare ของคุณเอง เพื่อใช้ทำข้อความแจ้งเตือน</div>' +
+        '<button class="linkbtn" id="pu-forget" type="button" onclick="pushForget()">เลิกใช้แจ้งเตือน</button>';
+    }
+    showModal('<div class="mhead"><div class="mtitle">🔔 แจ้งเตือนคาบถัดไป</div><button class="ib" type="button" onclick="closeModal()" aria-label="ปิด" style="font-size:19px;">✕</button></div>' + body, "460px");
+  }
+  window.openPush = openPush;
+
+  function statusLine() {
+    if (!cfg()) return "ยังไม่ได้ตั้งค่า · เตือนแม้ปิดแอปอยู่";
+    var on = supported() && dev() && Notification.permission === "granted";
+    return (on ? "เปิดบนเครื่องนี้" : "ยังไม่ได้เปิดบนเครื่องนี้") + " · เตือนก่อน " + leadText(lead()).replace("อีก ", "");
+  }
+
+  /* เพิ่มแถวในหน้าตั้งค่า ต่อจาก "ซิงค์ iPad ↔ มือถือ" */
+  var origMenu = window.openMenu;
+  window.openMenu = function () {
+    origMenu.apply(this, arguments);
+    var rows = document.querySelectorAll("#modal-root .srow"), after = null;
+    for (var i = 0; i < rows.length; i++) if (/ซิงค์ iPad/.test(rows[i].textContent)) { after = rows[i]; break; }
+    if (!after) after = rows[rows.length - 1];
+    if (!after) return;
+    var b = document.createElement("button");
+    b.className = "srow"; b.type = "button"; b.id = "pu-row"; b.style.marginBottom = "8px";
+    b.innerHTML = '<span style="font-size:18px;flex-shrink:0;">🔔</span><div style="min-width:0;"><div style="font-weight:600;">แจ้งเตือนคาบถัดไป</div>' +
+      '<div style="font-size:11px;color:#5A5A5A;margin-top:2px;">' + esc(statusLine()) + '</div></div>';
+    b.addEventListener("click", function () { closeModal(); openPush(); });
+    after.parentNode.insertBefore(b, after.nextSibling);
+  };
+
+  /* ข้อมูลเปลี่ยน (ทั้งจากเครื่องนี้และที่ซิงค์มา) → ส่งรายการเตือนใหม่ */
+  var origSave = window.save;
+  window.save = function () {
+    var r = origSave.apply(this, arguments);
+    if (cfg()) pushSyncSoon();
+    return r;
+  };
+
+  /* ดูแลตัวเองตอนเปิดแอป: ลงทะเบียนใหม่ถ้าหลุด แล้วส่งรายการเตือนให้สด */
+  function maintain() {
+    if (!cfg()) return;
+    var d = dev();
+    if (d && supported() && Notification.permission === "granted" && (d.key !== cfg().key || Date.now() - (d.at || 0) > 3 * 86400000)) {
+      subscribe().catch(function () {});
+    } else if (d && supported() && Notification.permission === "granted") {
+      navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); })
+        .then(function (s) { if (!s) return subscribe(); }).catch(function () {});
+    }
+    pushSync(false);
+  }
+  var origStart = window.startApp;
+  window.startApp = function () {
+    var r = origStart.apply(this, arguments);
+    setTimeout(maintain, 3000);
+    return r;
+  };
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && document.getElementById("app") && document.getElementById("app").style.display === "block") pushSync(false);
+  });
+
+  window.__pushReminders = reminders;
+  window.__pushSync = pushSync;
+  window.__push = "on";
+})();

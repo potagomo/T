@@ -1,0 +1,12 @@
+# ใช้เฉพาะคนที่ deploy ด้วย wrangler (CLI) — ทางปกติคือวางโค้ดในหน้า Cloudflare ตาม README
+name = "kruta-push"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+# สร้างด้วย: npx wrangler kv namespace create kruta  แล้วใส่ id ที่ได้
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

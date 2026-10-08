@@ -56,7 +56,7 @@ jobs:
                    theme/klong-theme.css theme/klong-theme.js \
                    lesson/index.html lesson/manifest.webmanifest lesson/sw.js lesson/push-worker.js \
                    lesson/icons/icon-512.png lesson/icons/apple-touch-icon.png lesson/vendor/mediabunny-1.59.1.js \
-                   show/index.html; do
+                   show/index.html bip/index.html bip/sw.js bip/manifest.json bip/icon-512.png; do
             test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
           done
           # .nojekyll ตั้งใจให้เป็นไฟล์ว่าง จึงเช็คแค่ว่ามีอยู่ ไม่เช็คขนาด
@@ -101,7 +101,7 @@ jobs:
           set -euo pipefail
           rm -rf _site && mkdir -p _site
           cp index.html 404.html manifest.webmanifest sw.js .nojekyll _site/
-          cp -r fonts icons theme lesson show widget _site/
+          cp -r fonts icons theme lesson show widget bip _site/
           if [ -s kruta-widget.apk ]; then cp kruta-widget.apk _site/widget/; else echo "::warning::ไม่มีไฟล์ APK รุ่นใหม่ (build แอปวิดเจ็ตไม่ผ่าน)"; fi
           echo "ขนาดที่จะเผยแพร่: $(du -sh _site | cut -f1)"
           find _site -type f | sort

@@ -97,9 +97,9 @@ self.addEventListener("fetch", (e) => {
   try { url = new URL(req.url); } catch (_) { return; }
   if (url.origin !== self.location.origin) return;
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
-  // แอปอื่นที่อยู่ใต้เว็บเดียวกัน (/lesson/ ครูต้า · /show/ อัดโชว์ · /widget/ ไฟล์วิดเจ็ต) ห้ามแตะ
+  // แอปอื่นที่อยู่ใต้เว็บเดียวกัน (/lesson/ ครูต้า · /show/ อัดโชว์ · /widget/ ไฟล์วิดเจ็ต · /bip/ บีบวิดีโอ) ห้ามแตะ
   // (ไม่งั้นการเปิดหน้านั้นครั้งแรกจะถูกเก็บทับเป็นสำเนาของกลอง → MIDI)
-  for (const app of ["lesson", "show", "widget"]) {
+  for (const app of ["lesson", "show", "widget", "bip"]) {
     if (url.pathname === ROOT + app || url.pathname.startsWith(ROOT + app + "/")) return;
   }
 

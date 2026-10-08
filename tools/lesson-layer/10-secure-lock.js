@@ -44,7 +44,9 @@
     return derive(pw, unb64(p[1]), iter).then(function (h) { return same(h, unb64(p[2])); });
   }
   function isLegacy(k) { var v = lsGet(k); return !!v && v.indexOf(PREFIX) !== 0; }
-  function store(k, pw) { return makeHash(pw).then(function (h) { lsSet(k, h); }); }
+  // td_pw_num บอกแค่ว่ารหัสเป็นตัวเลขล้วนไหม (ให้หน้าล็อกโชว์แป้นตัวเลข) — ไม่เก็บความยาวหรือตัวรหัส
+  function markNum(pw) { try { lsSet("td_pw_num", /^\d+$/.test(pw) ? "1" : "0"); } catch (e) {} }
+  function store(k, pw) { return makeHash(pw).then(function (h) { lsSet(k, h); if (k === "td_pw") markNum(pw); }); }
   function busy(btn, on) { if (btn) { btn.disabled = on; btn.classList.toggle("busy", on); } }
   function el(id) { return document.getElementById(id); }
 
@@ -84,6 +86,7 @@
     } else {
       run = verify(pw, stored).then(function (ok) {
         if (!ok) { err.textContent = "รหัสผ่านไม่ถูกต้อง"; inp.value = ""; inp.focus(); shakeEl(inp); return; }
+        markNum(pw);
         var up = isLegacy("td_pw") ? store("td_pw", pw).catch(function () {}) : Promise.resolve();
         return up.then(function () { startApp(); offerNewCode(); });
       });

@@ -38,8 +38,9 @@ const server = http.createServer((req, res) => {
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "kruta-vid-"));
 function makeClips() {
   const ff = (args) => cp.execFileSync("ffmpeg", ["-loglevel", "error", "-y", ...args], { stdio: "inherit" });
-  ff(["-f", "lavfi", "-i", "testsrc=size=320x180:rate=10", "-f", "lavfi", "-i", "sine=frequency=440", "-t", "8",
-      "-c:v", "libvpx", "-b:v", "200k", "-c:a", "libvorbis", "-shortest", path.join(TMP, "lesson.webm")]);
+  // สัญญาณรบกวนทำให้ไฟล์ใหญ่จริง (~3 MB) ไว้ทดสอบการย่อ
+  ff(["-f", "lavfi", "-i", "testsrc=size=640x360:rate=25", "-f", "lavfi", "-i", "sine=frequency=440", "-t", "8", "-vf", "noise=alls=30:allf=t",
+      "-c:v", "libvpx", "-b:v", "3M", "-minrate", "3M", "-maxrate", "3M", "-c:a", "libvorbis", "-shortest", path.join(TMP, "lesson.webm")]);
   ff(["-f", "lavfi", "-i", "testsrc=size=64x36:rate=2", "-t", "660", "-c:v", "libvpx", "-b:v", "20k", path.join(TMP, "long.webm")]);
 }
 const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll(".toast")).map((t) => t.textContent).join(" | "));
@@ -50,6 +51,8 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
   const URL_ = "http://localhost:" + server.address().port + PREFIX + "lesson/";
   const browser = await chromium.launch({ executablePath: chromiumPath() });
   const ctx = await browser.newContext({ ...devices["Galaxy S9+"], serviceWorkers: "block" });
+  // Chromium ของ Playwright ไม่มี H.264 → ใช้ VP9 ทดสอบท่อย่อคลิปเดียวกัน (มือถือ/iPad จริงใช้ H.264)
+  await ctx.addInitScript(() => { window.__videoCodecs = ["vp9"]; });
   const p = await ctx.newPage(); const errs = [];
   p.on("pageerror", (e) => errs.push(e.message));
   await p.goto(URL_);
@@ -81,6 +84,17 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
     return { w: im.width, colors: seen.size };
   });
   ok(poster && poster.colors > 6, "หน้าปกเป็นเฟรมจริงจากคลิป (" + (poster && poster.colors) + " สี) ไม่ใช่จอดำ");
+  // ภาพที่ไปการ์ดรายงาน (media:) ต้องไม่มีปุ่ม ▶ — มีเฉพาะภาพย่อในแอป (thumb:)
+  const badge = await p.evaluate(async () => {
+    const at = async (src, fx, fy) => { const im = new Image(); im.src = src; await im.decode();
+      const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d"); x.drawImage(im, 0, 0);
+      const r = Math.min(im.width, im.height) * 0.13, d = x.getImageData(Math.round(im.width / 2 + fx * r), Math.round(im.height / 2 + fy * r), 1, 1).data;
+      return d[0] + d[1] + d[2]; };
+    const tri = [[0.05, 0], [0.1, 0.05], [0.1, -0.05]];
+    const white = async (src) => { let n = 0; for (const [a, b] of tri) if (await at(src, a, b) > 720) n++; return n; };
+    return { poster: await white(PEND.puts["media:7001"]), thumb: await white(PEND.puts["thumb:7001"]) };
+  });
+  ok(badge.thumb === 3 && badge.poster < 3, "ภาพย่อในแอปมีปุ่ม ▶ · ภาพที่ส่งผู้ปกครองไม่มีปุ่ม ▶ ปลอม");
 
   await p.evaluate(() => saveLesson());
   await p.waitForFunction(() => !document.getElementById("media-block"), null, { timeout: 15000 }).catch(() => {});
@@ -131,6 +145,68 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
   await p.waitForTimeout(300);
   ok(/ไม่ซิงค์/.test(await toastText(p)), "เครื่องที่ไม่มีไฟล์คลิป: บอกว่าคลิปอยู่ในเครื่องที่แนบ");
   await p.evaluate(async () => { await MDB.put("vid:7001", window.__keep); });
+
+  // คลิปใหญ่เกินที่ Chrome แชร์ได้ (50 MB) — ลดเพดานลงเพื่อทดสอบด้วยไฟล์ 3 MB
+  await p.evaluate(() => { window.__videoLimits = { share: 1024 * 1024, target: 400 * 1024, minBps: 150000 }; window.__shared = null; openReportCard(7001); });
+  await p.waitForFunction(() => /ส่งคลิปวิดีโอ/.test((document.getElementById("rc-actions") || {}).textContent || ""), null, { timeout: 15000 }).catch(() => {});
+  await p.locator("#rc-actions button", { hasText: "ส่งคลิปวิดีโอ" }).click();
+  await p.waitForSelector("#vid-sheet", { timeout: 5000 }).catch(() => {});
+  ok(/กำลังย่อคลิป/.test(await p.evaluate(() => (document.getElementById("vid-sheet") || {}).textContent || "")) && !(await p.evaluate(() => window.__shared)),
+    "คลิปใหญ่เกิน: ไม่แชร์ทั้งก้อน (Chrome จะปฏิเสธเงียบ ๆ) แต่ย่อก่อนพร้อมแถบความคืบหน้า");
+  await p.waitForSelector("#vid-go", { timeout: 60000 }).catch(() => {});
+  await p.click("#vid-go");
+  await p.waitForFunction(() => window.__shared, null, { timeout: 5000 }).catch(() => {});
+  const big = await p.evaluate(async () => {
+    const f = window.__shared && window.__shared.files[0], b = await MDB.get("vid:7001"), l = S.lessons.find((x) => x.id === 7001);
+    let dur = 0;
+    if (f) { const v = document.createElement("video"); v.muted = true; v.src = URL.createObjectURL(f); await new Promise((r) => { v.onloadedmetadata = r; v.onerror = r; setTimeout(r, 5000); }); dur = v.duration; }
+    return f && { name: f.name, type: f.type, size: f.size, stored: b.size, meta: l.media.size, mname: l.media.name, dur, sheet: !!document.getElementById("vid-sheet") };
+  });
+  ok(big && big.type === "video/mp4" && /\.mp4$/.test(big.name) && big.size < 1024 * 1024 && big.size < size / 3,
+    "ย่อแล้วแตะ “ส่งคลิปเลย”: ได้ MP4 " + (big && Math.round(big.size / 1024)) + " KB (จาก " + Math.round(size / 1024) + " KB)");
+  ok(big && Math.abs(big.dur - 8) < 1, "คลิปที่ย่อแล้วเล่นได้ ยาวเท่าเดิม (" + (big && big.dur && big.dur.toFixed(1)) + " วิ)");
+  ok(big && big.stored === big.size && big.meta === big.size && /\.mp4$/.test(big.mname) && !big.sheet, "เก็บคลิปที่ย่อแทนของเดิม ครั้งหน้าส่งได้ทันที");
+  await p.evaluate(() => closeModal());
+
+  // ย่อไม่ได้ (เครื่องไม่มีตัวเข้ารหัส) → บอกให้ส่งจากแกลเลอรี ไม่เงียบ
+  await p.evaluate(async () => { await MDB.put("vid:7001", window.__keep); window.__videoCodecs = ["nope"]; shareClip(7001); });
+  await p.waitForFunction(() => /ส่งจากแอปไม่ได้/.test((document.getElementById("vid-sheet") || {}).textContent || ""), null, { timeout: 15000 }).catch(() => {});
+  ok(/แกลเลอรี/.test(await p.evaluate(() => (document.getElementById("vid-sheet") || {}).textContent || "")), "ย่อไม่ได้: บอกตรง ๆ ให้ส่งจากแกลเลอรี + ปุ่มบันทึกคลิป");
+  await p.click("#vid-x");
+  await p.evaluate(() => { window.__videoCodecs = ["vp9"]; window.__videoLimits = null; });
+
+  // แชร์ล้ม (เช่นแอปปลายทางไม่รับ) → ขึ้นข้อความ ไม่เงียบ
+  await p.evaluate(() => { navigator.share = () => Promise.reject(new DOMException("Permission denied", "NotAllowedError")); shareClip(7001); });
+  await p.waitForTimeout(600);
+  ok(/ส่งไม่สำเร็จ/.test(await toastText(p)), "แชร์ไม่ผ่าน: ขึ้นข้อความบอก ไม่เงียบเหมือนเดิม");
+
+  // แนบคลิปใหญ่: ย่อให้ตั้งแต่ตอนแนบ
+  await p.evaluate(() => {
+    window.__videoLimits = { share: 1024 * 1024, target: 400 * 1024, minBps: 150000 };
+    S.lessons.unshift({ id: 7002, date: todayStr(), time: "17:00", kind: "private", duration: 1, rate: 0, heads: 1, courseId: null,
+      attendance: "present", student: "น้องคลิป", topic: "Fill", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() });
+    save(); openEdit(7002);
+  });
+  await p.setInputFiles("#media-inp", clip);
+  await p.waitForFunction(() => /กำลังย่อคลิป/.test((document.getElementById("media-block") || {}).textContent || ""), null, { timeout: 15000 })
+    .then(() => ok(true, "แนบคลิปใหญ่: โชว์แถบ “กำลังย่อคลิป”"), () => ok(false, "ไม่เห็นแถบย่อคลิปตอนแนบ"));
+  await p.evaluate(() => saveLesson());
+  ok(/รอย่อคลิปเสร็จ/.test(await toastText(p)), "กดบันทึกระหว่างย่อ: ให้รอก่อน (คลิปไม่หาย)");
+  await p.waitForFunction(() => EF.media && EF.media.video, null, { timeout: 60000 }).catch(() => {});
+  const att = await p.evaluate(() => ({ m: EF.media, b: PEND.puts["vid:7002"] && PEND.puts["vid:7002"].size }));
+  ok(att.m && att.m.type === "video/mp4" && att.b < 1024 * 1024 && att.m.size === att.b && /\.mp4$/.test(att.m.name) && att.m.clean === 1,
+    "แนบเสร็จ: เก็บเป็น MP4 ที่ย่อแล้ว " + Math.round((att.b || 0) / 1024) + " KB");
+  await p.evaluate(() => { saveLesson(); window.__videoLimits = null; });
+  await p.waitForTimeout(800);
+
+  // คลิปที่แนบก่อนรุ่นนี้ (ภาพส่งผู้ปกครองมีปุ่ม ▶ ติด) → ทำหน้าปกใหม่ให้เอง
+  const fixed = await p.evaluate(async () => {
+    const l = S.lessons.find((x) => x.id === 7002); delete l.media.clean; await MDB.put("media:7002", "data:image/jpeg;base64,AAAA"); save();
+    await window.__videoFixPosters();
+    const m = await MDB.get("media:7002");
+    return { clean: l.media.clean, poster: /^data:image\/jpeg/.test(m) && m.length > 1000 };
+  });
+  ok(fixed.clean === 1 && fixed.poster, "คลิปเก่า: สร้างภาพหน้าปกใหม่ (ไม่มีปุ่ม ▶) จากคลิปในเครื่องให้เอง");
 
   // คลิปยาวเกิน 10 นาที
   await p.evaluate(() => openEdit(7001));

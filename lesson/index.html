@@ -11059,8 +11059,13 @@ function regenRecoveryCode() {
    ที่เก็บ:
    • ตัววิดีโอ (Blob) อยู่ใน IndexedDB ของเครื่องที่แนบ ที่คีย์ "vid:<id>" — ไม่ซิงค์ ไม่เข้าไฟล์สำรอง
      (วิดีโอหลายร้อย MB จะทำโควตา Firestore ฟรีเต็มและทำให้ซิงค์คาบพังทั้งหมด)
-   • ภาพหน้าปก (เฟรมจากคลิป + ปุ่ม ▶ + ความยาว) อยู่ที่ "media:<id>" / "thumb:<id>" แบบรูปเดิม
-     จึงซิงค์ไปอีกเครื่อง เข้าการ์ดรายงาน และไฟล์สำรองได้ตามปกติ */
+   • ภาพหน้าปก (เฟรมจากคลิป) อยู่ที่ "media:<id>" — การ์ดรายงานที่ส่งเป็นรูปใช้ภาพนี้ จึงไม่มีปุ่ม ▶ ปลอม
+     ภาพย่อในแอป "thumb:<id>" มีปุ่ม ▶ + ความยาว (แตะแล้วเล่นได้จริง) · ทั้งสองซิงค์ไปอีกเครื่องแบบรูปเดิม
+
+   ย่อคลิป: Chrome แชร์ไฟล์ได้รวมไม่เกิน 50 MB (kMaxSharedFileBytes ใน Chromium) คลิปจากกล้องมือถือ 1 นาทีก็เกินแล้ว
+   แชร์จะล้มเงียบ ๆ — คลิปที่ใหญ่เกิน 48 MB จึงถูกย่อในเครื่องเป็น MP4 720p (H.264) ด้วย WebCodecs
+   ผ่าน mediabunny (MPL-2.0, lesson/vendor/mediabunny-1.59.1.js โหลดเฉพาะตอนต้องย่อ) เสียงคัดลอกตรง ๆ ไม่แปลง
+   ตั้ง bitrate ให้ทั้งไฟล์ไม่เกินราว 44 MB · ย่อไม่ได้ (เครื่องไม่มีตัวเข้ารหัส) ก็เก็บไฟล์เดิมและบอกให้ส่งจากแกลเลอรี */
 (function () {
   "use strict";
   var NEED = ["pickMedia", "removeMedia", "mediaBlockHtml", "shareClip", "rcActionsHtml", "pendPut", "pendDel", "mediaKey", "thumbKey",
@@ -11070,6 +11075,10 @@ function regenRecoveryCode() {
     return;
   }
   var MAX_SEC = 10 * 60, WARN_SEC = 5 * 60, MAX_BYTES = 2 * 1024 * 1024 * 1024;
+  var MB_URL = "vendor/mediabunny-1.59.1.js";
+  // ชุดทดสอบลดเพดานได้ผ่าน window.__videoLimits (ไม่ต้องสร้างไฟล์ 50 MB)
+  function lim(k, d) { var o = window.__videoLimits; return (o && o[k]) || d; }
+  function shareMax() { return lim("share", 48 * 1024 * 1024); }
   function vidKey(id) { return "vid:" + id; }
   function el(id) { return document.getElementById(id); }
   function isVideoMedia(m) { return !!(m && m.video); }
@@ -11093,6 +11102,7 @@ function regenRecoveryCode() {
       ctx.fillStyle = "#FFFFFF"; ctx.textBaseline = "middle"; ctx.fillText(t, x + px, y + bh / 2);
     }
   }
+  // คืน {poster, badged}: poster = เฟรมล้วน (ไปการ์ดรายงาน) · badged = มีปุ่ม ▶ + ความยาว (ภาพย่อในแอป)
   function posterFrom(video, dur) {
     var vw = video && video.videoWidth, vh = video && video.videoHeight;
     var w = vw ? Math.min(1280, vw) : 960, h = vw ? Math.round(w * vh / vw) : 540;
@@ -11100,20 +11110,21 @@ function regenRecoveryCode() {
     var ctx = cv.getContext("2d");
     ctx.fillStyle = "#16140F"; ctx.fillRect(0, 0, w, h);
     if (vw) { try { ctx.drawImage(video, 0, 0, w, h); } catch (e) {} }
-    else { ctx.fillStyle = "#F0E9DA"; ctx.font = "700 40px sans-serif"; ctx.textAlign = "center"; ctx.fillText("🥁 คลิปวิดีโอ", w / 2, h * 0.25); ctx.textAlign = "start"; }
+    else { ctx.fillStyle = "#F0E9DA"; ctx.font = "700 40px sans-serif"; ctx.textAlign = "center"; ctx.fillText("🥁 คลิปวิดีโอ", w / 2, h * 0.5); ctx.textAlign = "start"; }
+    var poster = cv.toDataURL("image/jpeg", 0.85);
     drawBadge(ctx, w, h, dur);
-    return cv.toDataURL("image/jpeg", 0.85);
+    return { poster: poster, badged: cv.toDataURL("image/jpeg", 0.85) };
   }
-  // คืน {dur, poster} เสมอ — เครื่องที่ถอดรหัสคลิปไม่ได้ก็ยังได้หน้าปกแบบเรียบ ๆ
+  // คืน {dur, poster, badged} เสมอ — เครื่องที่ถอดรหัสคลิปไม่ได้ก็ยังได้หน้าปกแบบเรียบ ๆ
   function probe(file) {
     return new Promise(function (res) {
       var url = URL.createObjectURL(file), v = document.createElement("video"), done = false, dur = 0;
       function fin(withFrame) {
         if (done) return; done = true;
-        var poster = posterFrom(withFrame ? v : null, dur);
+        var pics = posterFrom(withFrame ? v : null, dur);
         try { v.removeAttribute("src"); v.load(); } catch (e) {}
         URL.revokeObjectURL(url);
-        res({ dur: dur, poster: poster });
+        res({ dur: dur, poster: pics.poster, badged: pics.badged });
       }
       v.muted = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
       v.onloadedmetadata = function () {
@@ -11128,6 +11139,73 @@ function regenRecoveryCode() {
       v.src = url;
     });
   }
+
+  /* ── ย่อคลิปให้ส่งได้ (WebCodecs ผ่าน mediabunny) ── */
+  var mbP = null;
+  function loadMB() {
+    if (!mbP) mbP = import(new URL(MB_URL, location.href).href).catch(function (e) { mbP = null; throw e; });
+    return mbP;
+  }
+  function pickCodec(M) {
+    var list = window.__videoCodecs || ["avc"];       // ชุดทดสอบใส่ vp9 แทนได้ (Chromium ของ Playwright ไม่มี H.264)
+    return list.reduce(function (p, c) { return p.then(function (got) { return got || M.canEncodeVideo(c).then(function (ok) { return ok ? c : null; }, function () { return null; }); }); }, Promise.resolve(null));
+  }
+  // คืน Promise<Blob video/mp4> · onProgress(0..1) · ผลยังเกินเพดาน (เสียงเดิม bitrate สูง) ย่อซ้ำอีกรอบที่ bitrate ต่ำลง
+  function compress(blob, dur, onProgress) {
+    return compressOnce(blob, dur, onProgress, 1).then(function (out) {
+      if (out.size <= shareMax()) return out;
+      return compressOnce(blob, dur, onProgress, 0.85 * shareMax() / out.size).then(function (again) {
+        if (again.size > shareMax()) throw new Error("ย่อแล้วยังใหญ่ " + fmtBytes(again.size) + " — ตัดคลิปให้สั้นลง");
+        return again;
+      });
+    });
+  }
+  function compressOnce(blob, dur, onProgress, scale) {
+    if (typeof VideoEncoder === "undefined") return Promise.reject(new Error("เครื่องนี้ย่อคลิปไม่ได้ (ไม่มี WebCodecs)"));
+    return loadMB().then(function (M) {
+      return pickCodec(M).then(function (codec) {
+        if (!codec) throw new Error("เครื่องนี้ไม่มีตัวเข้ารหัส H.264");
+        var input = new M.Input({ source: new M.BlobSource(blob), formats: M.ALL_FORMATS });
+        var target = new M.BufferTarget();
+        var output = new M.Output({ format: new M.Mp4OutputFormat({ fastStart: "in-memory" }), target: target });
+        return input.computeDuration().then(function (d) {
+          d = d || dur || 60;
+          // เผื่อเสียงเดิมที่คัดลอกมาตรง ๆ ได้ถึง 320 kbps (Samsung อัด 256 kbps)
+          var vbps = Math.max(lim("minBps", 400000), Math.min(2500000, Math.floor((lim("target", 44 * 1024 * 1024) * 8 / d - 320000) * scale)));
+          return M.Conversion.init({
+            input: input, output: output, tracks: "primary",
+            video: function (track) {
+              return Promise.all([track.getDisplayWidth(), track.getDisplayHeight(), track.computePacketStats(90).catch(function () { return null; })]).then(function (r) {
+                var o = { codec: codec, bitrate: vbps, keyFrameInterval: 2, forceTranscode: true };
+                if (Math.max(r[0], r[1]) > 1280) { if (r[0] >= r[1]) o.width = 1280; else o.height = 1280; }
+                if (r[2] && r[2].averagePacketRate > 31) o.frameRate = 30;
+                return o;
+              });
+            },
+            audio: {}                                      // ไม่ตั้งค่าอะไร = คัดลอกเสียงเดิม (AAC) ตรง ๆ ถ้าใส่ใน MP4 ได้
+          });
+        }).then(function (conv) {
+          var lostVideo = conv.discardedTracks.filter(function (t) { return t.track.isVideoTrack(); })[0];
+          if (!conv.isValid || lostVideo) throw new Error("ย่อคลิปนี้ไม่ได้ (" + (lostVideo ? lostVideo.reason : "ไม่รองรับ") + ")");
+          if (onProgress) conv.onProgress = function (p) { onProgress(p); };
+          return conv.execute().then(function () { return new Blob([target.buffer], { type: "video/mp4" }); });
+        });
+      });
+    });
+  }
+  function progressHtml(title, p) {
+    var pct = Math.round((p || 0) * 100);
+    return '<div style="padding:14px;border:2px solid rgba(0,0,0,0.62);background:rgba(255,217,61,0.35);border-radius:3px;">' +
+      '<div style="font-weight:700;margin-bottom:8px;">' + title + ' ' + pct + '%</div>' +
+      '<div style="height:10px;border:2px solid #000;background:#fff;"><div style="height:100%;width:' + pct + '%;background:#000;"></div></div>' +
+      '<div class="hint" style="margin-top:8px;">ย่อให้ส่ง LINE ได้ (ไม่เกิน 50 MB) · อยู่หน้านี้ไว้ก่อน</div></div>';
+  }
+  var BUSY = false;
+  var origSaveLesson = window.saveLesson;
+  if (typeof origSaveLesson === "function") window.saveLesson = function () {
+    if (BUSY) { toast("รอย่อคลิปเสร็จก่อน แล้วค่อยกดบันทึก"); return; }
+    return origSaveLesson.apply(this, arguments);
+  };
 
   /* ── ช่องแนบไฟล์: รับรูป (แบบเดิม) และวิดีโอ ── */
   var old = el("media-inp");
@@ -11166,16 +11244,31 @@ function regenRecoveryCode() {
     probe(file).then(function (info) {
       if (EF.id !== id) return;
       if (info.dur > MAX_SEC) { redraw(); toast("คลิปยาว " + mmss(info.dur) + " — แนบได้ไม่เกิน 10 นาที ตัดให้สั้นลงก่อน"); return; }
-      return shrinkImage(info.poster, 480, 0.8).then(function (thumb) {
-        if (EF.id !== id) return;
-        pendPut(vidKey(id), file); pendPut(mediaKey(id), info.poster); pendPut(thumbKey(id), thumb || info.poster);
-        EF.media = { type: file.type || "video/mp4", name: file.name || "clip.mp4", size: file.size, video: true, dur: Math.round(info.dur) };
-        redraw();
-        toast(info.dur > WARN_SEC
-          ? "แนบแล้ว · คลิปยาวเกิน 5 นาที LINE อาจตัดหรือไม่ยอมส่ง"
-          : "แนบคลิปแล้ว — กดบันทึกเพื่อเก็บ · คลิปอยู่ในเครื่องนี้เท่านั้น");
+      var small = file.size <= shareMax(), note = "";
+      BUSY = !small;
+      var ready = small ? Promise.resolve(file) : compress(file, info.dur, function (p) {
+        var b = el("media-block"); if (b && EF.id === id) b.innerHTML = progressHtml("กำลังย่อคลิป", p);
+      }).then(function (out) {
+        note = " · ย่อจาก " + fmtBytes(file.size) + " เหลือ " + fmtBytes(out.size);
+        return out;
+      }, function (e) {
+        note = " · ย่อไม่ได้ (" + ((e && e.message) || "ไม่ทราบสาเหตุ") + ") — ส่งจากแกลเลอรีแทน";
+        return file;
       });
-    }).catch(function () { redraw(); toast("อ่านคลิปไม่สำเร็จ"); });
+      return ready.then(function (vid) {
+        BUSY = false;
+        if (EF.id !== id) return;
+        return shrinkImage(info.badged, 480, 0.8).then(function (thumb) {
+          if (EF.id !== id) return;
+          var mp4 = vid !== file;
+          pendPut(vidKey(id), vid); pendPut(mediaKey(id), info.poster); pendPut(thumbKey(id), thumb || info.badged);
+          EF.media = { type: vid.type || file.type || "video/mp4", name: mp4 ? String(file.name || "clip").replace(/\.[^.]+$/, "") + ".mp4" : (file.name || "clip.mp4"),
+            size: vid.size, video: true, dur: Math.round(info.dur), clean: 1 };
+          redraw();
+          toast((info.dur > WARN_SEC ? "แนบแล้ว · คลิปยาวเกิน 5 นาที LINE อาจตัดหรือไม่ยอมส่ง" : "แนบคลิปแล้ว — กดบันทึกเพื่อเก็บ") + note);
+        });
+      });
+    }).catch(function () { BUSY = false; redraw(); toast("อ่านคลิปไม่สำเร็จ"); });
   }
 
   /* ── กล่องในฟอร์มคาบ ── */
@@ -11251,16 +11344,68 @@ function regenRecoveryCode() {
     toast("เครื่องนี้แชร์ไฟล์ตรง ๆ ไม่ได้ — บันทึกคลิปลงเครื่องแล้ว ส่งจากแกลเลอรีได้");
     return Promise.resolve();
   }
+  function doShare(blob, name, title) {
+    return shareFile(blob, name, title).then(function () { return true; }, function (e) {
+      if (e && e.name === "AbortError") return false;              // กดยกเลิกเอง
+      toast("ส่งไม่สำเร็จ: " + ((e && (e.message || e.name)) || "ไม่ทราบสาเหตุ") + " — ลองส่งจากแกลเลอรีแทน");
+      return false;
+    });
+  }
+  // แผ่นซ้อนบนการ์ดรายงาน (ไม่ปิดหน้าที่เปิดอยู่)
+  function sheet(html) {
+    var box = document.createElement("div");
+    box.id = "vid-sheet"; box.className = "overlay";
+    box.style.cssText = "z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.55);";
+    box.innerHTML = '<div class="modal-box" style="max-width:380px;width:100%;"></div>';
+    document.body.appendChild(box);
+    var card = box.firstChild;
+    var api = { set: function (h) { card.innerHTML = h; }, close: function () { if (box.parentNode) box.parentNode.removeChild(box); }, card: card };
+    api.set(html);
+    return api;
+  }
+  function saveAs(blob, name) {
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
   var origShareClip = window.shareClip;
   window.shareClip = function (id) {
     var l = lessonById(id);
     if (!l || !isVideoMedia(l.media)) return origShareClip.apply(this, arguments);
+    var base = String(displayName(l.student)).replace(/[\\/:*?"<>|\s]+/g, "") + "-" + l.date;
+    var title = displayName(l.student) + " — คลิปคาบเรียน";
     videoBlob(id).then(function (blob) {
       if (!blob) { toast(MISSING); return; }
-      var base = String(displayName(l.student)).replace(/[\\/:*?"<>|\s]+/g, "") + "-" + l.date;
       var ext = (/\.([a-z0-9]{2,4})$/i.exec(l.media.name || "") || [, "mp4"])[1].toLowerCase();
-      return shareFile(blob, base + "." + ext, displayName(l.student) + " — คลิปคาบเรียน");
-    }).catch(function () {});
+      if (blob.size <= shareMax()) return doShare(blob, base + "." + ext, title);
+      // ใหญ่เกินที่ Chrome ยอมแชร์: ย่อก่อน แล้วให้แตะส่งอีกครั้ง (การแชร์ต้องเกิดจากการแตะ)
+      var sh = sheet(progressHtml("กำลังย่อคลิปก่อนส่ง", 0));
+      compress(blob, l.media.dur, function (p) { if (sh.card.isConnected) sh.set(progressHtml("กำลังย่อคลิปก่อนส่ง", p)); }).then(function (out) {
+        return MDB.put(vidKey(id), out).then(function () {
+          var cur = lessonById(id);
+          if (cur && cur.media) {
+            cur.media.size = out.size; cur.media.type = "video/mp4";
+            cur.media.name = String(cur.media.name || "clip").replace(/\.[^.]+$/, "") + ".mp4";
+            save({ noSnap: true, noCount: true });
+          }
+          sh.set('<div style="font-weight:700;font-size:16px;margin-bottom:6px;">✓ ย่อคลิปแล้ว</div>' +
+            '<div class="hint" style="margin-bottom:14px;">' + fmtBytes(blob.size) + ' → ' + fmtBytes(out.size) + ' · ครั้งต่อไปส่งได้ทันที</div>' +
+            '<button class="btn-brass" type="button" id="vid-go" style="width:100%;margin-bottom:8px;">🎬 ส่งคลิปเลย</button>' +
+            '<button class="btn-g" type="button" id="vid-x" style="width:100%;">ปิด</button>');
+          el("vid-go").addEventListener("click", function () { doShare(out, base + ".mp4", title).then(function (ok) { if (ok) sh.close(); }); });
+          el("vid-x").addEventListener("click", sh.close);
+        });
+      }, function (e) {
+        sh.set('<div style="font-weight:700;font-size:16px;margin-bottom:6px;">ส่งจากแอปไม่ได้</div>' +
+          '<div class="hint" style="margin-bottom:10px;line-height:1.8;">คลิปใหญ่ ' + fmtBytes(blob.size) + ' เกินที่เบราว์เซอร์ยอมส่ง (50 MB) และย่อในเครื่องนี้ไม่สำเร็จ<br>' +
+          'เปิด <b>แกลเลอรี</b> แล้วส่งคลิปเดิมไป LINE แทนได้เลย</div>' +
+          '<div class="mono" style="font-size:10px;color:#5A5A5A;margin-bottom:14px;word-break:break-word;">สาเหตุ: ' + esc((e && e.message) || "ไม่ทราบ") + '</div>' +
+          '<button class="btn-g" type="button" id="vid-dl" style="width:100%;margin-bottom:8px;">↓ บันทึกคลิปลงเครื่อง</button>' +
+          '<button class="btn-g" type="button" id="vid-x" style="width:100%;">ปิด</button>');
+        el("vid-dl").addEventListener("click", function () { saveAs(blob, base + "." + ext); });
+        el("vid-x").addEventListener("click", sh.close);
+      });
+    }).catch(function (e) { toast("เปิดคลิปไม่สำเร็จ: " + ((e && e.message) || "")); });
   };
   var origActions = window.rcActionsHtml;
   window.rcActionsHtml = function () {
@@ -11293,8 +11438,29 @@ function regenRecoveryCode() {
     clearTimeout(sweepT); sweepT = setTimeout(sweep, 5000);
     return r;
   };
+  // คลิปที่แนบก่อนรุ่นนี้: ภาพในการ์ดรายงานมีปุ่ม ▶ ติดไปด้วย — ทำหน้าปกใหม่จากคลิปในเครื่อง
+  function fixPosters() {
+    var todo = S.lessons.filter(function (l) { return isVideoMedia(l.media) && !l.media.clean; });
+    return todo.reduce(function (p, l) {
+      return p.then(function () { return MDB.get(vidKey(l.id)); }).then(function (blob) {
+        if (!blob || !blob.size) return;
+        return probe(blob).then(function (info) {
+          return shrinkImage(info.badged, 480, 0.8).then(function (thumb) {
+            return MDB.put(mediaKey(l.id), info.poster).then(function () { return MDB.put(thumbKey(l.id), thumb || info.badged); }).then(function () {
+              THUMB[l.id] = thumb || info.badged; l.media.clean = 1;
+              try { if (SY && SY.st && SY.st.files) { delete SY.st.files[mediaKey(l.id)]; delete SY.st.files[thumbKey(l.id)]; sySave(); } } catch (e) {}
+            });
+          });
+        });
+      }).catch(function () {});
+    }, Promise.resolve()).then(function () {
+      if (todo.some(function (l) { return l.media.clean; })) { save({ noSnap: true, noCount: true }); try { if (!document.querySelector(".overlay")) renderAll(); } catch (e) {} }
+    });
+  }
   var origStart = window.startApp;
-  window.startApp = function () { var r = origStart.apply(this, arguments); setTimeout(sweep, 8000); return r; };
+  window.startApp = function () { var r = origStart.apply(this, arguments); setTimeout(sweep, 8000); setTimeout(fixPosters, 4000); return r; };
+  window.__videoFixPosters = fixPosters;
+  window.__videoCompress = compress;
 
   window.__videoSweep = sweep;
   window.__video = "on";

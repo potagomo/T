@@ -144,7 +144,7 @@ const waitApp = (p) => p.waitForFunction(() => document.getElementById("app").st
     await ctx.close();
   }
 
-  console.log("iPad — แป้นตัวเลข + Face ID ต้องแตะก่อน");
+  console.log("iPad — แป้นตัวเลข + Face ID เริ่มเองตอนเปิดแอป");
   {
     const ctx = await browser.newContext({ ...devices["iPad Pro 11"], serviceWorkers: "block" });
     const p = await ctx.newPage(); const errs = [];
@@ -160,11 +160,21 @@ const waitApp = (p) => p.waitForFunction(() => document.getElementById("app").st
     ok(/Face ID/.test(await p.textContent("#bio-on")), "iPad เรียกว่า Face ID / Touch ID");
     await p.click("#bio-on"); await p.waitForSelector("#bio-off", { timeout: 8000 }).catch(() => {});
     await p.reload();
+    ok(await waitApp(p), "เปิดแอปใหม่บน iPad: เริ่มสแกน Face ID เองทันที ไม่ต้องแตะปุ่ม");
+
+    // Safari ปฏิเสธทันทีเพราะยังไม่มีการแตะ → แตะที่ว่างตรงไหนก็ได้บนหน้าล็อก = เริ่มสแกน
+    await p.addInitScript(() => {
+      const real = navigator.credentials.get.bind(navigator.credentials); let first = true;
+      navigator.credentials.get = (o) => { if (first) { first = false; return Promise.reject(new DOMException("needs gesture", "NotAllowedError")); } return real(o); };
+    });
+    await p.reload();
     await p.waitForTimeout(1200);
-    ok(!(await appOpen(p)) && await p.isVisible("#qu-bio") && await p.evaluate(() => document.querySelectorAll("#qu-pad .qu-key").length === 12),
-      "เปิดแอปใหม่บน iPad: รอให้แตะปุ่ม Face ID (Safari บังคับ) และมีแป้นตัวเลข");
-    await p.click("#qu-bio");
-    ok(await waitApp(p), "แตะปุ่ม Face ID แล้วเข้าแอป");
+    ok(!(await appOpen(p)) && /แตะตรงไหนก็ได้/.test(await p.textContent("#qu-bio")) && await p.evaluate(() => document.querySelectorAll("#qu-pad .qu-key").length === 12),
+      "Safari ไม่ยอมเริ่มเอง: ปุ่มบอก “แตะตรงไหนก็ได้เพื่อสแกน” และยังมีแป้นตัวเลข");
+    await p.locator("#qu-pad .qu-key", { hasText: /^1$/ }).click();
+    ok(!(await appOpen(p)) && await p.evaluate(() => document.getElementById("pw-input").value === "1"), "กดแป้นตัวเลขยังพิมพ์รหัสได้ตามปกติ (ไม่ไปสแกนแทน)");
+    await p.mouse.click(30, 30);
+    ok(await waitApp(p), "แตะที่ว่างบนหน้าจอครั้งเดียว: สแกน Face ID แล้วเข้าแอป");
     ok(!errs.length, "ไม่มี error ใน console" + (errs.length ? ": " + errs.join(" | ") : ""));
     await ctx.close();
   }

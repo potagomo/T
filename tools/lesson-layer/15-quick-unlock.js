@@ -168,16 +168,18 @@
     return (e && e.message) || "ใช้" + bioName() + "ไม่สำเร็จ";
   }
   var bioBusy = false;
+  // คืน Promise ของผล: "ok" · "fail" · ชื่อ error (เช่น NotAllowedError)
   function bioUnlock() {
-    if (bioBusy) return;
+    if (bioBusy) return Promise.resolve("busy");
     var err = el("login-err"); bioBusy = true; err.textContent = "";
-    bioCheck().then(function (ok) {
-      if (ok) { el("pw-input").value = ""; startApp(); }
-      else err.textContent = "ยืนยันตัวตนไม่ผ่าน — ใช้รหัสผ่านแทน";
+    return bioCheck().then(function (ok) {
+      if (ok) { el("pw-input").value = ""; startApp(); return "ok"; }
+      err.textContent = "ยืนยันตัวตนไม่ผ่าน — ใช้รหัสผ่านแทน"; return "fail";
     }, function (e) {
       var m = bioError(e);
       err.textContent = m ? m + " — ใช้รหัสผ่านแทนได้" : "";
-    }).then(function () { bioBusy = false; });
+      return (e && e.name) || "error";
+    }).then(function (r) { bioBusy = false; return r; });
   }
 
   /* ── หน้าตั้งค่า ── */
@@ -242,10 +244,29 @@
   window.lockApp = function () { origLock.apply(this, arguments); renderLock(); };
 
   renderLock();
-  // เปิดแอปแล้วถามลายนิ้วมือเลย (Android) — Safari บน iPad ต้องให้ผู้ใช้แตะก่อน จึงรอแตะปุ่ม
-  if (readJSON("td_bio") && !ios() && el("login-wrap") && el("login-wrap").style.display !== "none" && el("app").style.display !== "block") {
-    setTimeout(function () { if (el("app").style.display !== "block") bioUnlock(); }, 400);
+  /* เปิดแอปแล้วเริ่มสแกนเลยทุกเครื่อง
+     iPad/iPhone: iOS โชว์แผ่น "ใช้พาสคีย์" ให้แตะ 1 ครั้งก่อนสแกนเสมอ — เว็บข้ามขั้นนี้ไม่ได้ (แอป native เท่านั้น)
+     ถ้า Safari ปฏิเสธทันทีเพราะยังไม่มีการแตะ: แตะตรงไหนก็ได้บนหน้าล็อกครั้งแรก = เริ่มสแกน ไม่ต้องเล็งปุ่ม */
+  function locked() { return el("app").style.display !== "block" && el("login-wrap") && el("login-wrap").style.display !== "none"; }
+  function armTap() {
+    var w = el("login-wrap"); if (!w) return;
+    var b = el("qu-bio"); if (b) b.textContent = bioIcon() + " แตะตรงไหนก็ได้เพื่อสแกน" + bioName();
+    function h(e) {
+      if (e.target.closest && e.target.closest("#qu-pad, input, a, #qu-toggle, #login-btn")) return;
+      w.removeEventListener("click", h, true);
+      if (e.target.closest && e.target.closest("#qu-bio")) return;      // ปุ่มเองก็สแกนอยู่แล้ว
+      bioUnlock();
+    }
+    w.addEventListener("click", h, true);
   }
+  function autoBio() {
+    if (!readJSON("td_bio") || !locked()) return;
+    var t0 = Date.now();
+    bioUnlock().then(function (r) {
+      if (r === "NotAllowedError" && Date.now() - t0 < 1500 && locked()) armTap();
+    });
+  }
+  setTimeout(autoBio, 350);
 
   window.__bioCheck = bioCheck;
   window.__quickUnlock = "on";

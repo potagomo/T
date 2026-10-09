@@ -22,5 +22,7 @@
     try { return orig.apply(this, arguments); }
     finally { if (keep === undefined) delete S.settings.backupSnoozeUntil; else S.settings.backupSnoozeUntil = keep; }
   };
+  // หน้าตั้งค่าใช้ตัดสินว่าจะขึ้นจุดเตือนที่หมวดข้อมูลไหม (ให้ตรงกับแถบบนหน้าแรก)
+  window.__backupQuiet = function () { var d = daysBetween(S.settings.lastBackup); return cloudOk() && (d === null || d < CLOUD_DAYS); };
   window.__calmBackup = "on";
 })();

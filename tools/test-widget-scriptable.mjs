@@ -78,11 +78,11 @@ const oldW = await run("small", { ok: false, error: "not found" }, {});
 ok(/โหลดตารางไม่ได้/.test(oldW.texts.join(" ")) && /รุ่นเก่า/.test(oldW.texts.join(" ")) && !/ไม่มีคาบ/.test(oldW.texts.join(" ")), "ตัวส่งรุ่นเก่า: บอกให้อัปเดต ไม่ขึ้นว่าไม่มีคาบ");
 const noNet = await run("small", new Error("offline"), {});
 ok(/โหลดตารางไม่ได้/.test(noNet.texts.join(" ")) && !/ไม่มีคาบ/.test(noNet.texts.join(" ")), "ไม่มีเน็ตและไม่เคยโหลดได้: บอกตรง ๆ ไม่ขึ้นว่าไม่มีคาบ");
-for (const name of ["ชมพู", "ดำ", "ไม่มีธีมนี้"]) {
+for (const name of ["ชมพู", "ดำ", "Pink", "black", "ไม่มีธีมนี้"]) {
   makeEnv.param = name;
   const t = await run("medium", data, {});
   const bg = t.widget.backgroundColor;
-  ok(name === "ไม่มีธีมนี้" ? !!(bg && bg.a) : (bg && bg.hex === (name === "ชมพู" ? "#FFF0F5" : "#000000")), "ธีม " + name + (name === "ไม่มีธีมนี้" ? ": ชื่อผิดใช้สีตามเครื่อง" : ": พื้นเปลี่ยนสี"));
+  ok(name === "ไม่มีธีมนี้" ? !!(bg && bg.a) : (bg && bg.hex === (/ชมพู|pink/i.test(name) ? "#FFF0F5" : "#000000")), "ธีม " + name + (name === "ไม่มีธีมนี้" ? ": ชื่อผิดใช้สีตามเครื่อง" : ": พื้นเปลี่ยนสี"));
 }
 makeEnv.param = null;
 const empty = await run("medium", { ok: true, lessons: [] }, {});

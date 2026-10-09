@@ -14,7 +14,7 @@
 
 ตรรกะของโปรแกรม (บันทึก ซิงค์ ฯลฯ) ไม่ถูกแตะเลย
 """
-import base64, io, json, os, re, sys
+import hashlib, base64, io, json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "lesson")
@@ -107,8 +107,11 @@ def main():
             name, io.open(os.path.join(layer_dir, name), encoding="utf-8").read(), name)
     html = html.replace("</head>", heads + "</head>")
     blocks = ""
+    # เวอร์ชันพจนานุกรมแปล (lesson/i18n/en.json) — เปลี่ยนเมื่อไฟล์เปลี่ยน แอปจะโหลดใหม่แทนตัวที่เก็บไว้
+    dict_path = os.path.join(OUT, "i18n", "en.json")
+    i18n_v = hashlib.sha1(io.open(dict_path, "rb").read()).hexdigest()[:10] if os.path.exists(dict_path) else "none"
     for name in sorted(f for f in os.listdir(layer_dir) if f.endswith(".js")):
-        code = io.open(os.path.join(layer_dir, name), encoding="utf-8").read()
+        code = io.open(os.path.join(layer_dir, name), encoding="utf-8").read().replace("__I18N_V__", i18n_v)
         if "</script" in code.lower():
             die(name + " มีคำว่า </script> ซึ่งจะตัดสคริปต์ขาดกลางทาง")
         blocks += "<!-- layer:%s:start -->\n<script>\n%s</script>\n<!-- layer:%s:end -->\n" % (name, code, name)

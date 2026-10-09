@@ -497,23 +497,33 @@ async function login(page) {
     ok(!bk.cloud && bk.off && bk.stale && bk.snooze === undefined,
       "แถบเตือนสำรอง: ซิงค์คลาวด์ปกติไม่กวน · ซิงค์หลุดหรือไม่ได้สำรองเกิน 30 วันยังเตือน (ไม่แก้ค่าที่บันทึก)");
 
-    // หน้าตั้งค่า: แบ่งหมวดตามงาน ไม่มีแถวหาย ไม่ล้นจอ · รีเซ็ตแอปอยู่ล่างสุด
+    // หน้าตั้งค่า: แบ่งหมวดตามงาน พับไว้ แตะแล้วกาง (ทีละหมวด จำไว้) · ไม่มีแถวหาย ไม่ล้นจอ · รีเซ็ตแอปอยู่ล่างสุด
     const menu = await phone.p.evaluate(() => {
-      openMenu();
-      const box = document.getElementById("modal-box"), rows = Array.from(box.querySelectorAll(".srow"));
-      const titles = Array.from(box.querySelectorAll(".mt-title")).map((x) => x.textContent);
-      const right = box.getBoundingClientRect().right, last = rows[rows.length - 1].textContent;
-      const ok = { n: rows.length, titles, over: rows.filter((r) => r.getBoundingClientRect().right > right + 1).length, last, loose: box.querySelectorAll(".statlabel:not(.mt-title)").length };
-      closeModal(); return ok;
+      localStorage.removeItem("td_menu_open"); openMenu();
+      const box = document.getElementById("modal-box"), rows = Array.from(box.querySelectorAll(".srow:not(.mt-head)"));
+      const heads = Array.from(box.querySelectorAll(".mt-head"));
+      const titles = heads.map((h) => h.querySelector(".mt-tx > div").firstChild.textContent.trim());
+      const shut = rows.every((r) => r.offsetParent === null);
+      heads[4].click();
+      const open1 = rows.filter((r) => r.offsetParent !== null).map((r) => r.textContent);
+      heads[1].click();
+      const one = box.querySelectorAll(".mt-sec.open").length, remembered = localStorage.getItem("td_menu_open");
+      const right = box.getBoundingClientRect().right, over = rows.filter((r) => r.offsetParent && r.getBoundingClientRect().right > right + 1).length;
+      const out = { n: rows.length, titles, shut, open1: open1.length, sec: open1.some((t) => /รหัสกู้คืน/.test(t)), one, remembered, over, last: rows[rows.length - 1].textContent, loose: box.querySelectorAll(".statlabel").length };
+      closeModal(); openMenu(); out.reopen = (document.querySelector("#modal-box .mt-sec.open .mt-head") || {}).textContent || ""; closeModal();
+      return out;
     });
-    ok(menu.n >= 21 && menu.titles.join("|") === "การสอน|ส่งผู้ปกครอง · หน้าตา|เครื่องนี้ · การเชื่อมต่อ|ข้อมูล|ความปลอดภัย|ล้างข้อมูล" && !menu.over && !menu.loose && /รีเซ็ตแอป/.test(menu.last),
-      "หน้าตั้งค่า " + menu.n + " แถว แบ่ง " + menu.titles.length + " หมวด ไม่ล้นจอมือถือ · รีเซ็ตแอปแยกไว้ล่างสุด");
+    ok(menu.n >= 22 && menu.titles.join("|") === "การสอน|ส่งผู้ปกครองและหน้าตา|เครื่องนี้และการเชื่อมต่อ|ข้อมูลและการสำรอง|ความปลอดภัย|ล้างข้อมูล" && !menu.loose && /รีเซ็ตแอป/.test(menu.last),
+      "หน้าตั้งค่า " + menu.n + " แถว ใน " + menu.titles.length + " หมวด · รีเซ็ตแอปแยกไว้ล่างสุด");
+    ok(menu.shut && menu.open1 === 4 && menu.sec && menu.one === 1 && menu.remembered === "ส่งผู้ปกครองและหน้าตา" && /ส่งผู้ปกครอง/.test(menu.reopen) && !menu.over,
+      "หมวดพับไว้ แตะแล้วกางทีละหมวด · เปิดเมนูครั้งหน้ากางหมวดเดิม · ไม่ล้นจอมือถือ");
 
     /* แจ้งเตือนคาบถัดไป */
     console.log("แจ้งเตือนคาบถัดไป (ตัวส่งจริง + KV จำลอง)");
     if (!ece) ok(false, "ต้องติดตั้ง http_ece ก่อน: npm i http_ece");
     await ipad.p.evaluate(() => openMenu());
     ok(await ipad.p.evaluate(() => /แจ้งเตือนคาบถัดไป/.test((document.getElementById("pu-row") || {}).textContent || "")), "หน้าตั้งค่ามีแถว 🔔 แจ้งเตือนคาบถัดไป");
+    await ipad.p.evaluate((id) => { const r = document.getElementById(id), sec = r && r.closest(".mt-sec"); if (sec && !sec.classList.contains("open")) sec.querySelector(".mt-head").click(); }, "pu-row");
     await ipad.p.click("#pu-row");
     await ipad.p.fill("#pu-url", BASE + "push");
     await ipad.p.evaluate(() => pushConnect());
@@ -596,6 +606,7 @@ async function login(page) {
     // วิดเจ็ตหน้าจอโฮม: หน้าตั้งค่า → ส่งตาราง 8 วันขึ้นตัวส่ง → อ่านด้วยรหัสวิดเจ็ตได้
     await ipad.p.evaluate(() => openMenu());
     ok(await ipad.p.evaluate(() => /วิดเจ็ตหน้าจอโฮม/.test((document.getElementById("wg-row") || {}).textContent || "")), "หน้าตั้งค่ามีแถว 🧩 วิดเจ็ตหน้าจอโฮม");
+    await ipad.p.evaluate((id) => { const r = document.getElementById(id), sec = r && r.closest(".mt-sec"); if (sec && !sec.classList.contains("open")) sec.querySelector(".mt-head").click(); }, "wg-row");
     await ipad.p.click("#wg-row");
     await ipad.p.waitForFunction(() => /ส่งตาราง \d+ คาบ/.test((document.getElementById("wg-state") || {}).textContent || ""), null, { timeout: 10000 })
       .then(() => ok(true, "เปิดหน้าวิดเจ็ต: ส่งตาราง 8 วันให้วิดเจ็ตแล้ว"), async () => ok(false, "หน้าวิดเจ็ตไม่ส่งตาราง: " + await ipad.p.evaluate(() => (document.getElementById("wg-state") || {}).textContent)));

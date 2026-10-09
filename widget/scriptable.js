@@ -16,8 +16,10 @@ const THEMES = {
   "ม่วง":    { bg: "#F5F0FF", ink: "#1E1433", muted: "#685A80", acc: "#C4B5FD", on: "#1E1433" },
   "ดำ":      { bg: "#000000", ink: "#FFFFFF", muted: "#AAAAAA", acc: "#FF6B6B", on: "#000000", dark: true }
 };
+// ชื่ออังกฤษก็ได้ (แอปครูต้าแบบภาษาอังกฤษบอกชื่อพวกนี้)
+const ALIAS = { cream: "ครีม", dark: "กลางคืน", night: "กลางคืน", pink: "ชมพู", sky: "ฟ้า", blue: "ฟ้า", mint: "มิ้นต์", green: "มิ้นต์", purple: "ม่วง", lavender: "ม่วง", black: "ดำ" };
 const PARAM = (typeof args !== "undefined" && args.widgetParameter ? String(args.widgetParameter) : "").trim();
-const T = THEMES[PARAM] || null;
+const T = THEMES[PARAM] || THEMES[ALIAS[PARAM.toLowerCase()]] || null;
 const dyn = (light, dark) => Color.dynamic(new Color(light), new Color(dark));
 const fix = (h) => new Color(h);
 const C = T ? {

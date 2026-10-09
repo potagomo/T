@@ -10545,7 +10545,8 @@ function regenRecoveryCode() {
   window.save = function () {
     try { keepCfg(); } catch (e) {}
     var r = origSave.apply(this, arguments);
-    if (cfg()) pushSyncSoon();
+    // ข้อมูลที่เพิ่งรับมาจากอีกเครื่อง: เครื่องนั้นส่งรายการขึ้นตัวส่งไปแล้ว ไม่ต้องส่งซ้ำ (ประหยัดโควตาเขียน KV ฟรีวันละ 1,000 ครั้ง)
+    if (cfg() && !(window.SY && SY.applying)) pushSyncSoon();
     return r;
   };
 
@@ -10765,12 +10766,21 @@ function regenRecoveryCode() {
     return c;
   }
 
-  /* ── จดค่าเดิม แล้วทับด้วย !important ── */
-  function set(el, prop, val) {
-    var rec = el.__dk || (el.__dk = el.dataset.dk ? JSON.parse(el.dataset.dk) : {});
-    if (!(prop in rec)) rec[prop] = [el.style.getPropertyValue(prop), el.style.getPropertyPriority(prop)];
-    el.style.setProperty(prop, val, "important");
-    el.dataset.dk = JSON.stringify(rec);
+  /* ── จดค่าเดิม แล้วทับด้วย !important ──
+     อ่านทั้งหน้าก่อน แล้วค่อยเขียนทีเดียว: ถ้าอ่าน-เขียนสลับกันทีละชิ้น เบราว์เซอร์ต้องคำนวณสไตล์ใหม่ทุกชิ้น
+     (layout thrashing) — หน้าที่มีหลายร้อยชิ้นช้าลงหลายเท่า โดยเฉพาะบนมือถือ */
+  var WRITES = null;
+  function set(el, prop, val) { WRITES.push(el, prop, val); }
+  function commit(list) {
+    var touched = [];
+    for (var i = 0; i < list.length; i += 3) {
+      var el = list[i], prop = list[i + 1], val = list[i + 2];
+      var rec = el.__dk || (el.__dk = el.dataset.dk ? JSON.parse(el.dataset.dk) : {});
+      if (!(prop in rec)) rec[prop] = [el.style.getPropertyValue(prop), el.style.getPropertyPriority(prop)];
+      el.style.setProperty(prop, val, "important");
+      if (!el.__dkDirty) { el.__dkDirty = true; touched.push(el); }
+    }
+    for (var j = 0; j < touched.length; j++) { touched[j].dataset.dk = JSON.stringify(touched[j].__dk); touched[j].__dkDirty = false; }
   }
   function restore(el) {
     if (!el.dataset || !el.dataset.dk) return;
@@ -10836,8 +10846,10 @@ function regenRecoveryCode() {
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
       acceptNode: function (n) { return SKIP[n.tagName] || (n.matches && n.matches(SKIP_SEL)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
     });
-    var n = root;
+    var n = root, own = !WRITES;
+    if (own) WRITES = [];
     while (n) { try { fix(n, cache); } catch (e) {} n = tw.nextNode(); }
+    if (own) { var w = WRITES; WRITES = null; commit(w); }
   }
 
   /* ── ตามดูหน้าที่วาดใหม่ ── */
@@ -10853,7 +10865,9 @@ function regenRecoveryCode() {
       for (var j = 0; j < roots.length; j++) if (j !== i && roots[j] !== r && roots[j].contains(r) && roots[j].isConnected) return false;
       return roots.indexOf(r) === i;
     });
+    WRITES = [];                                      // ทุกส่วนที่เปลี่ยนในเฟรมนี้: อ่านให้ครบก่อน แล้วเขียนรวดเดียว
     roots.forEach(function (r) { walk(r, cache); });
+    var w = WRITES; WRITES = null; commit(w);
     void document.body.offsetWidth;                   // ให้สีใหม่มีผลก่อนเปิด transition กลับ
     ROOT.classList.remove("dk-fixing");
     mo.takeRecords();
@@ -10997,7 +11011,8 @@ function regenRecoveryCode() {
     });
   }
   var origSave = window.save;
-  window.save = function () { var r = origSave.apply(this, arguments); if (wkey()) syncSoon(); return r; };
+  // ข้อมูลที่รับมาจากอีกเครื่อง: เครื่องนั้นส่งตารางให้วิดเจ็ตไปแล้ว
+  window.save = function () { var r = origSave.apply(this, arguments); if (wkey() && !(window.SY && SY.applying)) syncSoon(); return r; };
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden" && T) sync(false, true);
     if (document.visibilityState === "visible") sync(false);
@@ -11519,5 +11534,120 @@ function regenRecoveryCode() {
 })();
 </script>
 <!-- layer:80-video.js:end -->
+<!-- layer:85-calm-backup.js:start -->
+<script>
+/* ชั้นเว็บแอป: เลิกเตือนสำรองไฟล์ทุกวันเมื่อซิงค์คลาวด์อยู่แล้ว — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
+
+   เดิมหน้า วันนี้ ขึ้นแถบ "ยังไม่เคยสำรองข้อมูลเป็นไฟล์" ทุกวัน (เกิน 7 วันก็เตือน) แม้ข้อมูลซิงค์ขึ้น Firebase
+   ทุกครั้งที่บันทึก และแอปเก็บประวัติย้อนหลังอัตโนมัติ 30 วันอยู่แล้ว
+   ชั้นนี้: ถ้าซิงค์คลาวด์ทำงานปกติ (ได้ข้อมูลจากคลาวด์ภายใน 3 วัน) เตือนสำรองไฟล์เฉพาะเมื่อไม่ได้สำรองเกิน 30 วัน
+   ยังไม่เคยสำรองเลยก็ไม่เตือนบนหน้าแรก (เมนู ⚙ › ข้อมูล ยังบอกสถานะเสมอ) · ซิงค์ไม่ทำงาน = เตือนแบบเดิม */
+(function () {
+  "use strict";
+  if (typeof window.renderBanner !== "function" || typeof window.daysBetween !== "function") { window.__calmBackup = "missing"; return; }
+  var CLOUD_DAYS = 30;
+  function cloudOk() {
+    try { return !!(SY && SY.user && SY.st && SY.st.cfg && SY.st.lastOk && Date.now() - SY.st.lastOk < 3 * 86400000); }
+    catch (e) { return false; }
+  }
+  var orig = window.renderBanner;
+  window.renderBanner = function () {
+    var d = daysBetween(S.settings.lastBackup);
+    if (!cloudOk() || (d !== null && d >= CLOUD_DAYS)) return orig.apply(this, arguments);
+    // ปิดเฉพาะแถบสำรอง (แถบ "มีคาบที่กรอกค้าง" ยังขึ้นตามเดิม) โดยไม่แตะค่าที่บันทึกไว้
+    var keep = S.settings.backupSnoozeUntil;
+    S.settings.backupSnoozeUntil = Date.now() + 60000;
+    try { return orig.apply(this, arguments); }
+    finally { if (keep === undefined) delete S.settings.backupSnoozeUntil; else S.settings.backupSnoozeUntil = keep; }
+  };
+  window.__calmBackup = "on";
+})();
+</script>
+<!-- layer:85-calm-backup.js:end -->
+<!-- layer:90-menu-tidy.js:start -->
+<script>
+/* ชั้นเว็บแอป: จัดหน้าตั้งค่าให้เป็นหมวด กระชับ — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
+   ต้องเป็นชั้นสุดท้ายที่ห่อ openMenu (เลข 90) เพราะชั้นอื่นเติมแถวของตัวเองเข้าไปก่อน
+
+   เดิม 22 แถวสูงเต็มบรรทัด กองอยู่ 3 หมวด (หมวด "ข้อมูลของคุณ" มี 12 แถวปนกันทั้งการตั้งเครื่องและการดูแลข้อมูล)
+   บนมือถือเลื่อนยาว ~6000 px · ชั้นนี้ย้ายแถวเดิม (ตัวปุ่มเดิม ไม่สร้างใหม่) เข้าหมวดตามงาน
+   แถวเตี้ยลง คำอธิบายบรรทัดเดียว · iPad แสดง 2 คอลัมน์ · "รีเซ็ตแอป" แยกไว้ล่างสุด
+   แถวที่ไม่รู้จัก (เช่นมาจากรุ่นใหม่ของแอป) ไปอยู่หมวด "อื่น ๆ" ไม่หาย */
+(function () {
+  "use strict";
+  if (typeof window.openMenu !== "function") { window.__menuTidy = "missing"; return; }
+
+  var GROUPS = [
+    ["การสอน", ["ชื่อผู้สอน", "สถานที่สอน", "ตารางประจำสัปดาห์", "วางตารางจากไลน์", "การ์ดแจ้งวันหยุด"]],
+    ["ส่งผู้ปกครอง · หน้าตา", ["หน้าตาการส่งออก", "ลูกเล่นและความรู้สึก", "โหมดกลางคืน"]],
+    ["เครื่องนี้ · การเชื่อมต่อ", ["ซิงค์", "แจ้งเตือนคาบถัดไป", "วิดเจ็ตหน้าจอโฮม", "ติดตั้งเป็นแอป"]],
+    ["ข้อมูล", ["สำรอง", "ประวัติย้อนหลัง", "ถังขยะ", "สุขภาพข้อมูล", "ตรวจประเภทคาบ"]],
+    ["ความปลอดภัย", ["ปลดล็อกด้วย", "เปลี่ยนรหัสผ่าน", "รหัสกู้คืน", "ล็อกหน้าจอ"]],
+    ["ล้างข้อมูล", ["รีเซ็ตแอป"]]
+  ];
+
+  var css = document.createElement("style");
+  css.textContent =
+    "#modal-root .mt-title{margin:16px 0 8px;}" +
+    "#modal-root .mt-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;}" +
+    "#modal-root .mt-grid .srow{margin:0 !important;padding:10px 12px;min-height:50px;}" +
+    "#modal-root .mt-grid .srow > div{flex:1;min-width:0;}" +
+    "#modal-root .mt-grid .srow > div > div + div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}" +
+    "#modal-root .mt-danger{margin-top:22px;padding-top:6px;border-top:1px dashed rgba(0,0,0,0.35);}" +
+    "@media (min-width:720px){#modal-root .mt-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}}";
+  document.head.appendChild(css);
+
+  function titleOf(row) {
+    var t = row.querySelector("div > div");
+    return (t ? t.textContent : row.textContent).trim();
+  }
+  function tidy() {
+    var box = document.getElementById("modal-box");
+    if (!box || box.querySelector(".mt-grid")) return;
+    var rows = Array.prototype.slice.call(box.querySelectorAll(".srow"));
+    if (rows.length < 8) return;                                   // ไม่ใช่หน้าตั้งค่า
+    var head = box.firstElementChild;
+    var buckets = GROUPS.map(function () { return []; }), rest = [];
+    rows.forEach(function (r) {
+      var t = titleOf(r), gi = -1;
+      GROUPS.some(function (g, i) { if (g[1].some(function (k) { return t.indexOf(k) === 0; })) { gi = i; return true; } return false; });
+      if (gi < 0) rest.push(r); else buckets[gi].push(r);
+    });
+    // เรียงในหมวดตามลำดับที่กำหนด ไม่ใช่ลำดับที่ชั้นต่าง ๆ เติมเข้ามา
+    buckets.forEach(function (b, i) {
+      var keys = GROUPS[i][1];
+      b.sort(function (x, y) {
+        var ix = keys.findIndex(function (k) { return titleOf(x).indexOf(k) === 0; }), iy = keys.findIndex(function (k) { return titleOf(y).indexOf(k) === 0; });
+        return ix - iy;
+      });
+    });
+    var wrap = document.createElement("div"); wrap.className = "mt";
+    function section(title, list, danger) {
+      if (!list.length) return;
+      var sec = document.createElement("div"); if (danger) sec.className = "mt-danger";
+      var h = document.createElement("div"); h.className = "statlabel mt-title"; h.textContent = title;
+      var g = document.createElement("div"); g.className = "mt-grid";
+      list.forEach(function (r) { g.appendChild(r); });
+      sec.appendChild(h); sec.appendChild(g); wrap.appendChild(sec);
+    }
+    GROUPS.forEach(function (g, i) { if (i < GROUPS.length - 1) section(g[0], buckets[i]); });
+    section("อื่น ๆ", rest);
+    section(GROUPS[GROUPS.length - 1][0], buckets[GROUPS.length - 1], true);
+    // ลบแค่หัวข้อหมวดเดิม (ส่วนอื่นที่อาจมีในหน้าตั้งค่ายังอยู่ครบ) แล้ววางชุดใหม่ต่อจากหัว "ตั้งค่า"
+    Array.prototype.slice.call(box.querySelectorAll(".statlabel:not(.mt-title)")).forEach(function (c) { if (c.parentNode) c.parentNode.removeChild(c); });
+    box.insertBefore(wrap, head.nextSibling);
+    if (window.innerWidth >= 720) box.style.maxWidth = "760px";
+  }
+
+  var orig = window.openMenu;
+  window.openMenu = function () {
+    var r = orig.apply(this, arguments);
+    try { tidy(); } catch (e) {}
+    return r;
+  };
+  window.__menuTidy = "on";
+})();
+</script>
+<!-- layer:90-menu-tidy.js:end -->
 </body>
 </html>

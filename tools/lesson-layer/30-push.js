@@ -343,7 +343,8 @@
   window.save = function () {
     try { keepCfg(); } catch (e) {}
     var r = origSave.apply(this, arguments);
-    if (cfg()) pushSyncSoon();
+    // ข้อมูลที่เพิ่งรับมาจากอีกเครื่อง: เครื่องนั้นส่งรายการขึ้นตัวส่งไปแล้ว ไม่ต้องส่งซ้ำ (ประหยัดโควตาเขียน KV ฟรีวันละ 1,000 ครั้ง)
+    if (cfg() && !(window.SY && SY.applying)) pushSyncSoon();
     return r;
   };
 

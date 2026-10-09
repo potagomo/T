@@ -486,6 +486,29 @@ async function login(page) {
       "มีคาบที่สอนจริง: บอกเหตุผล ไม่มีปุ่มล้างให้");
     await ipad.p.evaluate(() => closeModal());
 
+    // ซิงค์คลาวด์ทำงานอยู่: ไม่ขึ้นแถบ "ยังไม่เคยสำรอง" ทุกวัน · ซิงค์หลุดแล้วกลับมาเตือนตามเดิม
+    const bk = await ipad.p.evaluate(() => {
+      const has = () => { DAYV.date = todayStr(); setTab("today"); renderAll(); return /สำรอง/.test((document.getElementById("banner-slot") || {}).textContent || ""); };
+      delete S.settings.lastBackup; delete S.settings.backupSnoozeUntil;
+      const cloud = has(); const old = SY.st.lastOk; SY.st.lastOk = Date.now() - 5 * 86400000; const off = has(); SY.st.lastOk = old;
+      S.settings.lastBackup = new Date(Date.now() - 40 * 86400000).toISOString(); S.settings.editsSinceBackup = 5; const stale = has();
+      return { cloud, off, stale, snooze: S.settings.backupSnoozeUntil };
+    });
+    ok(!bk.cloud && bk.off && bk.stale && bk.snooze === undefined,
+      "แถบเตือนสำรอง: ซิงค์คลาวด์ปกติไม่กวน · ซิงค์หลุดหรือไม่ได้สำรองเกิน 30 วันยังเตือน (ไม่แก้ค่าที่บันทึก)");
+
+    // หน้าตั้งค่า: แบ่งหมวดตามงาน ไม่มีแถวหาย ไม่ล้นจอ · รีเซ็ตแอปอยู่ล่างสุด
+    const menu = await phone.p.evaluate(() => {
+      openMenu();
+      const box = document.getElementById("modal-box"), rows = Array.from(box.querySelectorAll(".srow"));
+      const titles = Array.from(box.querySelectorAll(".mt-title")).map((x) => x.textContent);
+      const right = box.getBoundingClientRect().right, last = rows[rows.length - 1].textContent;
+      const ok = { n: rows.length, titles, over: rows.filter((r) => r.getBoundingClientRect().right > right + 1).length, last, loose: box.querySelectorAll(".statlabel:not(.mt-title)").length };
+      closeModal(); return ok;
+    });
+    ok(menu.n >= 21 && menu.titles.join("|") === "การสอน|ส่งผู้ปกครอง · หน้าตา|เครื่องนี้ · การเชื่อมต่อ|ข้อมูล|ความปลอดภัย|ล้างข้อมูล" && !menu.over && !menu.loose && /รีเซ็ตแอป/.test(menu.last),
+      "หน้าตั้งค่า " + menu.n + " แถว แบ่ง " + menu.titles.length + " หมวด ไม่ล้นจอมือถือ · รีเซ็ตแอปแยกไว้ล่างสุด");
+
     /* แจ้งเตือนคาบถัดไป */
     console.log("แจ้งเตือนคาบถัดไป (ตัวส่งจริง + KV จำลอง)");
     if (!ece) ok(false, "ต้องติดตั้ง http_ece ก่อน: npm i http_ece");
@@ -590,6 +613,17 @@ async function login(page) {
     await phone.p.waitForFunction((k) => S.settings.push && S.settings.push.wkey === k, wk, { timeout: 10000 })
       .then(() => ok(true, "รหัสวิดเจ็ตซิงค์ไปมือถือเอง"), () => ok(false, "รหัสวิดเจ็ตไม่ซิงค์ไปมือถือ"));
     await ipad.p.evaluate(() => closeModal());
+
+    // แก้คาบบน iPad: iPad ส่งรายการเตือนเอง มือถือที่รับข้อมูลมาทางซิงค์ไม่ส่งซ้ำ (ประหยัดโควตาเขียน KV)
+    await phone.p.evaluate(() => { window.__out = []; const f = window.fetch; window.fetch = (u, o) => { if (/\/(schedule|widget-data)$/.test(String(u))) window.__out.push(String(u)); return f(u, o); }; });
+    await ipad.p.evaluate(() => { S.lessons.unshift({ id: 990077, date: addDays(todayStr(), 2), time: "09:15", kind: "private", duration: 1, rate: 0, heads: 1, courseId: null, attendance: "planned", student: "น้องเตือน", topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() }); save(); });
+    await phone.p.waitForFunction(() => S.lessons.some((l) => l.id === 990077), null, { timeout: 10000 }).catch(() => {});
+    const tq2 = Date.now();
+    while (!JSON.parse(kv.get("rem") || "[]").some((r) => /09:15/.test(r.title)) && Date.now() - tq2 < 9000) await new Promise((r) => setTimeout(r, 200));
+    await phone.p.waitForTimeout(5000);
+    const dup = await phone.p.evaluate(() => window.__out.length);
+    ok(JSON.parse(kv.get("rem") || "[]").some((r) => /09:15/.test(r.title)) && dup === 0, "แก้คาบบน iPad: ตัวส่งได้รายการใหม่ · มือถือไม่ส่งซ้ำ (" + dup + " ครั้ง)");
+    await ipad.p.evaluate(() => { S.lessons = S.lessons.filter((l) => l.id !== 990077); save(); });
 
     // ตารางประจำสัปดาห์ก็เตือนด้วย (ทั้งที่ลงเป็นคาบล่วงหน้าแล้ว และที่ยังไม่ได้ลง)
     const roster = await ipad.p.evaluate(() => {

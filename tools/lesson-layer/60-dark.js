@@ -58,12 +58,21 @@
     return c;
   }
 
-  /* ── จดค่าเดิม แล้วทับด้วย !important ── */
-  function set(el, prop, val) {
-    var rec = el.__dk || (el.__dk = el.dataset.dk ? JSON.parse(el.dataset.dk) : {});
-    if (!(prop in rec)) rec[prop] = [el.style.getPropertyValue(prop), el.style.getPropertyPriority(prop)];
-    el.style.setProperty(prop, val, "important");
-    el.dataset.dk = JSON.stringify(rec);
+  /* ── จดค่าเดิม แล้วทับด้วย !important ──
+     อ่านทั้งหน้าก่อน แล้วค่อยเขียนทีเดียว: ถ้าอ่าน-เขียนสลับกันทีละชิ้น เบราว์เซอร์ต้องคำนวณสไตล์ใหม่ทุกชิ้น
+     (layout thrashing) — หน้าที่มีหลายร้อยชิ้นช้าลงหลายเท่า โดยเฉพาะบนมือถือ */
+  var WRITES = null;
+  function set(el, prop, val) { WRITES.push(el, prop, val); }
+  function commit(list) {
+    var touched = [];
+    for (var i = 0; i < list.length; i += 3) {
+      var el = list[i], prop = list[i + 1], val = list[i + 2];
+      var rec = el.__dk || (el.__dk = el.dataset.dk ? JSON.parse(el.dataset.dk) : {});
+      if (!(prop in rec)) rec[prop] = [el.style.getPropertyValue(prop), el.style.getPropertyPriority(prop)];
+      el.style.setProperty(prop, val, "important");
+      if (!el.__dkDirty) { el.__dkDirty = true; touched.push(el); }
+    }
+    for (var j = 0; j < touched.length; j++) { touched[j].dataset.dk = JSON.stringify(touched[j].__dk); touched[j].__dkDirty = false; }
   }
   function restore(el) {
     if (!el.dataset || !el.dataset.dk) return;
@@ -129,8 +138,10 @@
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
       acceptNode: function (n) { return SKIP[n.tagName] || (n.matches && n.matches(SKIP_SEL)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
     });
-    var n = root;
+    var n = root, own = !WRITES;
+    if (own) WRITES = [];
     while (n) { try { fix(n, cache); } catch (e) {} n = tw.nextNode(); }
+    if (own) { var w = WRITES; WRITES = null; commit(w); }
   }
 
   /* ── ตามดูหน้าที่วาดใหม่ ── */
@@ -146,7 +157,9 @@
       for (var j = 0; j < roots.length; j++) if (j !== i && roots[j] !== r && roots[j].contains(r) && roots[j].isConnected) return false;
       return roots.indexOf(r) === i;
     });
+    WRITES = [];                                      // ทุกส่วนที่เปลี่ยนในเฟรมนี้: อ่านให้ครบก่อน แล้วเขียนรวดเดียว
     roots.forEach(function (r) { walk(r, cache); });
+    var w = WRITES; WRITES = null; commit(w);
     void document.body.offsetWidth;                   // ให้สีใหม่มีผลก่อนเปิด transition กลับ
     ROOT.classList.remove("dk-fixing");
     mo.takeRecords();

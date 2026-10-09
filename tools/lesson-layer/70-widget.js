@@ -66,7 +66,8 @@
     });
   }
   var origSave = window.save;
-  window.save = function () { var r = origSave.apply(this, arguments); if (wkey()) syncSoon(); return r; };
+  // ข้อมูลที่รับมาจากอีกเครื่อง: เครื่องนั้นส่งตารางให้วิดเจ็ตไปแล้ว
+  window.save = function () { var r = origSave.apply(this, arguments); if (wkey() && !(window.SY && SY.applying)) syncSoon(); return r; };
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden" && T) sync(false, true);
     if (document.visibilityState === "visible") sync(false);

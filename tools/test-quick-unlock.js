@@ -84,7 +84,8 @@ const waitApp = (p) => p.waitForFunction(() => document.getElementById("app").st
 
     // ลายนิ้วมือ: เมนู › ความปลอดภัย › ปลดล็อกด้วยลายนิ้วมือ
     await p.evaluate(() => openMenu());
-    ok(await p.evaluate(() => { const r = document.getElementById("bio-row"), l = document.querySelector('#modal-root button.srow[onclick="lockApp()"]'); return !!r && r.nextElementSibling === l && /ลายนิ้วมือ/.test(r.textContent); }),
+    ok(await p.evaluate(() => { const r = document.getElementById("bio-row"), l = document.querySelector('#modal-root button.srow[onclick="lockApp()"]');
+      return !!r && !!l && r.parentNode === l.parentNode && /ความปลอดภัย/.test(r.parentNode.previousElementSibling.textContent) && /ลายนิ้วมือ/.test(r.textContent); }),
       "เมนูความปลอดภัยมีแถว 👆 ปลดล็อกด้วยลายนิ้วมือ");
     await p.click("#bio-row");
     await p.waitForSelector("#bio-on", { timeout: 5000 }).catch(() => {});

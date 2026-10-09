@@ -292,6 +292,23 @@ async function login(page) {
     });
     ok(/มาเรียน 1 ครั้ง/.test(cnt.h) && /มาเรียน 1 ครั้ง/.test(cnt.z) && !/สอนแล้ว/.test(cnt.h + cnt.z),
       "รายชื่อนักเรียน: “มาเรียน N ครั้ง” นับเฉพาะที่มาเรียน (harvey: มา 1 · รอยืนยัน 1 · ลาป่วย 1)");
+    // หน้านักเรียน › "ดูคาบนี้": เปิดการ์ดคาบนั้นซ้อนบนหน้านักเรียน (เดิมเด้งไปแท็บบันทึก)
+    const lv = await page.evaluate(async () => {
+      const tick = (ms) => new Promise((r) => setTimeout(r, ms || 50)), t = todayStr();
+      S.lessons.push({ id: 9105, date: addDays(t, -7), time: "16:00", kind: "private", duration: 1, rate: 0, heads: 1, attendance: "present", student: "harvey", topic: "Zombie", notes: "ท่อน Intro", scores: [], practiceItems: [{ pid: "p9105", label: "Paradiddle", done: false }], updatedAt: nowISO() });
+      save(); setTab("today"); openStudent("harvey"); await tick();
+      const btn = Array.from(document.querySelectorAll("#modal-root button")).find((b) => /ดูคาบนี้/.test(b.textContent) && /S\.expanded=9105/.test(b.getAttribute("onclick")));
+      btn.click(); await tick();
+      const v = document.getElementById("lesson-view"), out = { tab: S.tab, view: !!v, under: !!document.querySelector("#modal-root .modal-box"), topic: v ? /Zombie/.test(v.innerText) && /Paradiddle/.test(v.innerText) : false };
+      const tg = v && v.querySelector('[onclick^="togglePractice("]'); if (tg) tg.click(); await tick();
+      out.ticked = S.lessons.find((l) => l.id === 9105).practiceItems[0].done && !!document.getElementById("lesson-view");
+      document.querySelector("#lesson-view [data-lv-close]").click(); await tick();
+      out.back = !document.getElementById("lesson-view") && !!document.querySelector("#modal-root .modal-box");
+      closeModal(); S.lessons = S.lessons.filter((l) => l.id !== 9105); save();
+      return out;
+    });
+    ok(lv.view && lv.under && lv.tab === "today" && lv.topic, "หน้านักเรียน › “ดูคาบนี้”: เปิดการ์ดคาบนั้นทับหน้านักเรียน ไม่เด้งไปแท็บอื่น");
+    ok(lv.ticked && lv.back, "ติ๊กการบ้านในการ์ดได้ · ปิดแล้วกลับหน้านักเรียนที่เดิม");
     const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     ok(await bodyBg() !== "rgb(22, 20, 15)", "ค่าเริ่มต้นเป็นกลางวัน (ไม่เปลี่ยนหน้าตาเดิมเอง)");
     await page.evaluate(() => { openMenu(); });

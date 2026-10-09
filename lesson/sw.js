@@ -23,7 +23,8 @@ const PRECACHE = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icons/apple-touch-icon.png",
+  "./icons/badge-96.png"
 ];
 
 /* ของจากข้างนอกที่เก็บสำเนาได้ — เปลี่ยนตามรุ่นใน URL จึงไม่มีวันค้างรุ่นเก่า */
@@ -122,7 +123,9 @@ self.addEventListener("push", (e) => {
     body: d.body || "",
     tag: d.tag || "kruta",
     icon: "./icons/icon-192.png",
-    badge: "./icons/icon-192.png",
+    // ไอคอนเล็กบนแถบสถานะ Android ใช้แค่ความโปร่งใส — ต้องเป็นรูปกลองขาวบนพื้นใส (tools/make-lesson-badge.py)
+    // ถ้าใช้ไอคอนแอปที่เป็นสี่เหลี่ยมทึบ จะเห็นเป็นสี่เหลี่ยมขาวโพน
+    badge: "./icons/badge-96.png",
     data: { url: "./" }
   }));
 });

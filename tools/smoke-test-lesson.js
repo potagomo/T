@@ -177,6 +177,18 @@ async function login(page) {
       notes = await page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map((x) => x.title + "|" + x.body));
     }
     ok(notes.includes("🥁 อีก 30 นาที · 17:00 น้องมิ้น|ส่วนตัว"), "Service Worker แสดงแจ้งเตือนเมื่อได้รับ push");
+    // ไอคอนเล็กบนแถบสถานะ Android ใช้แค่ความโปร่งใส: ต้องเป็นรูปกลองบนพื้นใส ไม่ใช่สี่เหลี่ยมทึบ (ขาวโพน)
+    const badge = await page.evaluate(async () => {
+      const n = (await (await navigator.serviceWorker.ready).getNotifications())[0];
+      const im = new Image(); im.src = new URL(n.badge, location.href).href; await im.decode();
+      const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const x = c.getContext("2d"); x.drawImage(im, 0, 0);
+      const a = x.getImageData(0, 0, im.width, im.height).data; let clear = 0, solid = 0;
+      for (let i = 3; i < a.length; i += 4) { if (a[i] < 10) clear++; else if (a[i] > 245) solid++; }
+      const px = a.length / 4, man = await (await fetch("manifest.webmanifest")).json();
+      return { src: n.badge, clear: clear / px, solid: solid / px, mono: man.icons.some((i) => i.purpose === "monochrome") };
+    });
+    ok(/badge-96\.png$/.test(badge.src) && badge.clear > 0.4 && badge.solid > 0.15 && badge.mono,
+      "ไอคอนแจ้งเตือนบนแถบสถานะเป็นรูปกลองบนพื้นใส (" + Math.round(badge.clear * 100) + "% โปร่ง) · manifest มีไอคอน monochrome");
 
     await page.reload({ waitUntil: "load" });
     await ctx.setOffline(true);

@@ -56,6 +56,9 @@ def main():
             name = "icon-%s%s.png" % ("maskable-" if purpose == "maskable" else "", size)
             io.open(os.path.join(OUT, "icons", name), "wb").write(base64.b64decode(data))
             man_icons.append({"src": "./icons/" + name, "sizes": "%sx%s" % (size, size), "type": "image/png", "purpose": purpose})
+        # ไอคอนขาวดำ (กลองขาวบนพื้นใส) ให้ Android ใช้เป็นไอคอนแจ้งเตือน — สร้างด้วย tools/make-lesson-badge.py
+        if os.path.exists(os.path.join(OUT, "icons", "monochrome-512.png")):
+            man_icons.append({"src": "./icons/monochrome-512.png", "sizes": "512x512", "type": "image/png", "purpose": "monochrome"})
         manifest = {
             "name": field("name", "ครูต้า — บันทึกการสอน"),
             "short_name": field("short_name", "ครูต้า"),

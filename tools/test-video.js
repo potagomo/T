@@ -123,22 +123,39 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
   });
   if (tapped !== "no-img") ok(tapped === true, "แตะหน้าปกในการ์ดคาบแล้วเล่นคลิป");
 
-  // ส่งผู้ปกครอง: ปุ่มส่งคลิปอยู่ต่อจากปุ่มส่งรูป และแชร์เป็นตัวไฟล์
+  // ส่งผู้ปกครอง: แตะ "แชร์รูป + คลิป" ครั้งเดียว ได้ทั้งรูปการ์ดและตัวคลิปในการแชร์เดียวกัน
   await p.evaluate(() => {
     window.__shared = null;
     navigator.canShare = (d) => !!(d && d.files && d.files.length);
     navigator.share = (d) => { window.__shared = d; return Promise.resolve(); };
     openReportCard(7001);
   });
-  await p.waitForFunction(() => /ส่งคลิปวิดีโอ/.test((document.getElementById("rc-actions") || {}).textContent || ""), null, { timeout: 15000 }).catch(() => {});
+  await p.waitForFunction(() => /แชร์รูป \+ คลิป/.test((document.getElementById("rc-actions") || {}).textContent || "") && RC && RC.blob, null, { timeout: 20000 }).catch(() => {});
   const order = await p.evaluate(() => Array.from(document.querySelectorAll("#rc-actions button")).map((b) => b.textContent.trim()));
-  ok(order.length > 1 && /ส่งคลิปวิดีโอ 0:0[78]/.test(order[1]) && /แชร์รูป/.test(order[0]), "การ์ดรายงาน: ส่งรูป แล้วตามด้วย “🎬 ส่งคลิปวิดีโอ” (" + order.slice(0, 2).join(" / ") + ")");
+  ok(/แชร์รูป \+ คลิป 0:0[78] ไป LINE/.test(order[0]) && order.some((t) => /ส่งเฉพาะคลิป/.test(t)), "การ์ดรายงาน: ปุ่มหลักเป็น “แชร์รูป + คลิป” · ยังมี “ส่งเฉพาะคลิป” สำรอง (" + order[0] + ")");
   if (process.env.SHOT_DIR) { await p.waitForTimeout(800); await p.locator("#rc-actions").scrollIntoViewIfNeeded(); await p.screenshot({ path: path.join(process.env.SHOT_DIR, "video-rc.png") }); }
-  await p.locator("#rc-actions button", { hasText: "ส่งคลิปวิดีโอ" }).click();
+  await p.locator("#rc-actions button", { hasText: "แชร์รูป + คลิป" }).click();
   await p.waitForFunction(() => window.__shared, null, { timeout: 5000 }).catch(() => {});
-  const sh = await p.evaluate(() => { const f = window.__shared && window.__shared.files && window.__shared.files[0]; return f ? { name: f.name, type: f.type, size: f.size } : null; });
-  ok(sh && sh.size === size && /^video\//.test(sh.type) && /น้องคลิป.*\.webm$/.test(sh.name), "แชร์ได้ตัวไฟล์คลิป (" + (sh && sh.name) + ") — LINE กดเล่นในแชตได้เลย");
-  await p.evaluate(() => closeModal());
+  const both = await p.evaluate(() => {
+    const fs = (window.__shared && window.__shared.files) || [], l = S.lessons.find((x) => x.id === 7001);
+    return { files: fs.map((f) => ({ name: f.name, type: f.type, size: f.size })), sent: !!(sentOf(l).parent), own: Object.prototype.hasOwnProperty.call(navigator, "share") };
+  });
+  ok(both.files.length === 2 && /^image\/png$/.test(both.files[0].type) && /^video\//.test(both.files[1].type) && both.files[1].size === size && /น้องคลิป/.test(both.files[1].name),
+    "แตะครั้งเดียว: แชร์รูปการ์ด + ตัวคลิปไปพร้อมกัน (" + both.files.map((f) => f.name).join(" + ") + ")");
+  ok(both.sent && both.own, "แอปบันทึกว่าส่งผู้ปกครองแล้วตามปกติ · คืนตัวแชร์ของเครื่องเหมือนเดิม");
+  await p.evaluate(() => { window.__shared = null; });
+  await p.locator("#rc-actions button", { hasText: "ส่งเฉพาะคลิป" }).click();
+  await p.waitForFunction(() => window.__shared, null, { timeout: 5000 }).catch(() => {});
+  const sh = await p.evaluate(() => { const f = window.__shared && window.__shared.files && window.__shared.files[0]; return f ? { n: window.__shared.files.length, name: f.name, type: f.type, size: f.size } : null; });
+  ok(sh && sh.n === 1 && sh.size === size && /^video\//.test(sh.type) && /น้องคลิป.*\.webm$/.test(sh.name), "“ส่งเฉพาะคลิป” ได้ตัวไฟล์คลิปอย่างเดียว (" + (sh && sh.name) + ")");
+
+  // เครื่อง/แอปที่ไม่รับไฟล์ปนกัน: ส่งรูปก่อน แล้วมีปุ่ม "ส่งคลิปต่อ" ให้แตะ
+  await p.evaluate(() => { window.__shared = null; navigator.canShare = (d) => !!(d && d.files && d.files.length === 1); });
+  await p.locator("#rc-actions button", { hasText: "แชร์รูป + คลิป" }).click();
+  await p.waitForTimeout(700);
+  const fb = await p.evaluate(() => ({ n: window.__shared && window.__shared.files.length, t: (window.__shared && window.__shared.files[0].type) || "", toast: Array.from(document.querySelectorAll(".toast")).map((t) => t.textContent).join(" ") }));
+  ok(fb.n === 1 && /image/.test(fb.t) && /ส่งคลิปต่อ/.test(fb.toast), "ไม่รับไฟล์ปนกัน: ส่งรูปก่อน แล้วขึ้นปุ่ม “ส่งคลิปต่อ”");
+  await p.evaluate(() => { navigator.canShare = (d) => !!(d && d.files && d.files.length); closeModal(); });
 
   // อีกเครื่องที่ไม่มีไฟล์ (คลิปไม่ซิงค์): บอกตรง ๆ ว่าอยู่เครื่องไหน
   const blobBack = await p.evaluate(async () => { const b = await MDB.get("vid:7001"); await MDB.del("vid:7001"); window.__keep = b; shareClip(7001); return true; });
@@ -148,8 +165,8 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
 
   // คลิปใหญ่เกินที่ Chrome แชร์ได้ (50 MB) — ลดเพดานลงเพื่อทดสอบด้วยไฟล์ 3 MB
   await p.evaluate(() => { window.__videoLimits = { share: 1024 * 1024, target: 400 * 1024, minBps: 150000 }; window.__shared = null; openReportCard(7001); });
-  await p.waitForFunction(() => /ส่งคลิปวิดีโอ/.test((document.getElementById("rc-actions") || {}).textContent || ""), null, { timeout: 15000 }).catch(() => {});
-  await p.locator("#rc-actions button", { hasText: "ส่งคลิปวิดีโอ" }).click();
+  await p.waitForFunction(() => /ส่งเฉพาะคลิป/.test((document.getElementById("rc-actions") || {}).textContent || ""), null, { timeout: 15000 }).catch(() => {});
+  await p.locator("#rc-actions button", { hasText: "ส่งเฉพาะคลิป" }).click();
   await p.waitForSelector("#vid-sheet", { timeout: 5000 }).catch(() => {});
   ok(/กำลังย่อคลิป/.test(await p.evaluate(() => (document.getElementById("vid-sheet") || {}).textContent || "")) && !(await p.evaluate(() => window.__shared)),
     "คลิปใหญ่เกิน: ไม่แชร์ทั้งก้อน (Chrome จะปฏิเสธเงียบ ๆ) แต่ย่อก่อนพร้อมแถบความคืบหน้า");
@@ -179,6 +196,24 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
   await p.evaluate(() => { navigator.share = () => Promise.reject(new DOMException("Permission denied", "NotAllowedError")); shareClip(7001); });
   await p.waitForTimeout(600);
   ok(/ส่งไม่สำเร็จ/.test(await toastText(p)), "แชร์ไม่ผ่าน: ขึ้นข้อความบอก ไม่เงียบเหมือนเดิม");
+
+  // คลิปเก่าที่ใหญ่เกินจะส่งรวม: แตะ "แชร์รูป + คลิป" → ย่อก่อน → แตะอีกครั้ง ได้รูป + คลิปที่ย่อแล้ว
+  await p.evaluate(async () => {
+    await MDB.put("vid:7001", window.__keep);
+    window.__videoLimits = { share: 1024 * 1024, target: 400 * 1024, minBps: 150000 }; window.__shared = null;
+    navigator.canShare = (d) => !!(d && d.files && d.files.length);
+    navigator.share = (d) => { window.__shared = d; return Promise.resolve(); };
+    closeModal(); openReportCard(7001);
+  });
+  await p.waitForFunction(() => /แชร์รูป \+ คลิป/.test((document.getElementById("rc-actions") || {}).textContent || "") && RC && RC.blob, null, { timeout: 20000 }).catch(() => {});
+  await p.locator("#rc-actions button", { hasText: "แชร์รูป + คลิป" }).click();
+  await p.waitForSelector("#vid-go", { timeout: 60000 }).catch(() => {});
+  ok(!(await p.evaluate(() => window.__shared)), "คลิปใหญ่ + รูปเกินที่แชร์ได้: ย่อคลิปก่อน ยังไม่แชร์");
+  await p.click("#vid-go");
+  await p.waitForFunction(() => window.__shared, null, { timeout: 8000 }).catch(() => {});
+  const big2 = await p.evaluate(() => (window.__shared ? window.__shared.files.map((f) => f.type + ":" + f.size) : []));
+  ok(big2.length === 2 && /^image\/png/.test(big2[0]) && /^video\/mp4:/.test(big2[1]) && Number(big2[1].split(":")[1]) < 1024 * 1024, "ย่อแล้วแตะ “แชร์รูป + คลิปไป LINE”: ได้รูป + คลิป MP4 ที่ย่อแล้วในการแชร์เดียว");
+  await p.evaluate(() => { window.__videoLimits = null; closeModal(); });
 
   // แนบคลิปใหญ่: ย่อให้ตั้งแต่ตอนแนบ
   await p.evaluate(() => {

@@ -9645,7 +9645,7 @@ function regenRecoveryCode() {
    แปลเสร็จก่อนผู้ใช้ปลดล็อกเข้าแอปทัน · ไทย → อังกฤษ เปลี่ยนทันที · อังกฤษ → ไทย โหลดหน้าใหม่ */
 (function () {
   "use strict";
-  var KEY = "td_lang", DICT_V = "a6eb23d4e3";
+  var KEY = "td_lang", DICT_V = "253b389c7b";
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
   var LANG = ls(KEY) === "en" ? "en" : "th";
   window.__lang = LANG;
@@ -11727,19 +11727,78 @@ function regenRecoveryCode() {
       });
     }).catch(function (e) { toast("เปิดคลิปไม่สำเร็จ: " + ((e && e.message) || "")); });
   };
+  /* ── แชร์รูปรายงาน + คลิป ในครั้งเดียว ──
+     การแชร์ต้องเกิดในจังหวะที่นิ้วแตะ จึงอ่านคลิปจากเครื่องเตรียมไว้ตั้งแต่เปิดหน้าการ์ด (เก็บแค่ตัวอ้างอิง Blob ไม่กินแรม)
+     ตอนแตะ "แชร์รูป + คลิป" แอปเดิมสร้างไฟล์รูปแล้วเรียก navigator.share — ชั้นนี้เติมไฟล์คลิปเข้าไปในการแชร์ครั้งนั้น
+     (การบันทึกว่า "ส่งผู้ปกครองแล้ว" ของแอปเดิมทำงานตามปกติ)
+     Chrome บน Android ส่งรูป+วิดีโอเป็นชนิด *⁠/⁠* ซึ่ง LINE รับได้ · รวมกันต้องไม่เกิน 50 MB
+     เครื่อง/แอปที่ไม่รับไฟล์ปนกัน: ส่งรูปก่อน แล้วขึ้นปุ่ม "ส่งคลิปต่อ" ให้แตะทันที */
+  var VCACHE = {};
+  function clipFile(l, blob) {
+    var base = String(displayName(l.student)).replace(/[\\/:*?"<>|\s]+/g, "") + "-" + l.date;
+    var ext = (/\.([a-z0-9]{2,4})$/i.exec(l.media.name || "") || [, "mp4"])[1].toLowerCase();
+    if (ext === "mov") ext = "mp4";                         // Chrome ไม่รับ .mov · โครงไฟล์เดียวกัน LINE เล่นได้
+    return new File([blob], base + "." + ext, { type: /quicktime/.test(blob.type) ? "video/mp4" : (blob.type || "video/mp4") });
+  }
+  function shareBtn(box) { return box && box.querySelector('button[onclick*="\'share\')"]'); }
   var origActions = window.rcActionsHtml;
   window.rcActionsHtml = function () {
     origActions.apply(this, arguments);
     var l = typeof rcLesson === "function" ? rcLesson() : null, box = el("rc-actions");
     if (!l || !box || !isVideoMedia(l.media)) return;
     var b = box.querySelector('button[onclick^="shareClip("]');
-    if (!b) return;
-    b.textContent = "🎬 ส่งคลิปวิดีโอ " + mmss(l.media.dur);
-    b.className = "btn-brass"; b.style.width = "100%";
-    // วางต่อจากปุ่มส่งรูป: ส่งรูปสรุป แล้วแตะส่งคลิปต่อ
-    var first = box.querySelector("button");
-    if (first && first !== b && first.nextSibling !== b) first.parentNode.insertBefore(b, first.nextSibling);
+    if (b) { b.textContent = "🎬 ส่งเฉพาะคลิป " + mmss(l.media.dur); b.className = "btn-g"; b.style.width = "100%"; }
+    var id = l.id;
+    videoBlob(id).then(function (blob) {
+      VCACHE[id] = blob || null;
+      var s = shareBtn(el("rc-actions"));
+      if (blob && s) s.textContent = "↗ แชร์รูป + คลิป " + mmss(l.media.dur) + " ไป LINE";
+    });
   };
+  if (typeof window.rcOut === "function") {
+    var origRcOut = window.rcOut;
+    window.rcOut = function (id, mode) {
+      var l = lessonById(id), blob = mode === "share" && l && isVideoMedia(l.media) ? VCACHE[id] : null;
+      if (!blob || !navigator.share) return origRcOut.apply(this, arguments);
+      var img = (typeof RC !== "undefined" && RC && RC.blob && RC.blob.size) || 3 * 1024 * 1024;
+      if (blob.size + img > lim("share", 48 * 1024 * 1024) + 1024 * 1024) {
+        // ใหญ่เกินจะส่งรวม: ย่อคลิปก่อน แล้วแตะส่งอีกครั้ง
+        var sh = sheet(progressHtml("กำลังย่อคลิปก่อนส่ง", 0));
+        compress(blob, l.media.dur, function (p) { if (sh.card.isConnected) sh.set(progressHtml("กำลังย่อคลิปก่อนส่ง", p)); }).then(function (out) {
+          return MDB.put(vidKey(id), out).then(function () {
+            VCACHE[id] = out;
+            l.media.size = out.size; l.media.type = "video/mp4"; l.media.name = String(l.media.name || "clip").replace(/\.[^.]+$/, "") + ".mp4";
+            save({ noSnap: true, noCount: true });
+            sh.set('<div style="font-weight:700;font-size:16px;margin-bottom:6px;">✓ ย่อคลิปแล้ว</div>' +
+              '<div class="hint" style="margin-bottom:14px;">' + fmtBytes(blob.size) + ' → ' + fmtBytes(out.size) + '</div>' +
+              '<button class="btn-brass" type="button" id="vid-go" style="width:100%;margin-bottom:8px;">↗ แชร์รูป + คลิปไป LINE</button>' +
+              '<button class="btn-g" type="button" id="vid-x" style="width:100%;">ปิด</button>');
+            el("vid-go").addEventListener("click", function () { sh.close(); window.rcOut(id, "share"); });
+            el("vid-x").addEventListener("click", sh.close);
+          });
+        }, function () { sh.close(); origRcOut.call(window, id, mode); toast("ย่อคลิปไม่ได้ — ส่งรูปไปก่อน แล้วส่งคลิปจากแกลเลอรี"); });
+        return;
+      }
+      var clip = clipFile(l, blob);
+      var own = Object.prototype.hasOwnProperty.call(navigator, "share"), real = navigator.share;
+      function restore() { if (own) navigator.share = real; else delete navigator.share; }
+      navigator.share = function (data) {
+        restore();
+        var files = (data && data.files) || [];
+        var both = { files: files.concat([clip]), title: data && data.title };
+        var ok = false;
+        try { ok = !navigator.canShare || navigator.canShare(both); } catch (e) {}
+        if (ok) return real.call(navigator, both).then(function (r) { toast("ส่งรูป + คลิปแล้ว"); return r; });
+        // แอป/เครื่องนี้ไม่รับไฟล์ปนกัน: ส่งรูปก่อน แล้วชวนแตะส่งคลิปต่อ
+        return real.call(navigator, data).then(function (r) {
+          setTimeout(function () { toast("ส่งรูปแล้ว", { label: "ส่งคลิปต่อ", fn: function () { shareClip(id); } }); }, 300);
+          return r;
+        });
+      };
+      try { return origRcOut.apply(this, arguments); }
+      finally { if (navigator.share !== real) restore(); }      // แอปเดิมไม่ได้เรียกแชร์ (เช่นเครื่องไม่รองรับ) ก็คืนของเดิม
+    };
+  }
 
   /* ── เก็บกวาด: คลิปของคาบที่ถูกลบถาวร หรือเปลี่ยนเป็นรูปแล้ว ── */
   var sweepT = null;

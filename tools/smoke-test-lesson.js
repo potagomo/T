@@ -267,6 +267,19 @@ async function login(page) {
                         { id: 9102, date: t, time: "16:00", kind: "private", duration: 1, rate: 0, heads: 1, attendance: "planned", student: "harvey", topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() });
       save(); DAYV.date = t; setTab("today"); renderAll();
     });
+    // แท็บนักเรียน › รายคน: นับเฉพาะคาบที่มาเรียน (รอยืนยัน/ลา ไม่นับ)
+    const cnt = await page.evaluate(() => {
+      const t = todayStr();
+      S.lessons.unshift({ id: 9103, date: addDays(t, -7), time: "16:00", kind: "private", duration: 1, rate: 0, heads: 1, attendance: "present", student: "harvey", topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() },
+                        { id: 9104, date: addDays(t, -14), time: "16:00", kind: "private", duration: 1, rate: 0, heads: 1, attendance: "sick", student: "harvey", topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() });
+      save(); setTab("students"); setSub("students", "people"); renderAll();
+      const txt = (n) => { const b = Array.from(document.querySelectorAll("button.acard")).find((x) => x.textContent.indexOf(n) >= 0); return b ? b.textContent : ""; };
+      const out = { h: txt("harvey"), z: txt("ซีริว") };
+      S.lessons = S.lessons.filter((l) => l.id !== 9103 && l.id !== 9104); save(); setTab("today"); renderAll();
+      return out;
+    });
+    ok(/มาเรียน 1 ครั้ง/.test(cnt.h) && /มาเรียน 1 ครั้ง/.test(cnt.z) && !/สอนแล้ว/.test(cnt.h + cnt.z),
+      "รายชื่อนักเรียน: “มาเรียน N ครั้ง” นับเฉพาะที่มาเรียน (harvey: มา 1 · รอยืนยัน 1 · ลาป่วย 1)");
     const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     ok(await bodyBg() !== "rgb(22, 20, 15)", "ค่าเริ่มต้นเป็นกลางวัน (ไม่เปลี่ยนหน้าตาเดิมเอง)");
     await page.evaluate(() => { openMenu(); });

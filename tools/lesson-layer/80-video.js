@@ -64,6 +64,16 @@
     drawBadge(ctx, w, h, dur);
     return { poster: poster, badged: cv.toDataURL("image/jpeg", 0.85) };
   }
+  // เฟรมมืดเกือบทั้งภาพ (จอดำ) ไหม — ย่อเหลือ 16×16 แล้วดูค่าความสว่างเฉลี่ย
+  function dark(video) {
+    try {
+      var c = document.createElement("canvas"); c.width = 16; c.height = 16;
+      var x = c.getContext("2d"); x.drawImage(video, 0, 0, 16, 16);
+      var d = x.getImageData(0, 0, 16, 16).data, sum = 0;
+      for (var i = 0; i < d.length; i += 4) sum += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+      return sum / 256 < 14;
+    } catch (e) { return false; }
+  }
   // คืน {dur, poster, badged} เสมอ — เครื่องที่ถอดรหัสคลิปไม่ได้ก็ยังได้หน้าปกแบบเรียบ ๆ
   function probe(file) {
     return new Promise(function (res) {
@@ -76,13 +86,32 @@
         res({ dur: dur, poster: pics.poster, badged: pics.badged });
       }
       v.muted = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
+      // เฟรมที่จับได้อาจยังไม่ถูกวาด (มือถือ Android) หรือเป็นช่วงมืดต้นคลิป → ได้หน้าปกจอดำ
+      // รอให้เฟรมขึ้นจอจริง (requestVideoFrameCallback) แล้วตรวจความสว่าง มืดเกินก็เลื่อนไปจุดอื่นของคลิป
+      var spots = [], tries = 0;
+      function seekNext() {
+        if (!spots.length) { fin(v.videoWidth > 0); return; }
+        try { v.currentTime = spots.shift(); } catch (e) { fin(false); }
+      }
+      function check() {
+        if (done) return;
+        if (v.videoWidth > 0 && !dark(v)) { fin(true); return; }
+        tries++; seekNext();
+      }
       v.onloadedmetadata = function () {
         dur = isFinite(v.duration) ? v.duration : 0;
-        try { v.currentTime = Math.min(1, dur * 0.25 || 0.1); } catch (e) { fin(false); }
+        spots = dur ? [Math.min(1, dur * 0.25), dur * 0.3, dur * 0.5, dur * 0.7].filter(function (t, i, a) { return t > 0 && a.indexOf(t) === i; }) : [0.1];
+        seekNext();
         // Safari บางรุ่นไม่ยอมเลื่อนเฟรมจนกว่าจะเล่น: เล่นเงียบ ๆ แป๊บเดียวแล้วจับเฟรม
-        setTimeout(function () { if (!done) { var p = v.play(); if (p && p.then) p.then(function () { v.pause(); setTimeout(function () { fin(v.videoWidth > 0); }, 150); }, function () {}); } }, 2500);
+        setTimeout(function () { if (!done) { var p = v.play(); if (p && p.then) p.then(function () { setTimeout(function () { v.pause(); fin(v.videoWidth > 0); }, 400); }, function () {}); } }, 3500);
       };
-      v.onseeked = function () { fin(v.videoWidth > 0); };
+      v.onseeked = function () {
+        if (v.requestVideoFrameCallback) {
+          var fired = false;
+          v.requestVideoFrameCallback(function () { fired = true; check(); });
+          setTimeout(function () { if (!fired) check(); }, 600);
+        } else setTimeout(check, 120);
+      };
       v.onerror = function () { fin(false); };
       setTimeout(function () { fin(v.readyState >= 2 && v.videoWidth > 0); }, 8000);
       v.src = url;
@@ -212,7 +241,7 @@
           var mp4 = vid !== file;
           pendPut(vidKey(id), vid); pendPut(mediaKey(id), info.poster); pendPut(thumbKey(id), thumb || info.badged);
           EF.media = { type: vid.type || file.type || "video/mp4", name: mp4 ? String(file.name || "clip").replace(/\.[^.]+$/, "") + ".mp4" : (file.name || "clip.mp4"),
-            size: vid.size, video: true, dur: Math.round(info.dur), clean: 1 };
+            size: vid.size, video: true, dur: Math.round(info.dur), clean: 2 };
           redraw();
           toast((info.dur > WARN_SEC ? "แนบแล้ว · คลิปยาวเกิน 5 นาที LINE อาจตัดหรือไม่ยอมส่ง" : "แนบคลิปแล้ว — กดบันทึกเพื่อเก็บ") + note);
         });
@@ -370,11 +399,46 @@
     return new File([blob], base + "." + ext, { type: /quicktime/.test(blob.type) ? "video/mp4" : (blob.type || "video/mp4") });
   }
   function shareBtn(box) { return box && box.querySelector('button[onclick*="\'share\')"]'); }
+  /* ── เปิด/ปิดภาพหน้าปกคลิปในรูปส่งผู้ปกครอง ──
+     ตั้งรายคาบ (l.media.card) และจำเป็นค่าเริ่มต้นของคาบถัดไป (S.settings.vposter) · ซ่อน = ปิดส่วน "รูป/คลิปของคาบ" ของรูปนั้น */
+  function posterOn(l) {
+    if (!l || !isVideoMedia(l.media)) return true;
+    if (l.media.card === true || l.media.card === false) return l.media.card;
+    return !(S.settings && S.settings.vposter === false);
+  }
+  if (typeof window.buildReportCard === "function") {
+    var origBuild = window.buildReportCard;
+    window.buildReportCard = function (l, px, ts, ST) {
+      if (!posterOn(l)) {
+        ST = ST || styleOfPreset(resolvePreset(l).id);
+        ST = Object.assign({}, ST, { sections: Object.assign({}, ST.sections || {}, { media: false }) });
+      }
+      return origBuild.call(this, l, px, ts, ST);
+    };
+  }
+  function posterToggle(l) {
+    var on = posterOn(l), row = document.createElement("label");
+    row.className = "tick"; row.id = "vposter-row";
+    row.style.cssText = "margin:0 0 4px;padding:10px 12px;border:2px solid rgba(0,0,0,0.62);border-radius:3px;background:#FFFFFF;";
+    row.innerHTML = '<input type="checkbox" id="vposter"' + (on ? " checked" : "") + '> 🖼 ใส่ภาพหน้าปกคลิปในรูป' +
+      '<span class="hint" style="margin-left:auto;">' + (on ? "แสดง" : "ซ่อน") + '</span>';
+    row.querySelector("input").addEventListener("change", function (e) {
+      var v = !!e.target.checked;
+      l.media.card = v; S.settings.vposter = v;
+      save({ noSnap: true, noCount: true });
+      if (typeof RC === "object" && RC) { RC.cache = {}; RC.gtok = (RC.gtok || 0) + 1; }
+      if (typeof rcRender === "function") rcRender();
+      if (typeof rcFillGallery === "function") try { rcFillGallery(); } catch (err) {}
+    });
+    return row;
+  }
   var origActions = window.rcActionsHtml;
   window.rcActionsHtml = function () {
     origActions.apply(this, arguments);
     var l = typeof rcLesson === "function" ? rcLesson() : null, box = el("rc-actions");
     if (!l || !box || !isVideoMedia(l.media)) return;
+    var col = box.firstElementChild;
+    if (col && !document.getElementById("vposter-row")) col.insertBefore(posterToggle(l), col.firstChild);
     var b = box.querySelector('button[onclick^="shareClip("]');
     if (b) { b.textContent = "🎬 ส่งเฉพาะคลิป " + mmss(l.media.dur); b.className = "btn-g"; b.style.width = "100%"; }
     var id = l.id;
@@ -448,14 +512,15 @@
   };
   // คลิปที่แนบก่อนรุ่นนี้: ภาพในการ์ดรายงานมีปุ่ม ▶ ติดไปด้วย — ทำหน้าปกใหม่จากคลิปในเครื่อง
   function fixPosters() {
-    var todo = S.lessons.filter(function (l) { return isVideoMedia(l.media) && !l.media.clean; });
+    // clean 1 = แยกภาพหน้าปกจากปุ่ม ▶ · clean 2 = จับเฟรมแบบใหม่ (ไม่เอาเฟรมจอดำ)
+    var todo = S.lessons.filter(function (l) { return isVideoMedia(l.media) && !(l.media.clean >= 2); });
     return todo.reduce(function (p, l) {
       return p.then(function () { return MDB.get(vidKey(l.id)); }).then(function (blob) {
         if (!blob || !blob.size) return;
         return probe(blob).then(function (info) {
           return shrinkImage(info.badged, 480, 0.8).then(function (thumb) {
             return MDB.put(mediaKey(l.id), info.poster).then(function () { return MDB.put(thumbKey(l.id), thumb || info.badged); }).then(function () {
-              THUMB[l.id] = thumb || info.badged; l.media.clean = 1;
+              THUMB[l.id] = thumb || info.badged; l.media.clean = 2;
               try { if (SY && SY.st && SY.st.files) { delete SY.st.files[mediaKey(l.id)]; delete SY.st.files[thumbKey(l.id)]; sySave(); } } catch (e) {}
             });
           });

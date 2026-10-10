@@ -42,6 +42,9 @@ function makeClips() {
   ff(["-f", "lavfi", "-i", "testsrc=size=640x360:rate=25", "-f", "lavfi", "-i", "sine=frequency=440", "-t", "8", "-vf", "noise=alls=30:allf=t",
       "-c:v", "libvpx", "-b:v", "3M", "-minrate", "3M", "-maxrate", "3M", "-c:a", "libvorbis", "-shortest", path.join(TMP, "lesson.webm")]);
   ff(["-f", "lavfi", "-i", "testsrc=size=64x36:rate=2", "-t", "660", "-c:v", "libvpx", "-b:v", "20k", path.join(TMP, "long.webm")]);
+  // 3 วินาทีแรกจอดำ (เหมือนเพิ่งกดอัด) แล้วค่อยมีภาพ — หน้าปกต้องไม่ออกมาดำ
+  ff(["-f", "lavfi", "-i", "color=c=black:size=320x180:rate=10:d=3", "-f", "lavfi", "-i", "testsrc=size=320x180:rate=10:d=7",
+      "-filter_complex", "[0:v][1:v]concat=n=2:v=1[v]", "-map", "[v]", "-c:v", "libvpx", "-b:v", "300k", path.join(TMP, "darkstart.webm")]);
 }
 const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll(".toast")).map((t) => t.textContent).join(" | "));
 
@@ -229,7 +232,7 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
   ok(/รอย่อคลิปเสร็จ/.test(await toastText(p)), "กดบันทึกระหว่างย่อ: ให้รอก่อน (คลิปไม่หาย)");
   await p.waitForFunction(() => EF.media && EF.media.video, null, { timeout: 60000 }).catch(() => {});
   const att = await p.evaluate(() => ({ m: EF.media, b: PEND.puts["vid:7002"] && PEND.puts["vid:7002"].size }));
-  ok(att.m && att.m.type === "video/mp4" && att.b < 1024 * 1024 && att.m.size === att.b && /\.mp4$/.test(att.m.name) && att.m.clean === 1,
+  ok(att.m && att.m.type === "video/mp4" && att.b < 1024 * 1024 && att.m.size === att.b && /\.mp4$/.test(att.m.name) && att.m.clean === 2,
     "แนบเสร็จ: เก็บเป็น MP4 ที่ย่อแล้ว " + Math.round((att.b || 0) / 1024) + " KB");
   await p.evaluate(() => { saveLesson(); window.__videoLimits = null; });
   await p.waitForTimeout(800);
@@ -241,7 +244,34 @@ const toastText = (p) => p.evaluate(() => Array.from(document.querySelectorAll("
     const m = await MDB.get("media:7002");
     return { clean: l.media.clean, poster: /^data:image\/jpeg/.test(m) && m.length > 1000 };
   });
-  ok(fixed.clean === 1 && fixed.poster, "คลิปเก่า: สร้างภาพหน้าปกใหม่ (ไม่มีปุ่ม ▶) จากคลิปในเครื่องให้เอง");
+  ok(fixed.clean === 2 && fixed.poster, "คลิปเก่า: สร้างภาพหน้าปกใหม่ (ไม่มีปุ่ม ▶) จากคลิปในเครื่องให้เอง");
+
+  // เปิด/ปิดภาพหน้าปกคลิปในรูปส่งผู้ปกครอง
+  await p.evaluate(() => { closeModal(); openReportCard(7002); });
+  await p.waitForFunction(() => document.getElementById("vposter") && RC && RC.blob && RC.h, null, { timeout: 20000 }).catch(() => {});
+  const h1 = await p.evaluate(() => ({ h: RC.h, on: document.getElementById("vposter").checked }));
+  if (process.env.SHOT_DIR) { await p.locator("#vposter-row").scrollIntoViewIfNeeded(); await p.waitForTimeout(400); await p.screenshot({ path: path.join(process.env.SHOT_DIR, "vposter.png") }); }
+  await p.click("#vposter");
+  await p.waitForFunction((h) => RC && RC.blob && RC.h && RC.h < h, h1.h, { timeout: 20000 }).catch(() => {});
+  const h2 = await p.evaluate(() => ({ h: RC.h, card: S.lessons.find((x) => x.id === 7002).media.card, def: S.settings.vposter, on: document.getElementById("vposter").checked }));
+  ok(h1.on && !h2.on && h2.card === false && h2.def === false && h2.h < h1.h, "ปิดภาพหน้าปก: รูปส่งผู้ปกครองไม่มีภาพคลิป (สูง " + h1.h + " → " + h2.h + " px) · จำเป็นค่าเริ่มต้น");
+  await p.click("#vposter");
+  await p.waitForFunction((h) => RC && RC.h === h, h1.h, { timeout: 20000 }).catch(() => {});
+  ok(await p.evaluate((h) => RC.h === h && S.lessons.find((x) => x.id === 7002).media.card === true, h1.h), "เปิดกลับ: ภาพหน้าปกกลับมาในรูป");
+  await p.evaluate(() => closeModal());
+
+  // คลิปที่ต้นคลิปเป็นจอดำ: หน้าปกต้องเป็นภาพจริง ไม่ใช่สี่เหลี่ยมดำ
+  await p.evaluate(() => openEdit(7002));
+  await p.setInputFiles("#media-inp", path.join(TMP, "darkstart.webm"));
+  await p.waitForFunction(() => PEND.puts["vid:7002"] && PEND.puts["media:7002"], null, { timeout: 20000 }).catch(() => {});
+  const lum = await p.evaluate(async () => {
+    const im = new Image(); im.src = PEND.puts["media:7002"]; await im.decode();
+    const c = document.createElement("canvas"); c.width = 16; c.height = 16; const x = c.getContext("2d"); x.drawImage(im, 0, 0, 16, 16);
+    const d = x.getImageData(0, 0, 16, 16).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+    return Math.round(s / 256);
+  });
+  ok(lum > 40, "คลิปที่ 3 วินาทีแรกจอดำ: หน้าปกจับเฟรมที่มีภาพจริง (ความสว่างเฉลี่ย " + lum + ")");
+  await p.evaluate(() => closeModal());
 
   // คลิปยาวเกิน 10 นาที
   await p.evaluate(() => openEdit(7001));

@@ -351,7 +351,7 @@
     var l = lessonById(id);
     if (!l || !isVideoMedia(l.media)) return origShareClip.apply(this, arguments);
     var base = String(displayName(l.student)).replace(/[\\/:*?"<>|\s]+/g, "") + "-" + l.date;
-    var title = displayName(l.student) + " — คลิปคาบเรียน";
+    var title = (window.__nongName ? __nongName(displayName(l.student)) : displayName(l.student)) + " — คลิปคาบเรียน";
     videoBlob(id).then(function (blob) {
       if (!blob) { toast(MISSING); return; }
       var ext = (/\.([a-z0-9]{2,4})$/i.exec(l.media.name || "") || [, "mp4"])[1].toLowerCase();

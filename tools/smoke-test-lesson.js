@@ -309,6 +309,16 @@ async function login(page) {
     });
     ok(lv.view && lv.under && lv.tab === "today" && lv.topic, "หน้านักเรียน › “ดูคาบนี้”: เปิดการ์ดคาบนั้นทับหน้านักเรียน ไม่เด้งไปแท็บอื่น");
     ok(lv.ticked && lv.back, "ติ๊กการบ้านในการ์ดได้ · ปิดแล้วกลับหน้านักเรียนที่เดิม");
+    // หน้ารายได้เปิดที่เดือนนี้ แม้มีคาบรอยืนยันล่วงหน้าในเดือนหน้า
+    const money = await page.evaluate(async () => {
+      const t = todayStr(), next = addDays(t.slice(0, 8) + "01", 40);
+      S.lessons.push({ id: 9106, date: next, time: "16:00", kind: "school", duration: 1, rate: 300, heads: 1, attendance: "planned", student: "ซีริว", topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() });
+      save(); S.sum.period = next.slice(0, 7); setTab("today"); setTab("money");
+      const first = S.sum.period; stepPeriod(-1); const prev = S.sum.period; setTab("today"); setTab("money"); const again = S.sum.period;
+      S.lessons = S.lessons.filter((l) => l.id !== 9106); save(); setTab("today");
+      return { first, prev, again, now: t.slice(0, 7), next: next.slice(0, 7) };
+    });
+    ok(money.first === money.now && money.again === money.now && money.prev !== money.now, "หน้ารายได้เปิดที่เดือนนี้ (" + money.now + ") ไม่ใช่เดือนที่มีคาบล่วงหน้า (" + money.next + ") · เลื่อนเดือนได้ตามเดิม");
     const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     ok(await bodyBg() !== "rgb(22, 20, 15)", "ค่าเริ่มต้นเป็นกลางวัน (ไม่เปลี่ยนหน้าตาเดิมเอง)");
     await page.evaluate(() => { openMenu(); });

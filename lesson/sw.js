@@ -2,7 +2,9 @@
    Service Worker ของ "ครูต้า — บันทึกการสอน" (/lesson/)
    ทำให้เปิดใช้ได้ตอนไม่มีเน็ต · แยกขาดจาก sw.js ของกลอง → MIDI
 
-     • ตัวโปรแกรม (index.html) — เอาของใหม่จากเน็ตก่อน ไม่มีเน็ตค่อยใช้สำเนา
+     • ตัวโปรแกรม (index.html) — เอาของใหม่จากเน็ตก่อน แต่รอไม่เกิน 2.5 วินาที (เน็ตมือถือช้า/สัญญาณแย่)
+       เกินเวลาก็เปิดสำเนาในเครื่องทันที แล้วโหลดของใหม่เก็บไว้เบื้องหลัง เปิดครั้งหน้าได้รุ่นใหม่
+       ไม่มีเน็ตใช้สำเนา · เริ่มโหลดพร้อมกับตอนปลุก Service Worker (navigation preload)
      • ไอคอน/manifest — ใช้สำเนาก่อน
      • ฟอนต์ Google กับชุดโค้ด Firebase (gstatic) — ใช้สำเนาก่อน
        เพื่อให้เปิดแอปตอนออฟไลน์แล้วยังหน้าตาครบและซิงค์ต่อได้เมื่อเน็ตกลับมา
@@ -16,6 +18,7 @@ const BUILD = "__BUILD_ID__";
 const CACHE = "kruta-" + (BUILD.slice(0, 2) === "__" ? "dev" : BUILD);
 const ROOT  = new URL("./", self.location).pathname;   // เช่น /T/lesson/
 const APP   = "./index.html";
+const NET_WAIT = 2500;   // ms ที่ยอมรอเน็ตก่อนเปิดสำเนาในเครื่อง
 
 const PRECACHE = [
   APP,
@@ -41,6 +44,8 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
+    // เริ่มโหลดหน้าแอปคู่ขนานกับการปลุก Service Worker (ประหยัดเวลาตอนเปิดแอปบน Android)
+    if (self.registration.navigationPreload) { try { await self.registration.navigationPreload.enable(); } catch (_) {} }
     const keys = await caches.keys();
     // เก็บสำเนา CDN ไว้ข้ามรุ่น ลบเฉพาะสำเนาโปรแกรมรุ่นเก่า
     await Promise.all(
@@ -80,18 +85,27 @@ self.addEventListener("fetch", (e) => {
   if (!url.pathname.startsWith(ROOT)) return;
 
   if (req.mode === "navigate" || url.pathname === ROOT || url.pathname === ROOT + "index.html") {
+    // โหลดจากเน็ต (ใช้ navigation preload ถ้ามี) ให้เสร็จทั้งไฟล์แล้วเก็บเป็นสำเนา — ทำต่อจนเสร็จแม้หน้าได้สำเนาไปก่อนแล้ว
+    const net = (async () => {
+      const pre = e.preloadResponse ? await e.preloadResponse.catch(() => null) : null;
+      const res = pre || await fetch(req);
+      if (res && res.ok) { const c = await caches.open(CACHE); await c.put(APP, res.clone()); }
+      return res;
+    })();
+    e.waitUntil(net.catch(() => {}));
     e.respondWith((async () => {
+      const c = await caches.open(CACHE);
+      const hit = await c.match(APP);
+      if (hit) {
+        let timer;
+        const late = new Promise((r) => { timer = setTimeout(() => r(null), self.navigator && self.navigator.onLine === false ? 0 : NET_WAIT); });
+        const res = await Promise.race([net.catch(() => null), late]);
+        clearTimeout(timer);
+        return res && res.ok ? res : hit;          // เน็ตช้า/ล่ม/ตอบผิดพลาด → สำเนาในเครื่อง
+      }
       try {
-        const res = await fetch(req);
-        if (res && res.ok) {
-          const c = await caches.open(CACHE);
-          await c.put(APP, res.clone());
-        }
-        return res;
+        return await net;
       } catch (_) {
-        const c = await caches.open(CACHE);
-        const hit = await c.match(APP);
-        if (hit) return hit;
         return new Response(
           "ตอนนี้ออฟไลน์อยู่ และยังไม่มีสำเนาของโปรแกรมเก็บไว้ในเครื่อง\n" +
           "ต่อเน็ตแล้วเปิดหน้านี้อีกครั้งหนึ่ง จากนั้นจะใช้ได้แม้ไม่มีเน็ต",

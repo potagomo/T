@@ -7,7 +7,10 @@
      • ตัวหนังสือทุกชิ้นตรวจความต่างของสีกับพื้นจริง (WCAG 4.5:1) ไม่ผ่านก็ปรับความสว่างโดยคงเฉดสีไว้
      • เส้นขอบดำบนพื้นเข้ม → เส้นสีครีม · เงาดำแข็ง → เงาสีเข้มที่ยังมองเห็นบนพื้นเข้ม
    ค่าเดิมเก็บไว้ใน data-dk ของแต่ละชิ้น สลับกลับเป็นกลางวันได้ทันทีไม่ต้องโหลดใหม่
-   รูป วิดีโอ canvas และตัวอย่างรูปส่งออก ไม่ถูกแตะ — รูปที่ส่งผู้ปกครองหน้าตาเหมือนเดิมทุกอย่าง */
+   รูป วิดีโอ canvas และตัวอย่างรูปส่งออก ไม่ถูกแตะ — รูปที่ส่งผู้ปกครองหน้าตาเหมือนเดิมทุกอย่าง 
+   ความเร็ว: แปลงเฉพาะส่วนที่เพิ่งวาด · ส่วนที่ซ่อนอยู่ (แท็บอื่น หัวข้อพับ) ข้ามไว้ แปลงตอนโผล่
+   · รายการยาวแปลงเฉพาะที่อยู่ในจอ ± 1 จอ ที่เหลือแปลงตอนเลื่อนใกล้ถึง · ไม่แปลงทั้งหน้าใหม่เมื่อคลาสของ <body> เปลี่ยน (เปิดหน้าต่าง)
+   */
 (function () {
   "use strict";
   var KEY = "td_theme", ROOT = document.documentElement;
@@ -97,7 +100,7 @@
   }
   function fix(el, cache) {
     var cs = getComputedStyle(el);
-    if (cs.display === "none") { cache.set(el, effBg(el.parentElement, cache)); return; }
+    if (cs.display === "none") { cache.set(el, effBg(el.parentElement, cache)); return "hidden"; }
     var bg = rgb(cs.backgroundColor);
     if (bg && bg[3] >= 0.5) {
       var L = lum(bg), ch = chroma(bg), nb = null;
@@ -119,61 +122,125 @@
       });
     }
     if (darkHere) {
-      ["top", "right", "bottom", "left"].forEach(function (side) {
+      // ส่วนใหญ่ไม่มีเส้นขอบ/เส้นรอบ: อ่านค่ารวมก่อนค่าเดียว (เดิมอ่าน 15 ค่าทุกชิ้น) — ถ้าเบราว์เซอร์ไม่ให้ค่ารวม ("") ก็อ่านทีละด้านเหมือนเดิม
+      if (cs.borderStyle !== "none") ["top", "right", "bottom", "left"].forEach(function (side) {
         if (parseFloat(cs["border-" + side + "-width"]) > 0 && cs["border-" + side + "-style"] !== "none") {
           var b = rgb(cs["border-" + side + "-color"]);
           if (b && b[3] > 0.15 && Math.max(b[0], b[1], b[2]) < 70) set(el, "border-" + side + "-color", css(C.line, b[3] < 0.99 ? Math.max(0.55, b[3]) : null));
         }
       });
-      var oc = rgb(cs.outlineColor);
-      if (parseFloat(cs.outlineWidth) > 0 && cs.outlineStyle !== "none" && oc && Math.max(oc[0], oc[1], oc[2]) < 70) set(el, "outline-color", css(C.line));
+      if (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) {
+        var oc = rgb(cs.outlineColor);
+        if (oc && Math.max(oc[0], oc[1], oc[2]) < 70) set(el, "outline-color", css(C.line));
+      }
     }
     // เงาแข็งสีดำ → เงาสีที่ยังมองเห็นบนพื้นเข้ม
     if (cs.boxShadow && cs.boxShadow !== "none" && /rgba?\(0, 0, 0/.test(cs.boxShadow) && lum(parentBg) < 0.18) {
       set(el, "box-shadow", cs.boxShadow.replace(/rgba?\(0, 0, 0(, [\d.]+)?\)/g, function (m, a) { return a && parseFloat(a.slice(2)) < 0.3 ? m : C.shadowOn; }));
     }
   }
+  /* ── รายการยาว: แปลงเฉพาะที่อยู่ในจอ/ใกล้จอ ที่เหลือแปลงตอนเลื่อนใกล้ถึง ──
+     รายการเหล่านี้ใช้ content-visibility:auto (02-speed.js) เบราว์เซอร์ไม่คำนวณส่วนนอกจอ — อ่านสีจากส่วนนั้นได้ค่าค้าง
+     จึงไม่แตะจนกว่าจะใกล้จอ แล้วบังคับให้คำนวณจริงชั่วคราวเฉพาะชิ้นที่กำลังแปลง (หน้ารายคน/บันทึกเร็วขึ้นราวครึ่งหนึ่ง) */
+  var LAZY = "#cards-tail > .card, #people-rows > .acard", NEAR = null, lazyIO = null;
+  function lazyItem(n) { var p = n.parentElement; return !!p && (p.id === "cards-tail" || p.id === "people-rows"); }
+  function lazyObserve(el) {
+    if (typeof IntersectionObserver === "undefined") return false;
+    if (!lazyIO) lazyIO = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { lazyIO.unobserve(e.target); if (on && e.target.isConnected) schedule(e.target); } });
+    }, { rootMargin: "100% 0px" });
+    lazyIO.observe(el);
+    return true;
+  }
+  function deferred(n) { return NEAR && lazyItem(n) && !NEAR.has(n) && lazyObserve(n); }
   function walk(root, cache) {
     if (root.nodeType !== 1 || SKIP[root.tagName] || (root.closest && root.closest(SKIP_SEL))) return;
+    if (deferred(root)) return;
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-      acceptNode: function (n) { return SKIP[n.tagName] || (n.matches && n.matches(SKIP_SEL)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+      acceptNode: function (n) { return SKIP[n.tagName] || (n.matches && n.matches(SKIP_SEL)) || deferred(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
     });
     var n = root, own = !WRITES;
     if (own) WRITES = [];
-    while (n) { try { fix(n, cache); } catch (e) {} n = tw.nextNode(); }
+    while (n) {
+      var r = null;
+      try { r = fix(n, cache); } catch (e) {}
+      if (r === "hidden") {
+        // ส่วนที่ซ่อนอยู่ (แท็บอื่น หน้าพับ รายการที่ปิด): ข้ามทั้งก้อน แปลงตอนมันโผล่ (ดู HIDDEN ใน flush)
+        // เดิมแปลงทุกชิ้นของทุกแท็บที่ซ่อนอยู่ทุกครั้งที่สลับแท็บ
+        HIDDEN.add(n);
+        n = n === root ? null : skip(tw, root);
+      } else n = tw.nextNode();
+    }
     if (own) { var w = WRITES; WRITES = null; commit(w); }
+  }
+  function skip(tw, root) {
+    for (var cur = tw.currentNode; cur && cur !== root; cur = tw.parentNode()) {
+      var sib = tw.nextSibling();
+      if (sib) return sib;
+    }
+    return null;
   }
 
   /* ── ตามดูหน้าที่วาดใหม่ ── */
-  var mo = null, queue = [], raf = 0, on = false;
+  var mo = null, queue = [], raf = 0, on = false, HIDDEN = new Set();
   function flush() {
     raf = 0;
-    if (!on) { queue = []; return; }
+    if (!on) { queue = []; HIDDEN.clear(); return; }
+    var t0 = performance.now();
     mo.disconnect();
-    ROOT.classList.add("dk-fixing");                 // ปิด transition ระหว่างแปลง ไม่ให้เห็นพื้นขาวค่อย ๆ จางเป็นเข้ม
     var cache = new Map(), roots = queue; queue = [];
+    // ส่วนที่เคยซ่อนแล้วตอนนี้โผล่ (สลับแท็บ กางหัวข้อ หมุนจอ) → แปลงตอนนี้
+    HIDDEN.forEach(function (el) {
+      if (!el.isConnected) { HIDDEN.delete(el); return; }
+      if (getComputedStyle(el).display !== "none") { HIDDEN.delete(el); roots.push(el); }
+    });
     roots = roots.filter(function (r, i) {
       if (!r.isConnected) return false;
       for (var j = 0; j < roots.length; j++) if (j !== i && roots[j] !== r && roots[j].contains(r) && roots[j].isConnected) return false;
       return roots.indexOf(r) === i;
     });
+    // ปิด transition ระหว่างแปลง ไม่ให้เห็นพื้นขาวค่อย ๆ จางเป็นเข้ม — ใส่เฉพาะส่วนที่กำลังแปลง
+    // (เดิมใส่ที่ <html> ทำให้เบราว์เซอร์คำนวณสไตล์ใหม่ทั้งหน้า 2 รอบ ทุกครั้งที่เปิดหน้าต่าง/วาดใหม่)
+    // รายการยาว: ชิ้นที่อยู่ในจอ ± 1 จอ แปลงตอนนี้ (บังคับให้คำนวณสไตล์จริงชั่วคราว) ที่เหลือรอเลื่อนถึง
+    NEAR = new Set();
+    var vh = window.innerHeight || 800, forced = [];
+    roots.forEach(function (r) {
+      if (r.nodeType !== 1) return;
+      var items = r.matches && r.matches(LAZY) ? [r] : r.querySelectorAll ? r.querySelectorAll(LAZY) : [];
+      for (var i = 0; i < items.length; i++) { var b = items[i].getBoundingClientRect(); if ((b.width || b.height) && b.bottom > -vh && b.top < vh * 2) NEAR.add(items[i]); }   // ขนาด 0 = อยู่ในส่วนที่ซ่อน
+    });
+    NEAR.forEach(function (it) { if (lazyIO) lazyIO.unobserve(it); it.style.setProperty("content-visibility", "visible", "important"); forced.push(it); });
+    var marks = roots.some(function (r) { return r === document.body || r === ROOT; }) ? [ROOT] : roots.filter(function (r) { return r.nodeType === 1 && r.classList; });
+    marks.forEach(function (r) { r.classList.add("dk-fixing"); });
     WRITES = [];                                      // ทุกส่วนที่เปลี่ยนในเฟรมนี้: อ่านให้ครบก่อน แล้วเขียนรวดเดียว
     roots.forEach(function (r) { walk(r, cache); });
     var w = WRITES; WRITES = null; commit(w);
-    void document.body.offsetWidth;                   // ให้สีใหม่มีผลก่อนเปิด transition กลับ
-    ROOT.classList.remove("dk-fixing");
+    // ให้สีใหม่มีผล (คำนวณสไตล์) ก่อนเปิด transition กลับ — อ่านสีพอ ไม่ต้องจัดหน้าทั้งหน้า (เดิม offsetWidth)
+    if (marks.length) void getComputedStyle(marks[0]).color;
+    marks.forEach(function (r) { r.classList.remove("dk-fixing"); if (!r.classList.length && r.removeAttribute) r.removeAttribute("class"); });
+    forced.forEach(function (it) { it.style.removeProperty("content-visibility"); if (!it.getAttribute("style")) it.removeAttribute("style"); });
+    NEAR = null;
     mo.takeRecords();
     observe();
+    window.__dkMs = (window.__dkMs || 0) + (performance.now() - t0);   // เวลาแปลงสีสะสม (tools/perf-lesson.js อ่านค่านี้)
   }
   function schedule(n) { queue.push(n); if (!raf) raf = requestAnimationFrame(flush); }
-  function observe() { mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] }); }
+  function observe() { mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "open", "hidden"] }); }
   function onMut(list) {
     list.forEach(function (m) {
       if (m.type === "childList") { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) schedule(n); }); }
-      else if (m.attributeName === "class") { restoreAll(m.target); schedule(m.target); }
+      else if (m.attributeName === "class") {
+        // คลาสของ <body>/<html> (locked ตอนเปิดหน้าต่าง, fx-motion-*) ไม่เปลี่ยนสีอะไร — เดิมคืนสีแล้วแปลงใหม่ทั้งหน้า
+        // ทุกครั้งที่เปิด/ปิดหน้าต่าง (หน้าตั้งค่าช้าลง 10 เท่าในโหมดกลางคืน)
+        if (m.target === document.body || m.target === ROOT) return;
+        restoreAll(m.target); schedule(m.target);
+      }
       else schedule(m.target);
     });
   }
+  // หมุนจอ/เปลี่ยนขนาด: ส่วนที่ซ่อนตามขนาดจออาจโผล่ — ให้ flush ตรวจ HIDDEN อีกรอบ
+  var rz = 0;
+  window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { if (on && HIDDEN.size && !raf) raf = requestAnimationFrame(flush); }, 250); });
 
   function meta(c) { var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", c); }
   function apply() {
@@ -186,6 +253,7 @@
       schedule(document.body);
     } else {
       if (mo) mo.disconnect();
+      if (lazyIO) lazyIO.disconnect();
       queue = [];
       ROOT.removeAttribute("data-theme"); meta("#FFFDF5");
       restoreAll(document.body);

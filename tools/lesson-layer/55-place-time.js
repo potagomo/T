@@ -19,6 +19,10 @@
 
   // ยังไม่ได้ตั้งเวลาปกติ: ดูจากคาบที่สอนจริงล่าสุดที่นั่น (20 คาบ) ถ้าความยาวเดียวกันเกินครึ่งก็ใช้ค่านั้น ไม่ต้องตั้งเอง
   function guessDur(p) {
+    // คำนวณครั้งเดียวต่อรอบการวาด (วางตารางจากไลน์เรียกทุกแถว ทุกครั้งที่พิมพ์)
+    return window.__memo ? __memo("guessDur:" + p.id, function () { return guessDur0(p); }) : guessDur0(p);
+  }
+  function guessDur0(p) {
     var ls = S.lessons.filter(function (l) { return l.kind === "school" && l.placeId === p.id && l.attendance !== "planned"; })
       .sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? 1 : -1; }).slice(0, 20);
     if (ls.length < 3) return 0;

@@ -694,7 +694,7 @@ html[data-theme="dark"] ::selection{background:var(--yel);color:#16140F;}
 html[data-theme="dark"] .rc-preview{background:#2A261F !important;}
 html[data-theme="dark"] input[type=date],html[data-theme="dark"] input[type=time]{color-scheme:dark;}
 html[data-theme="dark"] select{background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D8CFBC' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;background-repeat:no-repeat !important;background-position:right 10px center !important;background-size:16px !important;padding-right:34px !important;}
-html.dk-fixing *,html.dk-fixing *::before,html.dk-fixing *::after{transition:none !important;}
+.dk-fixing,.dk-fixing *,.dk-fixing *::before,.dk-fixing *::after{transition:none !important;}
 @media print{html[data-theme="dark"],html[data-theme="dark"] body{background:#fff !important;color:#000 !important;}}
 </style>
 <!-- headlayer:60-dark.head.html:end -->
@@ -9630,6 +9630,372 @@ function regenRecoveryCode() {
 }
 
 </script>
+<!-- layer:02-speed.js:start -->
+<script>
+/* ชั้นเว็บแอป: ความเร็ว — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html (ชั้นแรก ๆ ก่อนชั้นที่ห่อ save)
+
+   วัดด้วย tools/perf-lesson.js (คาบ 3,351 · นักเรียน 80 มีรูป 40 · CPU ช้าลง 4 เท่า) แล้วแก้ที่ต้นเหตุ:
+   • แท็บ นักเรียน › บันทึก วาดทุกคาบในครั้งเดียว และฝังรูปนักเรียน (data URL ~30 KB) ลงในทุกการ์ด
+     = HTML 57.7 MB / 71,577 ชิ้น ใช้ 24 วินาที → วาดทีละ 40 คาบ เลื่อนลงแล้วเติมเอง และรูปใช้ blob: URL สั้น ๆ
+     (เบราว์เซอร์ถอดรหัสรูปครั้งเดียวใช้ทุกที่) · หน้ารายคน/สัปดาห์/รายได้ก็เบาลงจากรูปเหมือนกัน
+   • ฟังก์ชันของแอปที่กรองคาบทั้งหมดซ้ำทีละนักเรียน/ทีละคอร์ส/ทีละวัน (หน้ารายคน 80 คน × 3,351 คาบ หลายรอบ)
+     → จัดกลุ่มคาบครั้งเดียวต่อรอบการวาด แล้วให้ฟังก์ชันเดิมทำงานกับชุดย่อยของคนนั้น (ผลเหมือนเดิมทุกตัว
+     เพราะตัวเดิมกรองด้วยเงื่อนไขเดียวกันอยู่แล้ว) · ดัชนีล้างเองทุกครั้งที่บันทึก และทุกงาน (task) ใหม่
+   • ตรวจประเภทคาบ (kindAudit) เดิมไล่ทุกคาบ × คาบของนักเรียนคนนั้นหลายรอบ (100 ms ทุกครั้งที่เปิดภาพรวม/ตั้งค่า/รายคน)
+     → นับครั้งเดียวต่อคน ได้ผลเท่ากันทุกข้อ (tools/test-speed.js เทียบกับตัวเดิม)
+   • บันทึก (save): รูปนักเรียนทั้งหมด (~1 MB) ถูกแปลงเป็นข้อความใหม่ทุกครั้งแม้ไม่ได้เปลี่ยน → ข้ามเมื่อรูปไม่เปลี่ยน
+     (เทียบทีละรูป + ความยาวที่เก็บไว้ · ไม่ข้ามตอนที่ระบบกันข้อมูลหายจะทำสำเนา) ตัว save ของแอปทำงานเหมือนเดิมทุกขั้น
+   • สำเนาสำรองใน IndexedDB (mirror) เดิมเขียนทั้งก้อน 0.7 วินาทีหลังทุกการแก้ (กระตุก ~300 ms บนมือถือ)
+     → รอให้หยุดแก้ 2 วินาทีแล้วเขียนตอนเครื่องว่าง · ปิด/สลับแอประหว่างรอ เขียนทันที (เดิมไม่มี)
+   • งานวาดเล็ก ๆ: ตัวเงินใช้ตัวจัดรูปแบบตัวเดียวซ้ำ · วงแหวนความคืบหน้าจัดหน้าครั้งเดียวแทนทีละวง
+     · รายการยาว (การ์ดบันทึก รายชื่อ) ใช้ content-visibility:auto ส่วนนอกจอไม่ต้องจัดหน้า/วาด (เร็วขึ้น ~3 เท่า)
+     · normName (ตัดคำนำหน้า/ช่องว่างของชื่อ) จำผลไว้ — หน้ารายคนเรียกหลายพันครั้ง
+   ผลเทียบตัวเดิม: tools/test-speed.js · ตัวเลขก่อน/หลัง: README หัวข้อ "ความเร็ว" */
+(function () {
+  "use strict";
+  var NEED = ["avatarHtml", "studentHistory", "studentSummary", "studentSince", "lessonsOfCourse", "enrollmentLessons", "lessonsOnDate",
+              "rosterEntryExists", "getStudents", "kindAudit", "logSubView", "onSearch", "getFiltered", "cardHtml", "save", "scheduleMirror", "writeMirror"];
+  var miss = NEED.filter(function (n) { return typeof window[n] !== "function"; });
+  if (miss.length) { window.__speed = "missing: " + miss.join(","); return; }
+
+  /* ── 1) ดัชนีคาบต่อรอบการวาด ──
+     ใช้ได้ในงานเดียวกัน (ล้างใน microtask ถัดไป) และล้างทุกครั้งที่ save() — ข้อมูลที่แก้แล้วบันทึก วาดใหม่เห็นทันที */
+  var EP = 0, DV = 0, armed = false, DEPTH = 0, C = { ep: -1 };     // EP: รอบงาน · DV: รุ่นข้อมูล (เพิ่มทุกครั้งที่บันทึก)
+  function epoch() {
+    if (!armed) { armed = true; Promise.resolve().then(function () { armed = false; EP++; }); }
+    return EP;
+  }
+  function fresh() {
+    if (DEPTH > 0 && C.ep >= 0) return C;                 // ระหว่างสลับชุดคาบชั่วคราว ใช้ดัชนีที่สร้างจากชุดเต็ม
+    var e = epoch();
+    if (C.ep !== e || C.lessons !== S.lessons || C.n !== S.lessons.length) C = { ep: e, lessons: S.lessons, n: S.lessons.length };
+    return C;
+  }
+  function group(name, keyOf) {
+    var c = fresh();
+    if (!c[name]) {
+      var m = new Map(), L = c.lessons;                   // ชุดเต็มเสมอ (แม้เรียกระหว่างสลับชุดย่อย)
+      for (var i = 0; i < L.length; i++) { var l = L[i], k = keyOf(l), a = m.get(k); if (a) a.push(l); else m.set(k, [l]); }
+      c[name] = m;
+    }
+    return c[name];
+  }
+  var NONE = [];
+  function byStudent(s) { return group("stu", function (l) { return l.student; }).get(s) || NONE; }
+  function byCourse(id) { return group("crs", function (l) { return l.courseId; }).get(id) || NONE; }
+  function byDate(d) { return group("day", function (l) { return l.date; }).get(d) || NONE; }
+  // เรียกฟังก์ชันเดิมของแอป โดยให้ S.lessons เป็นเฉพาะคาบที่เกี่ยวข้องชั่วคราว (ลำดับเดิม)
+  function scoped(sub, fn, self, args) {
+    var keep = S.lessons;
+    DEPTH++; S.lessons = sub;
+    try { return fn.apply(self, args); } finally { S.lessons = keep; DEPTH--; }
+  }
+  window.__lessonsOf = function (s) { return byStudent(s).slice(); };
+  // ค่าที่คำนวณจากข้อมูลคาบ ใช้ซ้ำได้ภายในรอบการวาดเดียวกัน (ชั้นอื่นใช้: เวลาปกติของสถานที่ งานสำคัญ)
+  window.__memo = function (key, fn) {
+    var c = fresh(), m = c.memo || (c.memo = new Map());
+    if (m.has(key)) return m.get(key);
+    var v = fn(); m.set(key, v); return v;
+  };
+  window.__speedBump = function () { EP++; };
+
+  var ORIG = window.__speedOrig = {}, NEW = window.__speedNew = {};   // ให้ tools/test-speed.js เทียบผลกับตัวเดิม
+  function wrapScoped(name, subOf) {
+    var orig = window[name];
+    window[name] = NEW[name] = function () { return scoped(subOf.apply(null, arguments), orig, this, arguments); };
+    ORIG[name] = orig;
+  }
+  // ทุกตัวนี้กรอง S.lessons ด้วยเงื่อนไขที่ครอบคลุมโดยชุดย่อยอยู่แล้ว → ผลเท่าเดิม
+  wrapScoped("studentHistory", function (s) { return byStudent(s); });
+  wrapScoped("studentSummary", function (s) { return byStudent(s); });
+  wrapScoped("studentSince", function (s) { return byStudent(s); });
+  wrapScoped("lessonsOfCourse", function (id) { return byCourse(id); });
+  wrapScoped("enrollmentLessons", function (e) { return e ? byStudent(e.student) : NONE; });
+  wrapScoped("lessonsOnDate", function (d) { return byDate(d); });
+  wrapScoped("rosterEntryExists", function (e, d) { return byDate(d); });
+  // วางตารางจากไลน์ / ฟอร์มคาบ / ใบฝากสอน: ไล่คาบทั้งหมดทีละคน → เฉพาะคาบของคนนั้น
+  if (typeof window.lessonsOf === "function") wrapScoped("lessonsOf", function (k) { return byStudent(k); });
+  if (typeof window.lastLessonOf === "function") wrapScoped("lastLessonOf", function (k) { return byStudent(k); });
+  if (typeof window.slotScore === "function") wrapScoped("slotScore", function (k) { return byStudent(k); });
+  if (typeof window.previousTaughtLesson === "function") wrapScoped("previousTaughtLesson", function (l) { return l ? byStudent(l.student) : NONE; });
+  if (typeof window.likelyKind === "function") wrapScoped("likelyKind", function (k) { return byStudent(String(k || "").trim()); });
+
+  // normName เป็นฟังก์ชันบริสุทธิ์ (ข้อความ → ข้อความ) ถูกเรียกหลายพันครั้งต่อการวาดหน้ารายคน (ตรวจชื่อซ้ำทีละคู่)
+  if (typeof window.normName === "function") {
+    var origNorm = window.normName, NM = new Map();
+    window.normName = function (v) {
+      if (typeof v !== "string") return origNorm(v);
+      var r = NM.get(v);
+      if (r === undefined) { r = origNorm(v); if (NM.size > 5000) NM.clear(); NM.set(v, r); }
+      return r;
+    };
+  }
+
+  // รายชื่อนักเรียน: เดิมไล่ทะเบียน + ทุกคาบ + คอร์ส + ตาราง ทุกครั้งที่ถูกเรียก (หลายสิบครั้งต่อการวาด)
+  var origStudents = window.getStudents;
+  window.getStudents = function () {
+    var c = fresh();
+    if (!c.students || c.studentsN !== S.students.length || c.coursesN !== S.courses.length || c.schedN !== S.schedule.length) {
+      c.students = DEPTH > 0 ? scoped(c.lessons, origStudents, this, arguments) : origStudents.apply(this, arguments);
+      c.studentsN = S.students.length; c.coursesN = S.courses.length; c.schedN = S.schedule.length;
+    }
+    return c.students.slice();
+  };
+
+  /* ── 2) ตรวจประเภทคาบ: ผลเหมือนตัวเดิมทุกข้อ แต่นับครั้งเดียวต่อคน ── */
+  var origAudit = window.kindAudit, AUD = null;
+  window.__kindAuditOrig = origAudit;
+  window.kindAudit = function () {
+    // ผลตรวจเป็นคำเตือน ไม่ใช่ตัวเลขเงิน: ใช้ซ้ำได้จนกว่าจะบันทึก (DV) หรือจำนวนคาบ/คอร์ส/สถานที่เปลี่ยน
+    var c = fresh();
+    if (AUD && AUD.dv === DV && AUD.lessons === c.lessons && AUD.n === c.lessons.length && AUD.nc === S.courses.length && AUD.np === S.places.length) return AUD.out.slice();
+    var total = new Map(), kinds = new Map(), school = new Map(), nonSchoolAt = new Set();
+    var i, l, L = c.lessons;
+    for (i = 0; i < L.length; i++) {
+      l = L[i];
+      total.set(l.student, (total.get(l.student) || 0) + 1);
+      var kk = l.student + "\u0001" + l.kind;
+      kinds.set(kk, (kinds.get(kk) || 0) + 1);
+      if (l.kind === "school") school.set(l.student, (school.get(l.student) || 0) + 1);
+      else nonSchoolAt.add(l.student + "\u0001" + l.date + "\u0001" + l.time);
+    }
+    var out = [];
+    for (i = 0; i < L.length; i++) {
+      l = L[i];
+      if (l.kindChecked) continue;
+      var why = [], suggest = null;
+      if (l.kind === "private") {
+        var co = getCourse(l.courseId);
+        if (l.courseId == null) why.push("คาบส่วนตัวที่ไม่ได้ผูกคอร์ส — ไม่นับครั้งและไม่มีรายได้");
+        else if (!co) why.push("คอร์สที่ผูกไว้ถูกลบไปแล้ว");
+        else if (co.student !== l.student) why.push("ผูกกับคอร์สของ " + displayName(co.student) + " ไม่ใช่ของนักเรียนคนนี้");
+        if (l.courseId == null && !coursesOf(l.student).length && (school.get(l.student) || 0) > 0) suggest = "school";
+      } else {
+        if (l.placeId == null || !getPlace(l.placeId)) why.push("คาบโรงเรียนที่ไม่ได้ระบุสถานที่");
+      }
+      var others = (total.get(l.student) || 1) - 1;
+      if (others >= 3) {
+        var same = (kinds.get(l.student + "\u0001" + l.kind) || 1) - 1;
+        if (same / others <= 0.15) {
+          var other = l.kind === "school" ? "private" : "school";
+          why.push("คาบอื่นของนักเรียนคนนี้ " + (others - same) + "/" + others + " คาบเป็นแบบ" + KIND[other].label);
+          suggest = other;
+        }
+      }
+      if (l.kind === "school" && nonSchoolAt.has(l.student + "\u0001" + l.date + "\u0001" + l.time)) why.push("วันเวลาเดียวกันมีคาบแบบส่วนตัวอยู่แล้ว — อาจบันทึกซ้ำ");
+      if (why.length) out.push({ l: l, why: why, suggest: suggest });
+    }
+    out.sort(function (a, b) { return (b.l.date + b.l.time) < (a.l.date + a.l.time) ? -1 : 1; });
+    AUD = { dv: DV, lessons: c.lessons, n: c.lessons.length, nc: S.courses.length, np: S.places.length, out: out };
+    return out.slice();
+  };
+
+  /* ── 3) รูปนักเรียน: blob: URL แทน data URL ยาว ๆ ในทุกการ์ด ── */
+  var BLOB = new Map();
+  function photoUrl(src) {
+    if (typeof src !== "string" || src.length < 4096 || src.slice(0, 5) !== "data:" || typeof URL === "undefined" || !URL.createObjectURL) return src;
+    var u = BLOB.get(src);
+    if (u) return u;
+    try {
+      var comma = src.indexOf(","), meta = src.slice(5, comma), mime = meta.split(";")[0] || "image/jpeg";
+      var bin = /;base64/i.test(meta) ? atob(src.slice(comma + 1)) : decodeURIComponent(src.slice(comma + 1));
+      var arr = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      u = URL.createObjectURL(new Blob([arr], { type: mime }));
+    } catch (e) { return src; }
+    BLOB.set(src, u);
+    if (BLOB.size > 16 && BLOB.size > Object.keys(S.photos || {}).length * 2) prune();
+    return u;
+  }
+  function prune() {
+    var live = new Set(); Object.keys(S.photos || {}).forEach(function (k) { live.add(S.photos[k]); });
+    BLOB.forEach(function (u, src) { if (!live.has(src)) { URL.revokeObjectURL(u); BLOB.delete(src); } });
+  }
+  window.__photoUrl = photoUrl;
+  // แปลงรูปล่วงหน้าตอนเครื่องว่าง (fetch ของ data: URL ถอดรหัสนอกเธรดหลัก) — หน้าแรกที่มีรูปไม่ต้องรอ
+  function prewarm() {
+    if (typeof fetch !== "function" || !S || !S.photos) return;
+    // ตอนเปิดแอป รูปในหน่วยความจำมาจากที่เก็บตรง ๆ: ยืนยันครั้งเดียวว่าตรงกัน การบันทึกครั้งแรกจะได้ข้ามรูปด้วย
+    try { if (!PH) { var cur = lsGet("td_photos"); if (cur != null && JSON.stringify(S.photos) === cur) remember(); } } catch (e) {}
+    var srcs = Object.keys(S.photos).map(function (k) { return S.photos[k]; })
+      .filter(function (v) { return typeof v === "string" && v.length >= 4096 && v.slice(0, 5) === "data:" && !BLOB.has(v); });
+    (function next() {
+      var src = srcs.shift(); if (!src) return;
+      fetch(src).then(function (r) { return r.blob(); }).then(function (b) {
+        if (!BLOB.has(src)) BLOB.set(src, URL.createObjectURL(b));
+      }).catch(function () {}).then(next);
+    })();
+  }
+  if (typeof window.startApp === "function") {
+    var origStartP = window.startApp;
+    window.startApp = function () { var r = origStartP.apply(this, arguments); setTimeout(prewarm, 1200); return r; };
+  }
+  var origAvatar = window.avatarHtml;
+  window.avatarHtml = function (name, photo, size) { return origAvatar.call(this, name, photoUrl(photo), size); };
+
+  /* ── 4) แท็บบันทึก: วาดทีละ 40 คาบ ── */
+  var PAGE = 40, SHOW = PAGE, KEY = null, LIST = [];
+  function keyNow() { return S.filter + "\u0001" + S.search; }
+  function keepVisible(list) {
+    // คาบที่กางอยู่ / เพิ่งแก้ ต้องอยู่ในหน้าที่วาด
+    [S.expanded, window.FLASH_ID].forEach(function (id) {
+      if (id == null) return;
+      for (var i = 0; i < list.length; i++) if (list[i].id === id) { if (i >= SHOW) SHOW = Math.ceil((i + 1) / PAGE) * PAGE; break; }
+    });
+  }
+  function moreHtml(rest) {
+    return rest > 0 ? '<button type="button" class="btn-g" id="cards-more" style="width:100%;margin:4px 0 16px;">แสดงเพิ่ม (อีก ' + rest + ' คาบ)</button>' : '';
+  }
+  function cardsHtml(list) {
+    if (!list.length) return null;
+    return list.slice(0, SHOW).map(cardHtml).join("") + moreHtml(list.length - SHOW);
+  }
+  window.logSubView = function () {
+    var names = getStudents();
+    var list = getFiltered();
+    if (KEY !== keyNow()) { KEY = keyNow(); SHOW = PAGE; }
+    keepVisible(list);
+    LIST = list;
+    var opts = ["ทั้งหมด"].concat(names).map(function (n) {
+      return '<option value="' + esc(n) + '"' + (n === S.filter ? ' selected' : '') + '>' + esc(n) + '</option>';
+    }).join("");
+    var cards = cardsHtml(list);
+    return '<div style="display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;">' +
+        '<input id="search-inp" placeholder="ค้นหาชื่อ / หัวข้อ / บันทึก..." value="' + esc(S.search) + '" oninput="onSearch(this.value)" style="flex:1 1 170px;min-width:140px;">' +
+        '<select onchange="S.filter=this.value;renderAll();" style="width:auto;min-width:124px;flex:0 1 auto;">' + opts + '</select></div>' +
+      '<div id="cards-count" class="mono" style="font-size:11px;color:#5A5A5A;margin-bottom:12px;">' + countText(list) + '</div>' +
+      '<div id="cards-tail">' + (cards != null ? cards : '<div class="empty" style="padding:44px 20px;">— ไม่พบคาบสอน —</div>') + '</div>';
+  };
+  window.onSearch = function (v) {
+    S.search = v;
+    var tail = document.getElementById("cards-tail");
+    if (!tail) { renderLessonsView(); return; }
+    var list = getFiltered();
+    KEY = keyNow(); SHOW = PAGE; LIST = list;
+    var cards = cardsHtml(list);
+    tail.innerHTML = cards != null ? cards : '<div class="empty">— ไม่พบคาบสอนที่ค้นหา —</div>';
+    var cl = document.getElementById("cards-count");
+    if (cl) cl.textContent = countText(list);
+    armMore();
+  };
+  function showMore() {
+    var btn = document.getElementById("cards-more");
+    if (!btn || !LIST.length) return;
+    var from = SHOW; SHOW += PAGE;
+    btn.insertAdjacentHTML("beforebegin", LIST.slice(from, SHOW).map(cardHtml).join(""));
+    var rest = LIST.length - SHOW;
+    if (rest > 0) btn.textContent = "แสดงเพิ่ม (อีก " + rest + " คาบ)"; else btn.remove();
+  }
+  window.__logShowMore = showMore;
+  var IO = null;
+  function armMore() {
+    var btn = document.getElementById("cards-more");
+    if (!btn || typeof IntersectionObserver === "undefined") return;
+    if (!IO) IO = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting || !e.target.isConnected) return;
+        showMore();
+        // ปุ่มยังอยู่ใกล้จอ (จอสูง/การ์ดสั้น): สังเกตใหม่ให้ได้รายงานสถานะล่าสุด แล้วเติมต่อจนพ้นจอ
+        var b = document.getElementById("cards-more");
+        IO.unobserve(e.target); if (b) IO.observe(b);
+      });
+    }, { rootMargin: "600px 0px" });
+    IO.disconnect(); IO.observe(btn);
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest && e.target.closest("#cards-more");
+    if (b) { e.preventDefault(); showMore(); armMore(); }
+  });
+  if (typeof window.renderStudentsView === "function") {
+    var origSV = window.renderStudentsView;
+    window.renderStudentsView = function () { var r = origSV.apply(this, arguments); armMore(); return r; };
+  }
+
+  /* ── 4.5) งานวาดเล็ก ๆ ที่เกิดบ่อย ── */
+  // ตัวเงิน: toLocaleString("en-US") สร้างตัวจัดรูปแบบใหม่ทุกครั้ง (หน้าภาพรวมเรียกหลายร้อยครั้ง) → ใช้ตัวเดียวซ้ำ ผลเหมือนกันทุกตัวอักษร
+  if (typeof window.fmtMoney === "function" && typeof Intl !== "undefined" && Intl.NumberFormat) {
+    var NF = new Intl.NumberFormat("en-US");
+    window.fmtMoney = function (n) { return "฿" + NF.format(Math.round(num(n, 0))); };
+  }
+  // วงแหวนความคืบหน้า: เดิมบังคับจัดหน้าใหม่ทีละวง (หน้ารายคนมีหลายสิบวง) → ตั้งค่าเริ่มทุกวง จัดหน้าครั้งเดียว แล้วค่อยเล่นพร้อมกัน
+  if (typeof window.animateRings === "function" && typeof window.RING_PREV === "object") {
+    window.animateRings = function (root, entering) {
+      var still = reducedMotion(), run = [];
+      Array.prototype.forEach.call(root.querySelectorAll(".ring-arc[data-k]"), function (el) {
+        var k = el.getAttribute("data-k"), to = parseFloat(el.getAttribute("data-off")), circ = parseFloat(el.getAttribute("data-circ"));
+        var from = RING_PREV[k];
+        if (from === undefined) from = entering ? circ : to;
+        RING_PREV[k] = to;
+        if (still || Math.abs(from - to) < 0.5) return;
+        el.style.transition = "none"; el.style.strokeDashoffset = from;
+        run.push([el, to]);
+      });
+      if (!run.length) return;
+      run[0][0].getBoundingClientRect();
+      run.forEach(function (x) { x[0].style.transition = "stroke-dashoffset .75s cubic-bezier(.2,.8,.2,1)"; x[0].style.strokeDashoffset = x[1]; });
+    };
+  }
+  // รายการยาว (การ์ดบันทึก รายชื่อนักเรียน): ส่วนที่อยู่นอกจอไม่ต้องจัดหน้า/วาดจนกว่าจะเลื่อนถึง
+  var cv = document.createElement("style");
+  cv.textContent = "#cards-tail > .card, #people-rows > .acard{content-visibility:auto;contain-intrinsic-size:auto 88px;}";
+  document.head.appendChild(cv);
+
+  /* ── 5) บันทึก: ข้ามการแปลงรูปทั้งหมดเป็นข้อความ เมื่อรูปไม่เปลี่ยน ── */
+  var PH = null;                                        // { m: สำเนา key→รูป, n: จำนวน, len: ความยาวที่เก็บไว้ }
+  function photosSame() {
+    if (!PH || !S.photos || typeof S.photos !== "object") return false;
+    var ks = Object.keys(S.photos);
+    if (ks.length !== PH.n) return false;
+    for (var i = 0; i < ks.length; i++) if (PH.m[ks[i]] !== S.photos[ks[i]] || !(ks[i] in PH.m)) return false;
+    var cur = lsGet("td_photos");
+    return cur != null && cur.length === PH.len;
+  }
+  function remember() {
+    var cur = lsGet("td_photos"), m = Object.create(null);
+    if (cur == null || !S.photos || typeof S.photos !== "object") { PH = null; return; }
+    Object.keys(S.photos).forEach(function (k) { m[k] = S.photos[k]; });
+    PH = { m: m, n: Object.keys(m).length, len: cur.length };
+  }
+  function guardMayRun() {
+    // ระบบกันข้อมูลหายของแอปทำสำเนาจากที่เก็บ (รวมรูป) ตอนคาบลดฮวบ — ช่วงนั้นใช้ทางเดิมทั้งหมด
+    var n = S.lessons.length;
+    return typeof LAST_N !== "undefined" && LAST_N !== null && n < LAST_N - 2 && n < LAST_N * 0.8;
+  }
+  var origSave = window.save;
+  window.save = function () {
+    EP++; DV++;                                         // ข้อมูลอาจเปลี่ยน: ดัชนีของรอบนี้ใช้ไม่ได้แล้ว
+    var idx = -1, skip = false;
+    if (Array.isArray(window.SAVE_KEYS) && photosSame() && !guardMayRun()) {
+      for (var i = 0; i < SAVE_KEYS.length; i++) if (SAVE_KEYS[i][1] === "photos") { idx = i; break; }
+      skip = idx >= 0;
+    }
+    var removed = skip ? SAVE_KEYS.splice(idx, 1)[0] : null, r;
+    try { r = origSave.apply(this, arguments); }
+    finally { if (removed) SAVE_KEYS.splice(idx, 0, removed); }
+    EP++;
+    if (r === true) { if (!skip) remember(); } else PH = null;
+    return r;
+  };
+  window.addEventListener("storage", function (e) { if (!e.key || e.key === "td_photos") PH = null; });
+
+  /* ── 6) สำเนาสำรอง IndexedDB: รอหยุดแก้แล้วเขียนตอนว่าง ── */
+  var idle = window.requestIdleCallback ? function (fn) { requestIdleCallback(fn, { timeout: 3000 }); } : function (fn) { setTimeout(fn, 50); };
+  var pendingMirror = false;
+  window.scheduleMirror = function () {
+    clearTimeout(MIRROR_T);
+    pendingMirror = true;
+    MIRROR_T = setTimeout(function () { idle(function () { if (pendingMirror) { pendingMirror = false; writeMirror(); } }); }, 2000);
+  };
+  var origMirror = window.writeMirror;
+  window.writeMirror = function () { pendingMirror = false; return origMirror.apply(this, arguments); };
+  function flush() { if (pendingMirror) { pendingMirror = false; try { writeMirror(); } catch (e) {} } }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); });
+  window.addEventListener("pagehide", flush);
+
+  window.__speed = "on";
+})();
+</script>
+<!-- layer:02-speed.js:end -->
 <!-- layer:05-i18n.js:start -->
 <script>
 /* ชั้นเว็บแอป: เลือกภาษาไทย / English — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
@@ -9694,7 +10060,7 @@ function regenRecoveryCode() {
   // คำที่แปลแล้วมีช่องว่างท้าย/หัว = ชิ้นที่ในภาษาไทยติดกับชื่อหรือค่าที่ต่อท้ายโดยไม่เว้นวรรค (เช่น "สอนล่าสุด" + ชื่อ)
   // ใช้แยกช่วงไทยที่ติดกันเป็นก้อนเดียวตอนแสดงผล — จำกัดเฉพาะคำพวกนี้ ไม่ตัดชื่อคนมั่ว ๆ
   function index() {
-    PRE = []; SUF = [];
+    PRE = []; SUF = []; if (typeof MEMO !== "undefined") MEMO.clear();
     Object.keys(D).forEach(function (k) {
       if (k.length < 3) return;
       if (/ $/.test(D[k])) PRE.push(k);
@@ -9767,8 +10133,18 @@ function regenRecoveryCode() {
   var PLURAL = /\b1 (lessons|sessions|days|times|students|people|hours|minutes|weeks|months|items|courses|entries|devices|photos|clips)\b/g;
   var SING = { lessons: "lesson", sessions: "session", days: "day", times: "time", students: "student", people: "person", hours: "hour", minutes: "minute", weeks: "week", months: "month", items: "item", courses: "course", entries: "entry", devices: "device", photos: "photo", clips: "clip" };
   function plural(s) { return s.replace(PLURAL, function (m, w) { return "1 " + SING[w]; }); }
+  // ข้อความบนจอซ้ำกันมาก (ป้าย ปุ่ม หน่วย) — จำผลแปลไว้ ไม่ต้องไล่พจนานุกรม/แม่แบบใหม่ทุกครั้งที่วาด
+  var MEMO = new Map();
   function tr(s) {
     if (!s || !THAI.test(s)) return s;
+    var hit = MEMO.get(s);
+    if (hit !== undefined) return hit;
+    var r = tr0(s);
+    if (MEMO.size > 20000) MEMO.clear();
+    MEMO.set(s, r);
+    return r;
+  }
+  function tr0(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim().replace(/\s+/g, " ");
     if (D && D[core] != null) return lead + plural(D[core]) + trail;
     for (var t = 0; t < TPL.length; t++) if (TPL[t][0].test(core)) { core = core.replace(TPL[t][0], TPL[t][1]); if (!THAI.test(core)) return lead + plural(core) + trail; break; }
@@ -10434,7 +10810,9 @@ function regenRecoveryCode() {
     return;
   }
   function attended(name) {
-    return S.lessons.filter(function (l) { return l.student === name && attInfo(l.attendance) === ATT.present; }).length;
+    // คาบของคนนี้จากดัชนีของ 02-speed.js (ไม่ต้องไล่ทุกคาบทีละคน) — ไม่มีชั้นนั้นก็กรองแบบเดิม
+    var list = window.__lessonsOf ? __lessonsOf(name) : S.lessons.filter(function (l) { return l.student === name; });
+    return list.filter(function (l) { return attInfo(l.attendance) === ATT.present; }).length;
   }
   var inRows = false, origSummary = window.studentSummary, origRows = window.peopleRowsHtml;
   window.studentSummary = function (name) {
@@ -11092,6 +11470,10 @@ function regenRecoveryCode() {
 
   // ยังไม่ได้ตั้งเวลาปกติ: ดูจากคาบที่สอนจริงล่าสุดที่นั่น (20 คาบ) ถ้าความยาวเดียวกันเกินครึ่งก็ใช้ค่านั้น ไม่ต้องตั้งเอง
   function guessDur(p) {
+    // คำนวณครั้งเดียวต่อรอบการวาด (วางตารางจากไลน์เรียกทุกแถว ทุกครั้งที่พิมพ์)
+    return window.__memo ? __memo("guessDur:" + p.id, function () { return guessDur0(p); }) : guessDur0(p);
+  }
+  function guessDur0(p) {
     var ls = S.lessons.filter(function (l) { return l.kind === "school" && l.placeId === p.id && l.attendance !== "planned"; })
       .sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? 1 : -1; }).slice(0, 20);
     if (ls.length < 3) return 0;
@@ -11378,7 +11760,10 @@ function regenRecoveryCode() {
      • ตัวหนังสือทุกชิ้นตรวจความต่างของสีกับพื้นจริง (WCAG 4.5:1) ไม่ผ่านก็ปรับความสว่างโดยคงเฉดสีไว้
      • เส้นขอบดำบนพื้นเข้ม → เส้นสีครีม · เงาดำแข็ง → เงาสีเข้มที่ยังมองเห็นบนพื้นเข้ม
    ค่าเดิมเก็บไว้ใน data-dk ของแต่ละชิ้น สลับกลับเป็นกลางวันได้ทันทีไม่ต้องโหลดใหม่
-   รูป วิดีโอ canvas และตัวอย่างรูปส่งออก ไม่ถูกแตะ — รูปที่ส่งผู้ปกครองหน้าตาเหมือนเดิมทุกอย่าง */
+   รูป วิดีโอ canvas และตัวอย่างรูปส่งออก ไม่ถูกแตะ — รูปที่ส่งผู้ปกครองหน้าตาเหมือนเดิมทุกอย่าง 
+   ความเร็ว: แปลงเฉพาะส่วนที่เพิ่งวาด · ส่วนที่ซ่อนอยู่ (แท็บอื่น หัวข้อพับ) ข้ามไว้ แปลงตอนโผล่
+   · รายการยาวแปลงเฉพาะที่อยู่ในจอ ± 1 จอ ที่เหลือแปลงตอนเลื่อนใกล้ถึง · ไม่แปลงทั้งหน้าใหม่เมื่อคลาสของ <body> เปลี่ยน (เปิดหน้าต่าง)
+   */
 (function () {
   "use strict";
   var KEY = "td_theme", ROOT = document.documentElement;
@@ -11468,7 +11853,7 @@ function regenRecoveryCode() {
   }
   function fix(el, cache) {
     var cs = getComputedStyle(el);
-    if (cs.display === "none") { cache.set(el, effBg(el.parentElement, cache)); return; }
+    if (cs.display === "none") { cache.set(el, effBg(el.parentElement, cache)); return "hidden"; }
     var bg = rgb(cs.backgroundColor);
     if (bg && bg[3] >= 0.5) {
       var L = lum(bg), ch = chroma(bg), nb = null;
@@ -11490,61 +11875,125 @@ function regenRecoveryCode() {
       });
     }
     if (darkHere) {
-      ["top", "right", "bottom", "left"].forEach(function (side) {
+      // ส่วนใหญ่ไม่มีเส้นขอบ/เส้นรอบ: อ่านค่ารวมก่อนค่าเดียว (เดิมอ่าน 15 ค่าทุกชิ้น) — ถ้าเบราว์เซอร์ไม่ให้ค่ารวม ("") ก็อ่านทีละด้านเหมือนเดิม
+      if (cs.borderStyle !== "none") ["top", "right", "bottom", "left"].forEach(function (side) {
         if (parseFloat(cs["border-" + side + "-width"]) > 0 && cs["border-" + side + "-style"] !== "none") {
           var b = rgb(cs["border-" + side + "-color"]);
           if (b && b[3] > 0.15 && Math.max(b[0], b[1], b[2]) < 70) set(el, "border-" + side + "-color", css(C.line, b[3] < 0.99 ? Math.max(0.55, b[3]) : null));
         }
       });
-      var oc = rgb(cs.outlineColor);
-      if (parseFloat(cs.outlineWidth) > 0 && cs.outlineStyle !== "none" && oc && Math.max(oc[0], oc[1], oc[2]) < 70) set(el, "outline-color", css(C.line));
+      if (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) {
+        var oc = rgb(cs.outlineColor);
+        if (oc && Math.max(oc[0], oc[1], oc[2]) < 70) set(el, "outline-color", css(C.line));
+      }
     }
     // เงาแข็งสีดำ → เงาสีที่ยังมองเห็นบนพื้นเข้ม
     if (cs.boxShadow && cs.boxShadow !== "none" && /rgba?\(0, 0, 0/.test(cs.boxShadow) && lum(parentBg) < 0.18) {
       set(el, "box-shadow", cs.boxShadow.replace(/rgba?\(0, 0, 0(, [\d.]+)?\)/g, function (m, a) { return a && parseFloat(a.slice(2)) < 0.3 ? m : C.shadowOn; }));
     }
   }
+  /* ── รายการยาว: แปลงเฉพาะที่อยู่ในจอ/ใกล้จอ ที่เหลือแปลงตอนเลื่อนใกล้ถึง ──
+     รายการเหล่านี้ใช้ content-visibility:auto (02-speed.js) เบราว์เซอร์ไม่คำนวณส่วนนอกจอ — อ่านสีจากส่วนนั้นได้ค่าค้าง
+     จึงไม่แตะจนกว่าจะใกล้จอ แล้วบังคับให้คำนวณจริงชั่วคราวเฉพาะชิ้นที่กำลังแปลง (หน้ารายคน/บันทึกเร็วขึ้นราวครึ่งหนึ่ง) */
+  var LAZY = "#cards-tail > .card, #people-rows > .acard", NEAR = null, lazyIO = null;
+  function lazyItem(n) { var p = n.parentElement; return !!p && (p.id === "cards-tail" || p.id === "people-rows"); }
+  function lazyObserve(el) {
+    if (typeof IntersectionObserver === "undefined") return false;
+    if (!lazyIO) lazyIO = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { lazyIO.unobserve(e.target); if (on && e.target.isConnected) schedule(e.target); } });
+    }, { rootMargin: "100% 0px" });
+    lazyIO.observe(el);
+    return true;
+  }
+  function deferred(n) { return NEAR && lazyItem(n) && !NEAR.has(n) && lazyObserve(n); }
   function walk(root, cache) {
     if (root.nodeType !== 1 || SKIP[root.tagName] || (root.closest && root.closest(SKIP_SEL))) return;
+    if (deferred(root)) return;
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-      acceptNode: function (n) { return SKIP[n.tagName] || (n.matches && n.matches(SKIP_SEL)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
+      acceptNode: function (n) { return SKIP[n.tagName] || (n.matches && n.matches(SKIP_SEL)) || deferred(n) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
     });
     var n = root, own = !WRITES;
     if (own) WRITES = [];
-    while (n) { try { fix(n, cache); } catch (e) {} n = tw.nextNode(); }
+    while (n) {
+      var r = null;
+      try { r = fix(n, cache); } catch (e) {}
+      if (r === "hidden") {
+        // ส่วนที่ซ่อนอยู่ (แท็บอื่น หน้าพับ รายการที่ปิด): ข้ามทั้งก้อน แปลงตอนมันโผล่ (ดู HIDDEN ใน flush)
+        // เดิมแปลงทุกชิ้นของทุกแท็บที่ซ่อนอยู่ทุกครั้งที่สลับแท็บ
+        HIDDEN.add(n);
+        n = n === root ? null : skip(tw, root);
+      } else n = tw.nextNode();
+    }
     if (own) { var w = WRITES; WRITES = null; commit(w); }
+  }
+  function skip(tw, root) {
+    for (var cur = tw.currentNode; cur && cur !== root; cur = tw.parentNode()) {
+      var sib = tw.nextSibling();
+      if (sib) return sib;
+    }
+    return null;
   }
 
   /* ── ตามดูหน้าที่วาดใหม่ ── */
-  var mo = null, queue = [], raf = 0, on = false;
+  var mo = null, queue = [], raf = 0, on = false, HIDDEN = new Set();
   function flush() {
     raf = 0;
-    if (!on) { queue = []; return; }
+    if (!on) { queue = []; HIDDEN.clear(); return; }
+    var t0 = performance.now();
     mo.disconnect();
-    ROOT.classList.add("dk-fixing");                 // ปิด transition ระหว่างแปลง ไม่ให้เห็นพื้นขาวค่อย ๆ จางเป็นเข้ม
     var cache = new Map(), roots = queue; queue = [];
+    // ส่วนที่เคยซ่อนแล้วตอนนี้โผล่ (สลับแท็บ กางหัวข้อ หมุนจอ) → แปลงตอนนี้
+    HIDDEN.forEach(function (el) {
+      if (!el.isConnected) { HIDDEN.delete(el); return; }
+      if (getComputedStyle(el).display !== "none") { HIDDEN.delete(el); roots.push(el); }
+    });
     roots = roots.filter(function (r, i) {
       if (!r.isConnected) return false;
       for (var j = 0; j < roots.length; j++) if (j !== i && roots[j] !== r && roots[j].contains(r) && roots[j].isConnected) return false;
       return roots.indexOf(r) === i;
     });
+    // ปิด transition ระหว่างแปลง ไม่ให้เห็นพื้นขาวค่อย ๆ จางเป็นเข้ม — ใส่เฉพาะส่วนที่กำลังแปลง
+    // (เดิมใส่ที่ <html> ทำให้เบราว์เซอร์คำนวณสไตล์ใหม่ทั้งหน้า 2 รอบ ทุกครั้งที่เปิดหน้าต่าง/วาดใหม่)
+    // รายการยาว: ชิ้นที่อยู่ในจอ ± 1 จอ แปลงตอนนี้ (บังคับให้คำนวณสไตล์จริงชั่วคราว) ที่เหลือรอเลื่อนถึง
+    NEAR = new Set();
+    var vh = window.innerHeight || 800, forced = [];
+    roots.forEach(function (r) {
+      if (r.nodeType !== 1) return;
+      var items = r.matches && r.matches(LAZY) ? [r] : r.querySelectorAll ? r.querySelectorAll(LAZY) : [];
+      for (var i = 0; i < items.length; i++) { var b = items[i].getBoundingClientRect(); if ((b.width || b.height) && b.bottom > -vh && b.top < vh * 2) NEAR.add(items[i]); }   // ขนาด 0 = อยู่ในส่วนที่ซ่อน
+    });
+    NEAR.forEach(function (it) { if (lazyIO) lazyIO.unobserve(it); it.style.setProperty("content-visibility", "visible", "important"); forced.push(it); });
+    var marks = roots.some(function (r) { return r === document.body || r === ROOT; }) ? [ROOT] : roots.filter(function (r) { return r.nodeType === 1 && r.classList; });
+    marks.forEach(function (r) { r.classList.add("dk-fixing"); });
     WRITES = [];                                      // ทุกส่วนที่เปลี่ยนในเฟรมนี้: อ่านให้ครบก่อน แล้วเขียนรวดเดียว
     roots.forEach(function (r) { walk(r, cache); });
     var w = WRITES; WRITES = null; commit(w);
-    void document.body.offsetWidth;                   // ให้สีใหม่มีผลก่อนเปิด transition กลับ
-    ROOT.classList.remove("dk-fixing");
+    // ให้สีใหม่มีผล (คำนวณสไตล์) ก่อนเปิด transition กลับ — อ่านสีพอ ไม่ต้องจัดหน้าทั้งหน้า (เดิม offsetWidth)
+    if (marks.length) void getComputedStyle(marks[0]).color;
+    marks.forEach(function (r) { r.classList.remove("dk-fixing"); if (!r.classList.length && r.removeAttribute) r.removeAttribute("class"); });
+    forced.forEach(function (it) { it.style.removeProperty("content-visibility"); if (!it.getAttribute("style")) it.removeAttribute("style"); });
+    NEAR = null;
     mo.takeRecords();
     observe();
+    window.__dkMs = (window.__dkMs || 0) + (performance.now() - t0);   // เวลาแปลงสีสะสม (tools/perf-lesson.js อ่านค่านี้)
   }
   function schedule(n) { queue.push(n); if (!raf) raf = requestAnimationFrame(flush); }
-  function observe() { mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] }); }
+  function observe() { mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "open", "hidden"] }); }
   function onMut(list) {
     list.forEach(function (m) {
       if (m.type === "childList") { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) schedule(n); }); }
-      else if (m.attributeName === "class") { restoreAll(m.target); schedule(m.target); }
+      else if (m.attributeName === "class") {
+        // คลาสของ <body>/<html> (locked ตอนเปิดหน้าต่าง, fx-motion-*) ไม่เปลี่ยนสีอะไร — เดิมคืนสีแล้วแปลงใหม่ทั้งหน้า
+        // ทุกครั้งที่เปิด/ปิดหน้าต่าง (หน้าตั้งค่าช้าลง 10 เท่าในโหมดกลางคืน)
+        if (m.target === document.body || m.target === ROOT) return;
+        restoreAll(m.target); schedule(m.target);
+      }
       else schedule(m.target);
     });
   }
+  // หมุนจอ/เปลี่ยนขนาด: ส่วนที่ซ่อนตามขนาดจออาจโผล่ — ให้ flush ตรวจ HIDDEN อีกรอบ
+  var rz = 0;
+  window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { if (on && HIDDEN.size && !raf) raf = requestAnimationFrame(flush); }, 250); });
 
   function meta(c) { var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", c); }
   function apply() {
@@ -11557,6 +12006,7 @@ function regenRecoveryCode() {
       schedule(document.body);
     } else {
       if (mo) mo.disconnect();
+      if (lazyIO) lazyIO.disconnect();
       queue = [];
       ROOT.removeAttribute("data-theme"); meta("#FFFDF5");
       restoreAll(document.body);
@@ -11635,10 +12085,15 @@ function regenRecoveryCode() {
 
   /* ── ข้อมูล ── */
   function list() {
-    if (!Array.isArray(S.settings.events)) S.settings.events = [];
-    S.settings.events = S.settings.events.filter(function (e) { return e && typeof e === "object" && e.id != null && e.date; });
-    S.settings.events.forEach(function (e) { if (!Array.isArray(e.students)) e.students = []; });
-    return S.settings.events;
+    var a = S.settings.events;
+    if (!Array.isArray(a)) a = S.settings.events = [];
+    // นาฬิกาเรียกทุกวินาที: จัดระเบียบเฉพาะเมื่อมีรายการเสีย ไม่สร้างอาร์เรย์ใหม่ทุกครั้ง
+    for (var i = 0; i < a.length; i++) {
+      var e = a[i];
+      if (!e || typeof e !== "object" || e.id == null || !e.date) { a = S.settings.events = a.filter(function (x) { return x && typeof x === "object" && x.id != null && x.date; }); break; }
+    }
+    for (var j = 0; j < a.length; j++) if (!Array.isArray(a[j].students)) a[j].students = [];
+    return a;
   }
   function byId(id) { return list().filter(function (e) { return String(e.id) === String(id); })[0] || null; }
   function startOf(ev) { return new Date(ev.date + "T" + (ev.time || "00:00") + ":00"); }
@@ -11669,8 +12124,8 @@ function regenRecoveryCode() {
   function parts(ev, now) {
     var target = startOf(ev), ms = target - now;
     if (ms <= 0) return null;
-    var m = 0;
-    while (m < 240 && addMonths(now, m + 1) <= target) m++;
+    var m = Math.max(0, (target.getFullYear() - now.getFullYear()) * 12 + target.getMonth() - now.getMonth());
+    while (m > 0 && addMonths(now, m) > target) m--;              // คำนวณตรง ๆ แทนการไล่ทีละเดือน
     var rem = target - addMonths(now, m);
     var days = Math.floor(rem / 864e5), r2 = rem - days * 864e5;
     return { ms: ms, total: ms / 864e5, m: m, w: Math.floor(days / 7), d: days % 7,
@@ -11727,52 +12182,49 @@ function regenRecoveryCode() {
   /* ── นักเรียน: อีกกี่ครั้งก่อนวันงาน ── */
   function hm(d) { return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
   function counts(ev) {
+    // คำนวณครั้งเดียวต่อรอบการวาด/นาที (ภาพรวม หน้างาน หน้านักเรียน เรียกซ้ำได้ไม่เสียเวลา)
+    var key = "ev:" + ev.id + "|" + ev.date + "|" + (ev.time || "") + "|" + ev.students.join("\u0001") + "|" + todayStr() + "|" + hm(new Date()) + "|" + EN();
+    return window.__memo ? __memo(key, function () { return counts0(ev); }).slice() : counts0(ev);
+  }
+  function counts0(ev) {
     var now = new Date(), today = todayStr(), nowHM = hm(now), end = ev.date, endHM = ev.time || "";
-    var keys = ev.students.slice(), want = {}; keys.forEach(function (k) { want[k] = 1; });
-    var booked = {}, kinds = {}, hist = {}, cut = addDays(today, -56);
-    S.lessons.forEach(function (l) {
-      if (!want[l.student] || !l.date) return;
-      if (l.date >= today && l.date <= end) {
-        var k2 = l.student + "|" + l.date;
-        (kinds[k2] = kinds[k2] || {})[l.kind || "school"] = 1;
-        (booked[k2] = booked[k2] || []).push(l);
-      }
-      if (l.attendance === "present" && l.date >= cut && l.date <= today) hist[l.student] = (hist[l.student] || 0) + 1;
-    });
-    var sched = {}; (S.schedule || []).forEach(function (e) { if (want[e.student]) (sched[e.student] = sched[e.student] || []).push(e); });
+    var cap = addDays(today, 1199), last0 = end < cap ? end : cap, cut = addDays(today, -56);
+    var mine = window.__lessonsOf || function (k) { return S.lessons.filter(function (l) { return l.student === k; }); };
+    var sched = {}; (S.schedule || []).forEach(function (e) { (sched[e.student] = sched[e.student] || []).push(e); });
     function inWindow(d, t) {
       if (d === today && t && t <= nowHM) return false;
       if (d === end) return !!endHM && !!t && t < endHM;
       return true;
     }
-    var out = keys.map(function (key) {
-      var n = 0, first = null, last = null, es = sched[key] || [];
-      if (end >= today) {
-        for (var d = today, guard = 0; d <= end && guard < 1200; d = addDays(d, 1), guard++) {
-          var got = 0, k2 = key + "|" + d;
-          (booked[k2] || []).forEach(function (l) {
-            if ((l.attendance === "planned" || l.attendance === "present") && inWindow(d, l.time)) got++;
-          });
-          if (es.length) {
-            var wd = new Date(d + "T00:00:00").getDay();
-            es.forEach(function (e) {
-              if (e.day !== wd || (kinds[k2] && kinds[k2][e.kind || "school"])) return;
-              if (typeof isClosedDate === "function" && isClosedDate(d, e.kind || "school")) return;
-              if (typeof rosterSkipped === "function" && rosterSkipped(e.id, d)) return;
-              if (inWindow(d, e.time)) got++;
-            });
-          }
-          if (got) { n += got; if (!first) first = d; last = d; }
+    var t0 = new Date(today + "T00:00:00"), wd0 = t0.getDay();
+    var out = ev.students.map(function (key) {
+      var n = 0, first = null, last = null, kinds = {}, hist = 0, es = sched[key] || [];
+      function hit(d, k) { n += k; if (!first || d < first) first = d; if (!last || d > last) last = d; }
+      mine(key).forEach(function (l) {
+        if (!l.date) return;
+        if (l.attendance === "present" && l.date >= cut && l.date <= today) hist++;
+        if (l.date < today || l.date > last0) return;
+        (kinds[l.date] = kinds[l.date] || {})[l.kind || "school"] = 1;
+        if ((l.attendance === "planned" || l.attendance === "present") && inWindow(l.date, l.time)) hit(l.date, 1);
+      });
+      // ตารางประจำ: กระโดดทีละสัปดาห์ (เดิมไล่ทุกวัน)
+      if (end >= today) es.forEach(function (e) {
+        var d = new Date(t0); d.setDate(d.getDate() + (e.day - wd0 + 7) % 7);
+        for (var iso = localISO(d); iso <= last0; d.setDate(d.getDate() + 7), iso = localISO(d)) {
+          if (kinds[iso] && kinds[iso][e.kind || "school"]) continue;
+          if (typeof isClosedDate === "function" && isClosedDate(iso, e.kind || "school")) continue;
+          if (typeof rosterSkipped === "function" && rosterSkipped(e.id, iso)) continue;
+          if (inWindow(iso, e.time)) hit(iso, 1);
         }
-      }
+      });
       var est = null;
-      if (!n && !es.length && end >= today && hist[key]) {
-        var weeks = (new Date(end + "T00:00:00") - new Date(today + "T00:00:00")) / (7 * 864e5);
-        est = Math.round(hist[key] / 8 * weeks);
+      if (!n && !es.length && end >= today && hist) {
+        var weeks = (new Date(end + "T00:00:00") - t0) / (7 * 864e5);
+        est = Math.round(hist / 8 * weeks);
       }
       var slots = es.slice().sort(function (a, b) { return (a.day - b.day) || String(a.time).localeCompare(String(b.time)); })
         .map(function (e) { return (EN() ? DA_EN : DA_TH)[e.day] + " " + (e.time || ""); });
-      return { key: key, n: n, est: est, first: first, last: last, slots: slots, past: end < today };
+      return { key: key, n: end >= today ? n : 0, est: est, first: end >= today ? first : null, last: end >= today ? last : null, slots: slots, past: end < today };
     });
     out.sort(function (a, b) { return (a.est != null ? a.est : a.n) - (b.est != null ? b.est : b.n) || displayName(a.key).localeCompare(displayName(b.key), "th"); });
     return out;
@@ -11860,6 +12312,7 @@ function regenRecoveryCode() {
       var box = document.createElement("div"); box.innerHTML = sectionHtml();
       var seg = wrap.querySelector(".seg");
       wrap.insertBefore(box.firstChild, seg ? seg : wrap.firstChild);
+      if (sorted().up.length) ensureTick();
     }
     return r;
   };
@@ -11872,29 +12325,34 @@ function regenRecoveryCode() {
         '<span style="flex:1;min-width:0;"><span data-noi18n style="font-weight:700;">' + esc(ev.title) + '</span> · <b data-evmini="' + esc(ev.id) + '">' + esc(shortText(ev, new Date())) + '</b>' +
         (up.length > 1 ? '<span class="hint"> · ' + T("+ อีก " + (up.length - 1) + " งาน", "+ " + (up.length - 1) + " more") + '</span>' : '') + '</span><span>›</span></button>';
     }
+    if (html) ensureTick();
     return html + origFest.apply(this, arguments);
   };
 
-  // นาฬิกา: อัปเดตตัวเลขที่อยู่บนจอ (วินาทีละครั้งเฉพาะตอนที่มีนาฬิกาเดิน ไม่งั้นนาทีละครั้ง)
-  var lastMin = -1;
-  setInterval(function () {
-    var els = document.querySelectorAll("[data-evcd],[data-evmini],[data-evtiles]");
-    if (!els.length || document.hidden) return;
-    var now = new Date(), minute = Math.floor(now / 6e4), fine = false;
-    Array.prototype.forEach.call(els, function (el) {
-      var ev = byId(el.getAttribute("data-evcd") || el.getAttribute("data-evmini") || el.getAttribute("data-evtiles"));
-      if (!ev) return;
-      var p = parts(ev, now); if (p && p.total < 2) fine = true;
-    });
-    if (!fine && minute === lastMin) return;
-    lastMin = minute;
-    Array.prototype.forEach.call(els, function (el) {
+  // นาฬิกา: อัปเดตตัวเลขบนจอ ตรงขอบวินาที (มีนาฬิกาเดิน) หรือขอบนาที (นับเป็นวัน/ชั่วโมง)
+  // ไม่มีงานสำคัญบนจอ / แอปอยู่เบื้องหลัง = หยุด ไม่ปลุกเครื่องทุกวินาที (ประหยัดแบต) — วาดหน้าใหม่แล้วเริ่มเอง
+  var tickT = 0;
+  function clockTick() {
+    tickT = 0;
+    if (document.hidden) return;
+    // เฉพาะที่แสดงอยู่จริง (แท็บอื่นที่ซ่อนไว้ยังมีแถบงานค้างใน DOM — ไม่ต้องเดินให้)
+    var els = Array.prototype.filter.call(document.querySelectorAll("[data-evcd],[data-evmini],[data-evtiles]"), function (el) { return el.getClientRects().length > 0; });
+    if (!els.length) return;
+    var now = new Date(), fine = false, seen = new Map();
+    els.forEach(function (el) {
       var id = el.getAttribute("data-evcd") || el.getAttribute("data-evmini") || el.getAttribute("data-evtiles"), ev = byId(id);
       if (!ev) return;
+      if (!seen.has(ev)) { var p = parts(ev, now); seen.set(ev, p); if (p && p.total < 2) fine = true; }
       var html = el.hasAttribute("data-evcd") ? bigHtml(ev, now) : el.hasAttribute("data-evtiles") ? tilesHtml(ev, now) : esc(shortText(ev, now));
       if (el.innerHTML !== html) el.innerHTML = html;
     });
-  }, 1000);
+    var ms = Date.now();
+    tickT = setTimeout(clockTick, fine ? 1000 - ms % 1000 + 15 : 60000 - ms % 60000 + 15);
+  }
+  // วาดใหม่: ตั้งรอบถัดไปที่ขอบวินาทีเสมอ (อาจเพิ่งมีนาฬิกาเดินโผล่ ขณะที่รอบเดิมรอถึงนาทีหน้า)
+  function ensureTick() { clearTimeout(tickT); tickT = setTimeout(clockTick, 1000 - Date.now() % 1000 + 15); }
+  window.__evTick = ensureTick;
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) ensureTick(); });
 
   /* ── หน้างาน ── */
   var CUR = null;
@@ -11925,6 +12383,7 @@ function regenRecoveryCode() {
         '<button class="btn-g" type="button" data-ev-del style="flex:1;color:#B91C1C;">' + T("ลบงาน", "Delete") + '</button>' +
         '<button class="btn-g" type="button" data-ev-edit style="flex:2;">✎ ' + T("แก้ไขงาน", "Edit event") + '</button></div>', "560px");
     var mb = document.getElementById("modal-box"); if (mb) mb.style.paddingBottom = "0";
+    ensureTick();
   }
   window.openEvent = openEvent;
 

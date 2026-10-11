@@ -10,7 +10,9 @@
     return;
   }
   function attended(name) {
-    return S.lessons.filter(function (l) { return l.student === name && attInfo(l.attendance) === ATT.present; }).length;
+    // คาบของคนนี้จากดัชนีของ 02-speed.js (ไม่ต้องไล่ทุกคาบทีละคน) — ไม่มีชั้นนั้นก็กรองแบบเดิม
+    var list = window.__lessonsOf ? __lessonsOf(name) : S.lessons.filter(function (l) { return l.student === name; });
+    return list.filter(function (l) { return attInfo(l.attendance) === ATT.present; }).length;
   }
   var inRows = false, origSummary = window.studentSummary, origRows = window.peopleRowsHtml;
   window.studentSummary = function (name) {

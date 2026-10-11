@@ -27,10 +27,15 @@
 
   /* ── ข้อมูล ── */
   function list() {
-    if (!Array.isArray(S.settings.events)) S.settings.events = [];
-    S.settings.events = S.settings.events.filter(function (e) { return e && typeof e === "object" && e.id != null && e.date; });
-    S.settings.events.forEach(function (e) { if (!Array.isArray(e.students)) e.students = []; });
-    return S.settings.events;
+    var a = S.settings.events;
+    if (!Array.isArray(a)) a = S.settings.events = [];
+    // นาฬิกาเรียกทุกวินาที: จัดระเบียบเฉพาะเมื่อมีรายการเสีย ไม่สร้างอาร์เรย์ใหม่ทุกครั้ง
+    for (var i = 0; i < a.length; i++) {
+      var e = a[i];
+      if (!e || typeof e !== "object" || e.id == null || !e.date) { a = S.settings.events = a.filter(function (x) { return x && typeof x === "object" && x.id != null && x.date; }); break; }
+    }
+    for (var j = 0; j < a.length; j++) if (!Array.isArray(a[j].students)) a[j].students = [];
+    return a;
   }
   function byId(id) { return list().filter(function (e) { return String(e.id) === String(id); })[0] || null; }
   function startOf(ev) { return new Date(ev.date + "T" + (ev.time || "00:00") + ":00"); }
@@ -61,8 +66,8 @@
   function parts(ev, now) {
     var target = startOf(ev), ms = target - now;
     if (ms <= 0) return null;
-    var m = 0;
-    while (m < 240 && addMonths(now, m + 1) <= target) m++;
+    var m = Math.max(0, (target.getFullYear() - now.getFullYear()) * 12 + target.getMonth() - now.getMonth());
+    while (m > 0 && addMonths(now, m) > target) m--;              // คำนวณตรง ๆ แทนการไล่ทีละเดือน
     var rem = target - addMonths(now, m);
     var days = Math.floor(rem / 864e5), r2 = rem - days * 864e5;
     return { ms: ms, total: ms / 864e5, m: m, w: Math.floor(days / 7), d: days % 7,
@@ -119,52 +124,49 @@
   /* ── นักเรียน: อีกกี่ครั้งก่อนวันงาน ── */
   function hm(d) { return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
   function counts(ev) {
+    // คำนวณครั้งเดียวต่อรอบการวาด/นาที (ภาพรวม หน้างาน หน้านักเรียน เรียกซ้ำได้ไม่เสียเวลา)
+    var key = "ev:" + ev.id + "|" + ev.date + "|" + (ev.time || "") + "|" + ev.students.join("\u0001") + "|" + todayStr() + "|" + hm(new Date()) + "|" + EN();
+    return window.__memo ? __memo(key, function () { return counts0(ev); }).slice() : counts0(ev);
+  }
+  function counts0(ev) {
     var now = new Date(), today = todayStr(), nowHM = hm(now), end = ev.date, endHM = ev.time || "";
-    var keys = ev.students.slice(), want = {}; keys.forEach(function (k) { want[k] = 1; });
-    var booked = {}, kinds = {}, hist = {}, cut = addDays(today, -56);
-    S.lessons.forEach(function (l) {
-      if (!want[l.student] || !l.date) return;
-      if (l.date >= today && l.date <= end) {
-        var k2 = l.student + "|" + l.date;
-        (kinds[k2] = kinds[k2] || {})[l.kind || "school"] = 1;
-        (booked[k2] = booked[k2] || []).push(l);
-      }
-      if (l.attendance === "present" && l.date >= cut && l.date <= today) hist[l.student] = (hist[l.student] || 0) + 1;
-    });
-    var sched = {}; (S.schedule || []).forEach(function (e) { if (want[e.student]) (sched[e.student] = sched[e.student] || []).push(e); });
+    var cap = addDays(today, 1199), last0 = end < cap ? end : cap, cut = addDays(today, -56);
+    var mine = window.__lessonsOf || function (k) { return S.lessons.filter(function (l) { return l.student === k; }); };
+    var sched = {}; (S.schedule || []).forEach(function (e) { (sched[e.student] = sched[e.student] || []).push(e); });
     function inWindow(d, t) {
       if (d === today && t && t <= nowHM) return false;
       if (d === end) return !!endHM && !!t && t < endHM;
       return true;
     }
-    var out = keys.map(function (key) {
-      var n = 0, first = null, last = null, es = sched[key] || [];
-      if (end >= today) {
-        for (var d = today, guard = 0; d <= end && guard < 1200; d = addDays(d, 1), guard++) {
-          var got = 0, k2 = key + "|" + d;
-          (booked[k2] || []).forEach(function (l) {
-            if ((l.attendance === "planned" || l.attendance === "present") && inWindow(d, l.time)) got++;
-          });
-          if (es.length) {
-            var wd = new Date(d + "T00:00:00").getDay();
-            es.forEach(function (e) {
-              if (e.day !== wd || (kinds[k2] && kinds[k2][e.kind || "school"])) return;
-              if (typeof isClosedDate === "function" && isClosedDate(d, e.kind || "school")) return;
-              if (typeof rosterSkipped === "function" && rosterSkipped(e.id, d)) return;
-              if (inWindow(d, e.time)) got++;
-            });
-          }
-          if (got) { n += got; if (!first) first = d; last = d; }
+    var t0 = new Date(today + "T00:00:00"), wd0 = t0.getDay();
+    var out = ev.students.map(function (key) {
+      var n = 0, first = null, last = null, kinds = {}, hist = 0, es = sched[key] || [];
+      function hit(d, k) { n += k; if (!first || d < first) first = d; if (!last || d > last) last = d; }
+      mine(key).forEach(function (l) {
+        if (!l.date) return;
+        if (l.attendance === "present" && l.date >= cut && l.date <= today) hist++;
+        if (l.date < today || l.date > last0) return;
+        (kinds[l.date] = kinds[l.date] || {})[l.kind || "school"] = 1;
+        if ((l.attendance === "planned" || l.attendance === "present") && inWindow(l.date, l.time)) hit(l.date, 1);
+      });
+      // ตารางประจำ: กระโดดทีละสัปดาห์ (เดิมไล่ทุกวัน)
+      if (end >= today) es.forEach(function (e) {
+        var d = new Date(t0); d.setDate(d.getDate() + (e.day - wd0 + 7) % 7);
+        for (var iso = localISO(d); iso <= last0; d.setDate(d.getDate() + 7), iso = localISO(d)) {
+          if (kinds[iso] && kinds[iso][e.kind || "school"]) continue;
+          if (typeof isClosedDate === "function" && isClosedDate(iso, e.kind || "school")) continue;
+          if (typeof rosterSkipped === "function" && rosterSkipped(e.id, iso)) continue;
+          if (inWindow(iso, e.time)) hit(iso, 1);
         }
-      }
+      });
       var est = null;
-      if (!n && !es.length && end >= today && hist[key]) {
-        var weeks = (new Date(end + "T00:00:00") - new Date(today + "T00:00:00")) / (7 * 864e5);
-        est = Math.round(hist[key] / 8 * weeks);
+      if (!n && !es.length && end >= today && hist) {
+        var weeks = (new Date(end + "T00:00:00") - t0) / (7 * 864e5);
+        est = Math.round(hist / 8 * weeks);
       }
       var slots = es.slice().sort(function (a, b) { return (a.day - b.day) || String(a.time).localeCompare(String(b.time)); })
         .map(function (e) { return (EN() ? DA_EN : DA_TH)[e.day] + " " + (e.time || ""); });
-      return { key: key, n: n, est: est, first: first, last: last, slots: slots, past: end < today };
+      return { key: key, n: end >= today ? n : 0, est: est, first: end >= today ? first : null, last: end >= today ? last : null, slots: slots, past: end < today };
     });
     out.sort(function (a, b) { return (a.est != null ? a.est : a.n) - (b.est != null ? b.est : b.n) || displayName(a.key).localeCompare(displayName(b.key), "th"); });
     return out;
@@ -252,6 +254,7 @@
       var box = document.createElement("div"); box.innerHTML = sectionHtml();
       var seg = wrap.querySelector(".seg");
       wrap.insertBefore(box.firstChild, seg ? seg : wrap.firstChild);
+      if (sorted().up.length) ensureTick();
     }
     return r;
   };
@@ -264,29 +267,34 @@
         '<span style="flex:1;min-width:0;"><span data-noi18n style="font-weight:700;">' + esc(ev.title) + '</span> · <b data-evmini="' + esc(ev.id) + '">' + esc(shortText(ev, new Date())) + '</b>' +
         (up.length > 1 ? '<span class="hint"> · ' + T("+ อีก " + (up.length - 1) + " งาน", "+ " + (up.length - 1) + " more") + '</span>' : '') + '</span><span>›</span></button>';
     }
+    if (html) ensureTick();
     return html + origFest.apply(this, arguments);
   };
 
-  // นาฬิกา: อัปเดตตัวเลขที่อยู่บนจอ (วินาทีละครั้งเฉพาะตอนที่มีนาฬิกาเดิน ไม่งั้นนาทีละครั้ง)
-  var lastMin = -1;
-  setInterval(function () {
-    var els = document.querySelectorAll("[data-evcd],[data-evmini],[data-evtiles]");
-    if (!els.length || document.hidden) return;
-    var now = new Date(), minute = Math.floor(now / 6e4), fine = false;
-    Array.prototype.forEach.call(els, function (el) {
-      var ev = byId(el.getAttribute("data-evcd") || el.getAttribute("data-evmini") || el.getAttribute("data-evtiles"));
-      if (!ev) return;
-      var p = parts(ev, now); if (p && p.total < 2) fine = true;
-    });
-    if (!fine && minute === lastMin) return;
-    lastMin = minute;
-    Array.prototype.forEach.call(els, function (el) {
+  // นาฬิกา: อัปเดตตัวเลขบนจอ ตรงขอบวินาที (มีนาฬิกาเดิน) หรือขอบนาที (นับเป็นวัน/ชั่วโมง)
+  // ไม่มีงานสำคัญบนจอ / แอปอยู่เบื้องหลัง = หยุด ไม่ปลุกเครื่องทุกวินาที (ประหยัดแบต) — วาดหน้าใหม่แล้วเริ่มเอง
+  var tickT = 0;
+  function clockTick() {
+    tickT = 0;
+    if (document.hidden) return;
+    // เฉพาะที่แสดงอยู่จริง (แท็บอื่นที่ซ่อนไว้ยังมีแถบงานค้างใน DOM — ไม่ต้องเดินให้)
+    var els = Array.prototype.filter.call(document.querySelectorAll("[data-evcd],[data-evmini],[data-evtiles]"), function (el) { return el.getClientRects().length > 0; });
+    if (!els.length) return;
+    var now = new Date(), fine = false, seen = new Map();
+    els.forEach(function (el) {
       var id = el.getAttribute("data-evcd") || el.getAttribute("data-evmini") || el.getAttribute("data-evtiles"), ev = byId(id);
       if (!ev) return;
+      if (!seen.has(ev)) { var p = parts(ev, now); seen.set(ev, p); if (p && p.total < 2) fine = true; }
       var html = el.hasAttribute("data-evcd") ? bigHtml(ev, now) : el.hasAttribute("data-evtiles") ? tilesHtml(ev, now) : esc(shortText(ev, now));
       if (el.innerHTML !== html) el.innerHTML = html;
     });
-  }, 1000);
+    var ms = Date.now();
+    tickT = setTimeout(clockTick, fine ? 1000 - ms % 1000 + 15 : 60000 - ms % 60000 + 15);
+  }
+  // วาดใหม่: ตั้งรอบถัดไปที่ขอบวินาทีเสมอ (อาจเพิ่งมีนาฬิกาเดินโผล่ ขณะที่รอบเดิมรอถึงนาทีหน้า)
+  function ensureTick() { clearTimeout(tickT); tickT = setTimeout(clockTick, 1000 - Date.now() % 1000 + 15); }
+  window.__evTick = ensureTick;
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) ensureTick(); });
 
   /* ── หน้างาน ── */
   var CUR = null;
@@ -317,6 +325,7 @@
         '<button class="btn-g" type="button" data-ev-del style="flex:1;color:#B91C1C;">' + T("ลบงาน", "Delete") + '</button>' +
         '<button class="btn-g" type="button" data-ev-edit style="flex:2;">✎ ' + T("แก้ไขงาน", "Edit event") + '</button></div>', "560px");
     var mb = document.getElementById("modal-box"); if (mb) mb.style.paddingBottom = "0";
+    ensureTick();
   }
   window.openEvent = openEvent;
 

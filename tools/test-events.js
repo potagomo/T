@@ -137,8 +137,19 @@ const server = http.createServer((req, res) => {
     const r = { far: big(85001), mid: big(85002), near: big(85003), soon: big(85004), past: big(85005), tFar: tiles(85001), tSoon: tiles(85004),
       pastInDetails: !!document.querySelector('#ev-sec details [data-evcd="85005"]'), b49: big(85006), t49: tiles(85006),
       l49: Array.from(document.querySelectorAll('[data-evtiles="85006"] .ev-tile span')).map((e) => e.textContent) };
-    await tick(1300);
+    await tick(2200);
     r.soon2 = big(85004);
+    // ไม่มีงานบนจอ: นาฬิกาหยุด ไม่ปลุกเครื่องทุกวินาที
+    r.idle = await (async () => {
+      const SEL = "[data-evcd],[data-evmini],[data-evtiles]", orig = document.querySelectorAll; let n = 0;
+      document.querySelectorAll = function (q) { if (q === SEL) n++; return orig.apply(this, arguments); };
+      closeModal(); setTab("money"); renderAll(); await tick(3200);
+      const idle = n; n = 0;
+      setTab("overview"); renderAll(); await tick(2200);
+      document.querySelectorAll = orig;
+      return { idle, busy: n };
+    })();
+    setTab("overview"); renderAll(); await tick();
     // หน้าวันนี้: แถบงานที่ใกล้ที่สุด
     setTab("today"); renderAll(); await tick();
     const mini = document.querySelector("#view-today .ev-mini");
@@ -149,6 +160,7 @@ const server = http.createServer((req, res) => {
   ok(/สัปดาห์/.test(gran.mid) && !/เดือน/.test(gran.mid), "20 วัน: สัปดาห์ + วัน — “" + gran.mid + "”");
   ok(/วัน/.test(gran.near) && !/สัปดาห์/.test(gran.near), "5 วัน: วัน + ชั่วโมง — “" + gran.near + "”");
   ok(/^0[0-9]:\d\d:\d\d/.test(gran.soon) && gran.soon2 !== gran.soon, "ไม่ถึง 2 วัน: นาฬิกาเดินทีละวินาที (" + gran.soon + " → " + gran.soon2 + ")");
+  ok(gran.idle.idle <= 1 && gran.idle.busy >= 2, "ไม่มีงานบนจอ นาฬิกาหยุด ไม่ปลุกเครื่องทุกวินาที (3 วินาทีบนหน้ารายได้: " + gran.idle.idle + " ครั้ง · หน้าภาพรวม 2 วินาที: " + gran.idle.busy + " ครั้ง)");
   ok(gran.tFar[0] === "3" && gran.tFar.length === 5 && gran.tSoon[0] === "z0" && gran.tSoon[1] === "z0" && gran.tSoon[2] === "z0", "ช่องภาพรวม เดือน › สัปดาห์ › วัน › ชั่วโมง › นาที (หน่วยที่เป็นศูนย์จางลง) " + gran.tFar.join("|"));
   {
     // ตัวเลขใหญ่กับช่องด้านล่างต้องตรงกัน (เดิม: ใหญ่ "6 สัปดาห์ 6 วัน" แต่ช่อง "1 เดือน 2 สัปดาห์ 3 วัน 22:32" — ครูงง)

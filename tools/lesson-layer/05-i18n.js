@@ -60,7 +60,7 @@
   // คำที่แปลแล้วมีช่องว่างท้าย/หัว = ชิ้นที่ในภาษาไทยติดกับชื่อหรือค่าที่ต่อท้ายโดยไม่เว้นวรรค (เช่น "สอนล่าสุด" + ชื่อ)
   // ใช้แยกช่วงไทยที่ติดกันเป็นก้อนเดียวตอนแสดงผล — จำกัดเฉพาะคำพวกนี้ ไม่ตัดชื่อคนมั่ว ๆ
   function index() {
-    PRE = []; SUF = [];
+    PRE = []; SUF = []; if (typeof MEMO !== "undefined") MEMO.clear();
     Object.keys(D).forEach(function (k) {
       if (k.length < 3) return;
       if (/ $/.test(D[k])) PRE.push(k);
@@ -133,8 +133,18 @@
   var PLURAL = /\b1 (lessons|sessions|days|times|students|people|hours|minutes|weeks|months|items|courses|entries|devices|photos|clips)\b/g;
   var SING = { lessons: "lesson", sessions: "session", days: "day", times: "time", students: "student", people: "person", hours: "hour", minutes: "minute", weeks: "week", months: "month", items: "item", courses: "course", entries: "entry", devices: "device", photos: "photo", clips: "clip" };
   function plural(s) { return s.replace(PLURAL, function (m, w) { return "1 " + SING[w]; }); }
+  // ข้อความบนจอซ้ำกันมาก (ป้าย ปุ่ม หน่วย) — จำผลแปลไว้ ไม่ต้องไล่พจนานุกรม/แม่แบบใหม่ทุกครั้งที่วาด
+  var MEMO = new Map();
   function tr(s) {
     if (!s || !THAI.test(s)) return s;
+    var hit = MEMO.get(s);
+    if (hit !== undefined) return hit;
+    var r = tr0(s);
+    if (MEMO.size > 20000) MEMO.clear();
+    MEMO.set(s, r);
+    return r;
+  }
+  function tr0(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim().replace(/\s+/g, " ");
     if (D && D[core] != null) return lead + plural(D[core]) + trail;
     for (var t = 0; t < TPL.length; t++) if (TPL[t][0].test(core)) { core = core.replace(TPL[t][0], TPL[t][1]); if (!THAI.test(core)) return lead + plural(core) + trail; break; }

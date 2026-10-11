@@ -2,7 +2,7 @@
 
    ครูตั้งงานสำคัญได้ (คอนเสิร์ต สอบเกรด แข่งขัน …) พร้อมวัน เวลา สถานที่
    นับถอยหลังแบบ "ยิ่งใกล้ยิ่งละเอียด": ไกล = เดือน + สัปดาห์ › ใกล้ = สัปดาห์ + วัน › วัน + ชั่วโมง › 2 วันสุดท้ายเป็นนาฬิกาเดินทีละวินาที
-   ใต้ตัวเลขใหญ่มีช่อง เดือน › สัปดาห์ › วัน › เวลา ให้เห็นภาพรวม และแถบความคืบหน้าตั้งแต่วันที่สร้างงาน
+   ใต้ตัวเลขใหญ่มีช่อง เดือน › สัปดาห์ › วัน › ชั่วโมง › นาที (ชุดเดียวกัน) ให้เห็นภาพรวม และแถบความคืบหน้าตั้งแต่วันที่สร้างงาน
 
    เลือกนักเรียนที่เข้าร่วมได้ (ติ๊กเร็ว ๆ ค้นชื่อ กรองตามสถานที่ เลือกทั้งหมดที่เห็น) ถอนออกได้ตลอด แม้งานผ่านไปแล้ว
    แต่ละคนบอกว่า "เรียนอีกกี่ครั้งก่อนวันงาน" นับจาก
@@ -78,12 +78,16 @@
       var ago = Math.max(1, Math.round((new Date(todayStr() + "T00:00:00") - new Date(ev.date + "T00:00:00")) / 864e5));
       return { done: true, past: true, text: T("ผ่านมาแล้ว " + ago + " วัน", ago + (ago === 1 ? " day ago" : " days ago")), units: [] };
     }
-    var td = Math.floor(p.total), th = Math.floor((p.ms % 864e5) / 36e5);
-    if (p.total >= 60) return { units: [U(p.m, "เดือน", "month", "months")].concat(p.w ? [U(p.w, "สัปดาห์", "week", "weeks")] : p.d ? [U(p.d, "วัน", "day", "days")] : []) };
-    if (p.total >= 14) { var w = Math.floor(td / 7), d = td % 7; return { units: [U(w, "สัปดาห์", "week", "weeks")].concat(d ? [U(d, "วัน", "day", "days")] : []) }; }
-    if (p.total >= 2) return { units: [U(td, "วัน", "day", "days")].concat(th ? [U(th, "ชม.", "hr", "hrs")] : []) };
-    var hh = Math.floor(p.ms / 36e5);
-    return { clock: true, text: pad(hh) + ":" + pad(p.mi) + ":" + pad(p.s), units: [] };
+    // ใช้ชุดตัวเลขเดียวกับช่องด้านล่าง (เดือน › สัปดาห์ › วัน › ชั่วโมง › นาที) แสดง 2 หน่วยแรกที่ไม่เป็นศูนย์
+    // ไกล = เดือน+สัปดาห์ · ใกล้ขึ้นก็เลื่อนเป็นสัปดาห์+วัน › วัน+ชั่วโมง · 2 วันสุดท้ายเป็นนาฬิกา
+    if (p.total < 2) return { clock: true, text: pad(Math.floor(p.ms / 36e5)) + ":" + pad(p.mi) + ":" + pad(p.s), units: [] };
+    var seq = seqOf(p), i = 0;
+    while (i < seq.length - 1 && !seq[i][0]) i++;
+    return { units: [seq[i]].concat(seq[i + 1] && seq[i + 1][0] ? [seq[i + 1]] : []) };
+  }
+  function seqOf(p) {
+    return [U(p.m, "เดือน", "month", "months"), U(p.w, "สัปดาห์", "week", "weeks"), U(p.d, "วัน", "day", "days"),
+            U(p.h, "ชั่วโมง", "hour", "hours"), U(p.mi, "นาที", "minute", "minutes")];
   }
   function bigHtml(ev, now) {
     var h = headline(ev, now);
@@ -101,11 +105,9 @@
     var p = parts(ev, now);
     if (!p) return "";
     var lead = true;
-    var cells = [[p.m, T("เดือน", "months")], [p.w, T("สัปดาห์", "weeks")], [p.d, T("วัน", "days")],
-                 [pad(p.h) + ":" + pad(p.mi) + (p.total < 2 ? ":" + pad(p.s) : ""), T("เวลา", "time")]];
-    return cells.map(function (c, i) {
-      var zero = i < 3 && c[0] === 0 && lead; if (!zero) lead = false;
-      return '<div class="ev-tile' + (zero ? ' z' : '') + '"><b>' + c[0] + '</b><span>' + c[1] + '</span></div>';
+    return seqOf(p).map(function (c) {
+      var zero = c[0] === 0 && lead; if (!zero) lead = false;
+      return '<div class="ev-tile' + (zero ? ' z' : '') + '"><b>' + c[0] + '</b><span>' + esc(c[1]) + '</span></div>';
     }).join("");
   }
   function progress(ev, now) {
@@ -189,10 +191,10 @@
     ".ev-big .ev-u{font-size:15px;font-weight:600;color:#2B2B2B;}" +
     ".ev-big .ev-clock{font-size:40px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}" +
     ".ev-big .ev-clock.tick{color:#B91C1C;}" +
-    ".ev-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}" +
+    ".ev-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;}" +
     ".ev-tile{border:2px solid #000;border-radius:3px;background:#fff;text-align:center;padding:6px 2px;}" +
     ".ev-tile b{display:block;font-size:clamp(13px,3.9vw,18px);font-variant-numeric:tabular-nums;white-space:nowrap;}" +
-    ".ev-tile span{font-size:11px;color:#5A5A5A;}" +
+    ".ev-tile span{font-size:11px;color:#5A5A5A;white-space:nowrap;}" +
     ".ev-tile.z{opacity:.35;}" +
     ".ev-bar{height:8px;border:2px solid #000;border-radius:3px;background:#fff;margin-top:10px;overflow:hidden;}" +
     ".ev-bar i{display:block;height:100%;background:var(--yel,#FFD93D);}" +
@@ -314,6 +316,7 @@
       '<div class="modal-foot" style="margin-top:16px;">' +
         '<button class="btn-g" type="button" data-ev-del style="flex:1;color:#B91C1C;">' + T("ลบงาน", "Delete") + '</button>' +
         '<button class="btn-g" type="button" data-ev-edit style="flex:2;">✎ ' + T("แก้ไขงาน", "Edit event") + '</button></div>', "560px");
+    var mb = document.getElementById("modal-box"); if (mb) mb.style.paddingBottom = "0";
   }
   window.openEvent = openEvent;
 
@@ -364,6 +367,7 @@
         '<button class="btn-g" type="button" data-ev-all="0" style="flex:1;min-height:38px;">' + T("เอาออกทั้งหมดที่เห็น", "Clear all shown") + '</button></div>' +
       '<div id="ev-picklist" style="max-height:52vh;overflow-y:auto;border-top:2px solid #000;"></div>' +
       '<div class="modal-foot" style="margin-top:12px;"><button class="btn-p" type="button" data-ev-back style="flex:1;" id="ev-done"></button></div>', "520px");
+    var mb = document.getElementById("modal-box"); if (mb) mb.style.paddingBottom = "0";
     fillPicker(ev);
     var qi = document.getElementById("ev-q");
     if (qi) qi.addEventListener("input", function () { PK.q = qi.value; fillPicker(byId(id)); });
@@ -408,6 +412,7 @@
       '</div>' +
       '<div class="modal-foot" style="margin-top:16px;"><button class="btn-g" type="button" data-ev-cancel style="flex:1;">' + T("ยกเลิก", "Cancel") + '</button>' +
         '<button class="btn-p" type="button" data-evf-save style="flex:2;">' + (ev ? T("บันทึก", "Save") : T("สร้างแล้วเลือกนักเรียน", "Create & choose students")) + '</button></div>', "480px");
+    var mb = document.getElementById("modal-box"); if (mb) mb.style.paddingBottom = "0";
   }
   window.openEventForm = openForm;
   function saveForm() {

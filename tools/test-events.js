@@ -130,12 +130,13 @@ const server = http.createServer((req, res) => {
     const pad = (n) => String(n).padStart(2, "0");
     const mk = (id, date, time) => ({ id, title: "t" + id, date, time, place: "", note: "", emoji: "⭐", students: [], createdAt: new Date(Date.now() - 864e5).toISOString() });
     S.settings.events.push(mk(85001, addDays(t, 100), "10:00"), mk(85002, addDays(t, 20), "10:00"), mk(85003, addDays(t, 5), "10:00"),
-      mk(85004, localISO(soon), pad(soon.getHours()) + ":" + pad(soon.getMinutes())), mk(85005, addDays(t, -3), ""));
+      mk(85004, localISO(soon), pad(soon.getHours()) + ":" + pad(soon.getMinutes())), mk(85005, addDays(t, -3), ""), mk(85006, addDays(t, 49), "09:00"));
     save(); closeModal(); setTab("overview"); renderAll(); await tick();
     const big = (id) => document.querySelector('[data-evcd="' + id + '"]').textContent;
     const tiles = (id) => Array.from(document.querySelectorAll('[data-evtiles="' + id + '"] .ev-tile')).map((e) => (e.classList.contains("z") ? "z" : "") + e.querySelector("b").textContent);
     const r = { far: big(85001), mid: big(85002), near: big(85003), soon: big(85004), past: big(85005), tFar: tiles(85001), tSoon: tiles(85004),
-      pastInDetails: !!document.querySelector('#ev-sec details [data-evcd="85005"]') };
+      pastInDetails: !!document.querySelector('#ev-sec details [data-evcd="85005"]'), b49: big(85006), t49: tiles(85006),
+      l49: Array.from(document.querySelectorAll('[data-evtiles="85006"] .ev-tile span')).map((e) => e.textContent) };
     await tick(1300);
     r.soon2 = big(85004);
     // หน้าวันนี้: แถบงานที่ใกล้ที่สุด
@@ -148,7 +149,14 @@ const server = http.createServer((req, res) => {
   ok(/สัปดาห์/.test(gran.mid) && !/เดือน/.test(gran.mid), "20 วัน: สัปดาห์ + วัน — “" + gran.mid + "”");
   ok(/วัน/.test(gran.near) && !/สัปดาห์/.test(gran.near), "5 วัน: วัน + ชั่วโมง — “" + gran.near + "”");
   ok(/^0[0-9]:\d\d:\d\d/.test(gran.soon) && gran.soon2 !== gran.soon, "ไม่ถึง 2 วัน: นาฬิกาเดินทีละวินาที (" + gran.soon + " → " + gran.soon2 + ")");
-  ok(gran.tFar[0] === "3" && gran.tFar.length === 4 && gran.tSoon[0] === "z0" && gran.tSoon[1] === "z0" && gran.tSoon[2] === "z0", "ช่องภาพรวม เดือน › สัปดาห์ › วัน › เวลา (หน่วยที่เป็นศูนย์จางลง) " + gran.tFar.join("|"));
+  ok(gran.tFar[0] === "3" && gran.tFar.length === 5 && gran.tSoon[0] === "z0" && gran.tSoon[1] === "z0" && gran.tSoon[2] === "z0", "ช่องภาพรวม เดือน › สัปดาห์ › วัน › ชั่วโมง › นาที (หน่วยที่เป็นศูนย์จางลง) " + gran.tFar.join("|"));
+  {
+    // ตัวเลขใหญ่กับช่องด้านล่างต้องตรงกัน (เดิม: ใหญ่ "6 สัปดาห์ 6 วัน" แต่ช่อง "1 เดือน 2 สัปดาห์ 3 วัน 22:32" — ครูงง)
+    const nz = gran.t49.map((v, i) => [v.replace("z", ""), gran.l49[i]]).filter((x) => x[0] !== "0");
+    const want = nz.slice(0, 2).filter((x, i) => i === 0 || gran.t49.indexOf(x[0]) === gran.t49.findIndex((v) => v.replace("z", "") !== "0") + 1).map((x) => x[0] + x[1]).join("");
+    ok(gran.b49.replace(/^อีก/, "") === want && gran.l49.join() === "เดือน,สัปดาห์,วัน,ชั่วโมง,นาที",
+      "49 วัน: ตัวเลขใหญ่ตรงกับช่องด้านล่าง (“" + gran.b49 + "” · " + gran.t49.join("|") + ") ช่องสุดท้ายเป็น ชั่วโมง/นาที ไม่ใช่ “เวลา”");
+  }
   ok(/ผ่านมาแล้ว 3 วัน/.test(gran.past) && gran.pastInDetails, "งานที่ผ่านแล้ว: “ผ่านมาแล้ว 3 วัน” อยู่ในหมวดงานที่ผ่านมา");
   ok(/t85004/.test(gran.mini) && /\d\d:\d\d:\d\d/.test(gran.mini) && /อีก \d+ งาน/.test(gran.mini), "หน้าวันนี้: แถบงานที่ใกล้ที่สุดพร้อมนับถอยหลัง — " + gran.mini.trim());
 

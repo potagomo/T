@@ -18,7 +18,9 @@ repo นี้เป็น public จึงไม่เก็บ `input/hero.jpg
 
 ## กติกา
 - `timeline.json` เป็นที่เดียวที่กำหนดเวลา ข้อความ และลำดับช็อต — โค้ดใน `render/` เก็บเฉพาะ "หน้าตา" (สี แสง เอฟเฟกต์)
-- ห้ามเปลี่ยนสัดส่วนเวลาของแต่ละปี เส้นอารมณ์ หรือกิมมิกหลัก (ถ้วย / เลข 19→10 / ตัวต่อ) โดยไม่ถามเจ้าของงาน
+- ห้ามเปลี่ยนสัดส่วนเวลาของแต่ละปี เส้นอารมณ์ หรือกิมมิกหลัก (ภาพถ่ายจริงหัว-ท้าย / ถ้วยเหนือปลายนิ้ว / เลข 19→10 / ประโยคหลัก 4 ประโยค) โดยไม่ถามเจ้าของงาน
+- ห้ามออกแบบประติมากรรมใหม่ เปลี่ยนท่า บิดตัวอักษรบนเสื้อ หรือทำมุมกล้อง 360° ปลอม — ขยับได้แบบหุ่นเชิดและโคจรบางส่วน (±5°) เท่านั้น
+- ตัวหนังสือบนจอให้น้อยที่สุด: เลขปี + ประโยคหลัก + ตัวยึดข้อเท็จจริงไม่กี่จุด (ดู PLAN.md ข้อ 2) ห้ามกลับไปใช้ป้ายสกอร์เรียงกัน
 - ตัวหนังสือบนจอทุกบรรทัดต้องมาจากแถว ✅ ใน `FACTS.md` — จะเพิ่มข้อเท็จจริงใหม่ต้องค้นแหล่งอ้างอิงและใส่ลิงก์ก่อน
 - ห้ามเขียนว่า Messi เป็น "all-time top scorer" แบบปัจจุบันกาล (Mbappé แซงไปแล้ว 22 > 21)
 - ห้ามใช้โลโก้ FIFA/AFA/แบรนด์ หรือภาพ/ฟุตเทจจริงจากการแข่งขัน ถ้วยต้องเป็นทรงทั่วไปที่วาดเอง
@@ -37,15 +39,21 @@ python3 -m render.reel preview [--clicks]     # คลิปร่าง 540x960
 python3 -m render.reel final                  # 4K HEVC ~40 นาที (4 คอร์) → out/messi_reel_4k_hevc.mp4
 python3 -m render.reel final --from 45 --to 48   # render เฉพาะช่วง ไว้ตรวจ
 python3 tools/beatmap.py <ไฟล์เพลง>            # จับบีต → sync/beatmap.json
+python3 -m render.sfx --mux out/messi_reel_4k_hevc.mp4   # เสียงประกอบ → out/sfx_bed.wav + ไฟล์ _sfx.mp4
+python3 cover/make_cover.py                   # ภาพปก Reel → out/cover_1080x1920.png
+python3 tools/make_board.py                   # หน้า Production Storyboard → out/board/ + STORYBOARD.md
 ```
 ครั้งแรกที่ render จะแยกชั้นภาพ (~15 วินาที) แล้วเก็บไว้ใน `.cache/`
 
 ## แผนที่โค้ด
 - `render/timeline.py` อ่าน timeline + beatmap, ดึงขอบช็อตเข้า downbeat, ดึงเหตุการณ์เข้าบีต
 - `render/hero.py` แยกภาพเป็นหุ่นเชิดตาม `input/hero_rig.json` (GrabCut + เติมช่องลำแสงตามแนวรัศมี + ทำเลข 19)
-- `render/compose.py` ประกอบเฟรม: ฉากหลัง → ถ้วย → หุ่น → อนุภาค → เกรดสี → ตัวหนังสือ → เอฟเฟกต์จอ
+- `render/compose.py` ประกอบเฟรม: (ภาพถ่ายจริง หรือ) ฉากหลัง+สนาม → ถ้วย → หุ่น → อนุภาค → เกรดสี → ตัวหนังสือ → เอฟเฟกต์จอ
   แต่ละ `"do"` ใน timeline มีเมธอดชื่อใกล้กัน (trophy, number_state, odometer, score, counter, confetti ...)
 - `render/looks.py` สี/แสง/เนื้อภาพของแต่ละยุค + ตำแหน่งช่องตัวหนังสือ
 - `render/gfx.py` ถ้วย ดาว ป้าย C ตัวหนังสือ แฟลช · `render/fx.py` เกรดสี บลูม เกรน ทีวีเก่า กลิตช์
 - `render/reel.py` คำสั่งทั้งหมด (render หลาย process แล้วต่อไฟล์)
+- `render/sfx.py` เสียงประกอบสังเคราะห์ ใช้เวลาจาก timeline เดียวกับภาพ
+- `cover/` ภาพปก Reel (`PHILOSOPHY.md` = แนวคิด, `make_cover.py` = ตัววาด)
+- `tools/make_board.py` + `tools/board_template.html` หน้า Production Storyboard (เผยแพร่ที่ https://claude.ai/artifact/HiiqrRSHR3MRRPJUF9dU9z — publish ทับ url เดิม)
 - `tools/beatmap.html` หน้าเว็บจับบีตบนมือถือ (เผยแพร่ที่ https://claude.ai/artifact/A6149Q4q1vrV3D4TPmceg5 — แก้ไฟล์นี้แล้ว publish ด้วย url เดิม)

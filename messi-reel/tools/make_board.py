@@ -116,6 +116,27 @@ def main():
         f.write(page)
     print(os.path.join(out, "index.html"))
 
+    # ---------- STORYBOARD.md (เข้า git — ไม่มีภาพ เพราะภาพมาจากงานเลโก้ของคนอื่นและ repo เป็น public)
+    md = [f"# Storyboard — {tl['meta']['title']}", "",
+          "ไฟล์นี้สร้างอัตโนมัติจาก `timeline.json` ด้วย `python3 tools/make_board.py` — อย่าแก้มือ แก้ที่ timeline แล้วสั่งใหม่",
+          f"ภาพตัวอย่างทุกช็อต: `python3 -m render.reel storyboard` → `storyboard/` (ไม่อยู่ใน git) · หน้าเว็บฉบับมีภาพ: ดูลิงก์ใน TASKS.md",
+          f"{tl['meta']['duration']:g} วินาที · {fps} fps · {len(shots)} ช็อต · เวลาเพลง = 4:00 + เวลาคลิป", ""]
+    md += ["| บท | เวลา | สัดส่วน |", "|---|---|---|"]
+    md += [f"| {g['short']} {g['name']} | {g['start']:g}–{g['start'] + g['len']:g} s | {g['len']:g} s · {g['pct']:g}% |" for g in segs]
+    md += [""]
+    for s in shots:
+        n = s.get("notes", {})
+        ch_short, ch_name = CHAPTER[s["era"]]
+        d = s["end"] - s["start"]
+        md += [f"## {s['id']} · {s['name']}", "",
+               f"**{ch_short} {ch_name}** · {s['start']:.1f}–{s['end']:.1f} s ({d:.1f} s · {round(d * fps)} เฟรม) · เพลง {song_time(s['start'])}–{song_time(s['end'])}", ""]
+        md += [f"- **{lbl}**: {n.get(k, '–')}" for k, lbl in FIELDS]
+        txt = on_screen(s)
+        md += [f"- **ตัวหนังสือบนจอ**: {' · '.join(txt) if txt else 'ไม่มี'}", ""]
+    with open(os.path.join(ROOT, "STORYBOARD.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(md))
+    print(os.path.join(ROOT, "STORYBOARD.md"))
+
 
 if __name__ == "__main__":
     main()

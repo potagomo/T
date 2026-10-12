@@ -3,92 +3,88 @@
 วิธีใช้ไฟล์นี้ (สำหรับ Claude ทุก session)
 1. อ่าน `CLAUDE.md` → `PLAN.md` → ไฟล์นี้
 2. หยิบงานแรกที่ยังไม่ติ๊ก และไม่ได้ติดรอเจ้าของงาน (`รอ: เจ้าของงาน`)
-3. ทำให้ผ่าน "เกณฑ์เสร็จ" ทุกข้อ แล้วติ๊ก `[x]` พร้อมเขียนบันทึกสั้น ๆ ในส่วน "บันทึกงาน" ท้ายไฟล์
+3. ทำให้ผ่าน "เกณฑ์เสร็จ" ทุกข้อ แล้วติ๊ก `[x]` และเขียนบันทึกสั้น ๆ ในส่วน "บันทึกงาน" ท้ายไฟล์
 4. commit พร้อมข้อความที่บอกว่าทำ WP ไหน
-5. งานที่ต้องให้เจ้าของงานตัดสินใจ (เปลี่ยนสัดส่วน อารมณ์ ข้อความ) ให้ถามก่อน ห้ามเดา
+5. งานที่ต้องให้เจ้าของงานตัดสินใจ (สัดส่วน อารมณ์ ข้อความ) ให้ถามก่อน ห้ามเดา
+
+ลิงก์ที่ใช้บ่อย
+- Production Storyboard (หน้าเว็บมีภาพทุกช็อต): https://claude.ai/artifact/HiiqrRSHR3MRRPJUF9dU9z — สร้างใหม่ด้วย `python3 tools/make_board.py` แล้ว publish ทับ url เดิม
+- Politik Beat Map (จับบีตบนมือถือ): https://claude.ai/artifact/A6149Q4q1vrV3D4TPmceg5
 
 สถานะ: `[x]` เสร็จ · `[ ]` ยังไม่ทำ · `[~]` ทำไปบางส่วน
 
 ---
 
-## WP-0 วางระบบ + Storyboard v1 `[x]`
-- [x] ตรวจข้อเท็จจริง 2006–2026 → `FACTS.md`
-- [x] แผนงาน → `PLAN.md` · ลำดับช็อตและข้อความ → `timeline.json`
-- [x] แยกภาพเป็นหุ่นเชิด 5 ชิ้น → `input/hero_rig.json` + `render/hero.py` (เลข 19 ทำจากเลข 0 บนเสื้อ)
-- [x] ตัว render → `render/` (ภาพนิ่ง สตอรีบอร์ด คลิปร่าง 4K HEVC)
-- [x] Storyboard 24 ช็อต → `STORYBOARD.md` + `storyboard/`
-- [x] เครื่องมือจับบีต → `tools/beatmap.html` (เปิดบนมือถือ: https://claude.ai/artifact/A6149Q4q1vrV3D4TPmceg5) + `tools/beatmap.py`
-- [x] 4K HEVC v1 (ยังไม่ลงบีต) → `out/messi_reel_4k_hevc.mp4` (ไม่อยู่ใน git)
+## WP-0 วางระบบ + v1 `[x]`
+ข้อเท็จจริง (FACTS.md) · rig 5 ชั้น + เลข 19 · ตัว render · เครื่องมือจับบีต · storyboard v1
+
+## WP-0b v2 ตามบรีฟ "The Last Dance of a Generation" `[x]`
+- [x] เปิด/ปิดด้วยภาพถ่ายจริง · 24 fps · อัฒจันทร์ ลูกบอล เงาบังหน้า แสงความทรงจำ · โคจรบางส่วน
+- [x] ตัวหนังสือเหลือเลขปี + ประโยคหลัก 4 ประโยค + ตัวยึดข้อเท็จจริง · ถ้วย 2022 กลายเป็นดาวดวงที่ 3
+- [x] บันทึกการผลิต 10 หัวข้อทุกช็อตใน `timeline.json` → `STORYBOARD.md` + หน้าเว็บ Production Storyboard
+- [x] เสียงประกอบ `render/sfx.py` · ภาพปก `cover/`
+- [x] 4K HEVC v2 (เวลาตามแผน ยังไม่ลงบีต) → `out/messi_reel_4k_hevc.mp4` + `_sfx.mp4`
 
 ## WP-1 จับบีตเพลงจริง `[ ]` รอ: เจ้าของงาน
-ทำโดยเจ้าของงาน ใช้เวลา ~5 นาที
-1. เปิดลิงก์ Politik Beat Map บนมือถือ → เลือกไฟล์เพลง Politik ในเครื่อง (เริ่ม 4:00 ยาว 79 วินาที)
-2. กดเล่น ฟังว่าเสียงเคาะตรงกับเพลงไหม ถ้าไม่ตรงใช้ปุ่ม ÷2 / ×2 / เลื่อน ±20ms
-3. ปักหมุดตอนเพลงเปลี่ยนอารมณ์ (เบาลง เร่ง พีค เปียโนเข้า คอร์ดสุดท้าย)
+1. เปิด Politik Beat Map บนมือถือ → เลือกไฟล์ Politik (เริ่ม 4:00 ยาว 79 วินาที)
+2. กดเล่น ฟังว่าเสียงเคาะตรงไหม ถ้าไม่ตรงใช้ ÷2 / ×2 / เลื่อน ±20ms
+3. ปักหมุดจุดที่เพลงเปลี่ยนอารมณ์ (เบาลง เร่ง พีค เปียโนเข้า คอร์ดสุดท้าย)
 4. กด "คัดลอกผล" แล้ววางในแชตกับ Claude
 
-ทางเลือก: ถ้าแนบไฟล์เพลงให้ Claude ได้โดยตรง ให้ Claude รัน `python3 tools/beatmap.py <ไฟล์>` แทน
-(ไฟล์เพลงเก็บนอก repo เท่านั้น ห้าม commit)
+ทางเลือก: แนบไฟล์เพลงให้ Claude แล้วรัน `python3 tools/beatmap.py <ไฟล์>` (ไฟล์เพลงเก็บนอก repo เท่านั้น)
 
 เกณฑ์เสร็จ: มี `sync/beatmap.json` ที่ `source` ไม่ใช่ DEMO และมี `beats` อย่างน้อย 60 จุด
 
 ## WP-2 ลงจังหวะ (sync pass) `[ ]` ต่อจาก WP-1
-1. บันทึก JSON ที่ได้เป็น `sync/beatmap.json` (ตรวจว่าเป็น JSON ถูกต้อง, `song_in` ≈ 240, `duration` ≈ 79)
-2. `python3 -m render.reel report` ดูว่าขอบช็อตขยับเท่าไร (คอลัมน์ snap) — ไม่ควรเกิน ±0.6s
-3. ดูหมุด (markers) เทียบกับอารมณ์ในแผน (`PLAN.md` ข้อ 3)
-   - ถ้าพีคของเพลงตรงกับช่วง 2022 (36–52s) หรือ Monumental (68–74s) อยู่แล้ว → ไม่ต้องแก้
-   - ถ้าไม่ตรง → เสนอทางเลือก 2–3 แบบให้เจ้าของงานเลือก (เช่นขยับขอบยุค ±1–2s) ห้ามแก้เองเงียบ ๆ
-   - หมุด `last_chord` ควรอยู่ใกล้ 77.9s (เริ่มเฟดดำ) ถ้าห่างเกิน 0.5s ให้ขยับ `fade_out` ใน S24 ไปตรงคอร์ด
-4. `python3 -m render.reel preview --clicks` → ได้ `out/preview_clicks.mp4` ที่มีเสียงเคาะตามบีต
-   ดูด้วยตาว่า: เลขปีหมุนลงบีต · สกอร์กระแทกลงบีต · แขนกระตุกลงบีต · เลข 19→10 พลิกลงบีต
-5. `python3 -m render.reel storyboard` แล้ว commit
+1. บันทึก JSON เป็น `sync/beatmap.json` (ตรวจ `song_in` ≈ 240, `duration` ≈ 79)
+2. `python3 -m render.reel report` — คอลัมน์ snap ไม่ควรเกิน ±0.6s และไม่มีช็อตสั้นกว่า 1.5s
+3. เทียบหมุดกับเส้นอารมณ์ (`PLAN.md` ข้อ 3 และคอลัมน์ "ความสัมพันธ์กับเพลง" ใน STORYBOARD.md)
+   - ถ้าพีคใหญ่ของเพลงอยู่ช่วง 45–50s (S17) และช่วงอุ่นท้ายเพลงอยู่ใน S23 อยู่แล้ว → ไม่ต้องแก้
+   - ถ้าไม่ตรง → เสนอทางเลือก 2–3 แบบ (เช่นขยับขอบบท ±1–2s) ให้เจ้าของงานเลือก ห้ามแก้เงียบ ๆ
+   - หมุด `last_chord` ควรอยู่ใกล้ 78.2s (เริ่มเฟดดำ) ถ้าห่างเกิน 0.5s ให้ขยับ `fade_out` ใน S24
+4. `python3 -m render.reel preview --clicks` แล้วดูว่า: เลขปีหมุนลงบีต · 19→10 ลงบีต · 113' ลง accent · ถ้วยแตะที่ลงบีต · ไฟสนามเปิดตามบีต
+5. `python3 -m render.reel storyboard` · `python3 tools/make_board.py --status-sync "ลงบีตแล้ว"` แล้ว publish หน้า board ทับ url เดิม
 
-เกณฑ์เสร็จ: report ไม่มีช็อตสั้นกว่า 1.5s · preview_clicks ดูแล้วเหตุการณ์หลักลงบีตทุกจุด · ส่ง preview_clicks ให้เจ้าของงานดู
+เกณฑ์เสร็จ: report ผ่าน · preview_clicks ส่งให้เจ้าของงานดูแล้ว · หน้า board แสดงตารางเวลาจริง
 
-## WP-3 ขัดเกลาภาพ (polish) `[ ]` ทำได้เลย ไม่ต้องรอ
-แก้ทีละข้อ ดูภาพนิ่งก่อน/หลัง (`python3 -m render.reel still <วินาที>`) ทุกข้อ
-- [ ] ถ้วย: เพิ่มรายละเอียดโลหะ (แสงสะท้อนวิ่ง) ให้ดูแพงขึ้น แต่ยังเป็นถ้วยทั่วไป ไม่ลอกแบบถ้วยจริง (`render/gfx.py` → `_trophy_base`)
-- [ ] พื้นล่างของยุค 2022/2026 ออกโทนน้ำตาลเหมือนผนัง → ไล่สีให้เป็นแสงสนามกลางคืน (`render/looks.py` bg_bottom)
-- [ ] S05 ตอนเลขพลิก ทำเป็นป้ายพลิก (ครึ่งบนพับลง) แทนการค่อย ๆ ทับ (`render/compose.py` → `draw_puppet` ส่วน flip)
-- [ ] S23 ไฟมือถือ: ให้มีบางดวงโบกซ้ายขวา และหนาแน่นขึ้นด้านล่าง
-- [ ] S24 ตัวต่อลอยขึ้น: ให้หมุนแบบ 3 มิติ (ย่อกว้างตามมุม) และเรืองแสงทองจาง ๆ ตอนลอยสูง
-- [ ] ตรวจทุกช็อตว่าตัวหนังสือไม่ชนกัน ไม่ทับนิ้ว อ่านออกบนพื้นสว่าง (โดยเฉพาะ S16, S17, S19)
-- [ ] ตรวจคำบนจอเทียบ `FACTS.md` ทุกบรรทัด (สะกด เครื่องหมาย – en dash ในสกอร์)
-เกณฑ์เสร็จ: storyboard ใหม่ + ภาพก่อน/หลังของแต่ละข้อ ส่งให้เจ้าของงานดู
+## WP-3 ขัดเกลาภาพ `[ ]` ทำได้เลย
+ดูภาพนิ่งก่อน/หลัง (`python3 -m render.reel still <วินาที>`) ทุกข้อ
+- [ ] ถ้วย: แสงสะท้อนโลหะวิ่ง ให้ดูแพงขึ้น แต่ยังเป็นถ้วยทรงทั่วไป (`render/gfx.py` → `_trophy_base`)
+- [ ] S05 เลขพลิกแบบป้ายพลิก (ครึ่งบนพับลง) แทนการค่อย ๆ ทับ (`render/compose.py` → `draw_puppet` ส่วน flip)
+- [ ] S23 ไฟมือถือ: บางดวงโบก และหนาแน่นขึ้นด้านล่าง
+- [ ] อัฒจันทร์: เพิ่มเสาไฟสนาม 4 ต้นแบบเงา (ปี 2014 และ 2022)
+- [ ] ตรวจทุกช็อตว่าตัวหนังสือไม่ชนกัน ไม่ทับนิ้ว อ่านออกบนพื้นสว่าง (โดยเฉพาะ S17 S18)
+เกณฑ์เสร็จ: storyboard ใหม่ + ภาพก่อน/หลัง ส่งให้เจ้าของงานดู
 
-## WP-4 ตัวจริง 4K HEVC `[ ]` ต่อจาก WP-2 (+WP-3 ถ้าทำ)
-1. `python3 -m render.reel final` (~40 นาทีบนเครื่อง 4 คอร์ — รันแบบ background)
-2. QC อัตโนมัติ:
-   `ffprobe -v error -show_entries stream=codec_name,codec_tag_string,profile,width,height,pix_fmt,r_frame_rate,color_primaries:format=duration,size -of compact out/messi_reel_4k_hevc.mp4`
-   ต้องได้: hevc · hvc1 · Main · 2160x3840 · yuv420p · 30/1 · bt709 · duration 79.0
-3. QC ด้วยตา: ดึงภาพ 1 เฟรม/วินาทีมาดูเป็นแผ่น (`ffmpeg -i ... -vf "fps=1,scale=150:266,tile=16x5"`) หาเฟรมดำ เฟรมกระตุก ตัวหนังสือเพี้ยน
-4. ทำไฟล์เล็กไว้ส่งดูในแชต: `ffmpeg -i out/messi_reel_4k_hevc.mp4 -vf scale=1080:1920 -c:v libx264 -crf 22 out/review_1080p.mp4`
-เกณฑ์เสร็จ: ผ่าน QC ทั้งสองแบบ · ส่งไฟล์ให้เจ้าของงาน (ดู WP-5)
+## WP-4 ตัวจริง 4K HEVC (หลังลงบีต) `[ ]` ต่อจาก WP-2
+1. `python3 -m render.reel final` (~40 นาที บน 4 คอร์ — รันแบบ background)
+2. `python3 -m render.sfx --mux out/messi_reel_4k_hevc.mp4`
+3. QC อัตโนมัติ: `ffprobe -v error -show_entries stream=codec_name,codec_tag_string,profile,width,height,pix_fmt,r_frame_rate,color_primaries:format=duration,size -of compact out/messi_reel_4k_hevc_sfx.mp4`
+   ต้องได้ hevc · hvc1 · Main · 2160x3840 · yuv420p · 24/1 · bt709 · 79.0s · มี aac
+4. QC ด้วยตา: แผ่นภาพ 1 เฟรม/วินาที (`ffmpeg -i ... -vf "fps=1,scale=150:266,tile=16x5"`) หาเฟรมดำ ตัวหนังสือเพี้ยน ตัวอักษรบนเสื้อผิด
+5. คลิปตรวจ 1080p: `ffmpeg -i out/messi_reel_4k_hevc_sfx.mp4 -vf scale=1080:1920 -c:v libx264 -crf 21 -c:a copy out/review_1080p.mp4`
 
 ## WP-5 ส่งมอบ `[ ]`
-- ส่ง `out/review_1080p.mp4` ในแชตให้ดูก่อน
-- ไฟล์ 4K ใหญ่ (หลายร้อย MB) ห้ามใส่ git — ส่งผ่านช่องทางที่ session นั้นรองรับ แล้วบอกขนาดไฟล์
-- แนบวิธีโพสต์ IG จาก `PLAN.md` ข้อ 6 (เลือกเพลง Politik เริ่ม 4:00 ในแอป IG)
-- แนะนำภาพปก (cover) = เฟรม S17 (≈48.6s) หรือ S24 (≈77.4s) ส่งเป็น PNG ด้วย `python3 -m render.reel still 48.6 --size final`
+- ส่ง `out/review_1080p.mp4` ให้ดูในแชตก่อน แล้วส่งไฟล์ 4K (`_sfx.mp4`) + `out/cover_1080x1920.png`
+- ไฟล์ 4K ห้ามใส่ git · บอกขนาดไฟล์ · แนบวิธีโพสต์ IG จาก `PLAN.md` ข้อ 6
 
 ## WP-6 ภาพต้นฉบับความละเอียดสูง `[ ]` ไม่บังคับ · รอ: เจ้าของงาน
-- ภาพตอนนี้กว้าง 1439 px ต้องขยาย ~2.6 เท่าที่ 4K
-- ถ้าเจ้าของงานมีไฟล์ใหญ่กว่า หรือขยายด้วยแอป Upscayl (ฟรี, โมเดล Real-ESRGAN ×4)
-  → วางทับ `input/hero.jpg` (ต้องเป็นภาพเดียวกัน กรอบเดียวกัน) → ลบ `.cache/` → render ใหม่
-- `hero_rig.json` ใช้ต่อได้ (พิกัดปรับตามขนาดเอง) แต่ต้องดูภาพแยกชั้นอีกครั้งว่าขอบยังเนียน
+ไฟล์ใหญ่กว่า หรือขยายด้วย Upscayl (Real-ESRGAN ×4) → วางทับ `input/hero.jpg` (ภาพเดียวกัน กรอบเดียวกัน)
+→ ลบ `.cache/` → render ใหม่ → ตรวจภาพแยกชั้นอีกครั้ง (rig ปรับพิกัดตามขนาดเอง)
 
 ## WP-7 แทรกภาพเคลื่อนไหวจาก AI `[ ]` ไม่บังคับ · ต้องถามเจ้าของงานก่อน
-ถ้าอยากให้บางช็อตขยับแบบสมจริง (เช่นตอนถ้วยลงมา หุ่นหันหน้าเล็กน้อย) ใช้ image-to-video
-(Kling / Runway / Veo / Luma) กับ `input/hero.jpg` แล้วนำคลิปมาแทรก
-- พรอมต์ตั้งต้น (อังกฤษ): "LEGO brick mosaic of a footballer seen from behind wearing a sky-blue and white striped number 10 shirt, both index fingers pointing to the sky, bricks catch stadium light, subtle stop-motion movement, camera slowly pushes in, golden confetti, cinematic, 9:16"
-- ต้องเพิ่ม action ใหม่ `clip` ใน `render/compose.py` (วางวิดีโอแทนหุ่นในช่วงเวลานั้น + เกรดสีเดียวกัน)
-- ข้อควรระวัง: AI มักเปลี่ยนเลข/ตัวอักษรบนเสื้อ ต้องตรวจทุกเฟรม
+เวอร์ชันนี้ตั้งใจไม่ใช้ AI image-to-video (เสี่ยงตัวอักษรบนเสื้อเพี้ยน รูปทรงเลโก้ละลาย)
+ถ้าเจ้าของงานอยากลอง: ใช้ Kling / Runway / Veo กับ `input/hero.jpg` สร้างคลิปสั้น 2–3 วินาที
+- พรอมต์: "Physical LEGO brick mosaic sculpture of a footballer seen from behind, sky-blue and white striped number 10 shirt, both index fingers pointing up, completely static object, only the camera slowly pushes in, soft stadium light moving across the plastic bricks, shallow depth of field, 9:16"
+- พรอมต์ห้าม: "moving limbs, changing text, melting, morphing, extra fingers, human skin, new letters"
+- ต้องเพิ่ม action `clip` ใน `render/compose.py` และตรวจตัวอักษรบนเสื้อทุกเฟรม
 
-## WP-8 เวอร์ชันภาษาไทย `[ ]` ไม่บังคับ
-คัดลอก `timeline.json` เป็น `timeline.th.json` แปลข้อความ ใช้ฟอนต์ไทย (เพิ่มคีย์ใน `render/gfx.py` → `FONT_FILES`)
-และเพิ่มตัวเลือก `--timeline` ใน `render/reel.py`
+## WP-8 ปรับเสียงประกอบกับเพลงจริง `[ ]` ต่อจาก WP-1
+เมื่อมี beatmap: เลื่อนเสียงกระแทก/สวิตช์ไฟ/หัวใจให้ตรงบีต (ใช้เวลาจาก timeline อยู่แล้ว) และลดเสียงฝูงชนช่วงที่เพลงเบา
+(`energy` ใน beatmap) ให้เพลงเด่นเสมอ — ฟังเทียบในแอป IG ก่อนโพสต์
 
 ---
 
 ## บันทึกงาน
-- 2026-10-12 · WP-0 เสร็จ · Storyboard v1 + คลิปร่าง + 4K v1 (ยังไม่ลงบีต) · ภาพหลัก `input/hero.jpg` จากเจ้าของงาน
+- 2026-10-12 · WP-0 · v1 storyboard + คลิปร่าง (30 fps)
+- 2026-10-12 · WP-0b · v2 ตามบรีฟใหม่: ภาพถ่ายจริงหัว-ท้าย, 24 fps, สนาม, ลูกบอล, โคจรบางส่วน, ประโยคหลัก, เสียงประกอบ, ภาพปก, หน้า Production Storyboard

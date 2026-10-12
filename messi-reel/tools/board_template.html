@@ -1,0 +1,397 @@
+<title>The Last Dance Storyboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Playfair+Display:ital,wght@1,400&display=swap">
+<style>
+/* layout: a film-production call sheet — summary strip on top, then the reel as a vertical film strip of shot cards (frame left, notes right; stacked on phones) */
+:root {
+  --bg: #0b1222;         /* stadium night */
+  --surface: #111b31;
+  --raise: #17233e;
+  --line: #24365a;
+  --fg: #edf2fa;
+  --muted: #9aabc8;
+  --accent: #3a82cc;     /* albiceleste, validated for charts on the dark surface */
+  --gold: #b98410;       /* chart line, validated */
+  --gold-ink: #f2c14e;   /* gold used only for large display type */
+  --good: #3fae7a;
+  --wait: #d79b2a;
+  --band: rgba(255,255,255,.035);
+  --display: "Anton", "Impact", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans Thai", "Noto Sans Thai", "Leelawadee UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef2f8; --surface: #ffffff; --raise: #f5f7fb; --line: #d3dbe8; --fg: #0e1830; --muted: #4d5c78;
+    --accent: #2c6fb8; --gold: #a8740a; --gold-ink: #8a5d00; --good: #1f7a50; --wait: #9a6400; --band: rgba(14,24,48,.04);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eef2f8; --surface: #ffffff; --raise: #f5f7fb; --line: #d3dbe8; --fg: #0e1830; --muted: #4d5c78;
+  --accent: #2c6fb8; --gold: #a8740a; --gold-ink: #8a5d00; --good: #1f7a50; --wait: #9a6400; --band: rgba(14,24,48,.04);
+  color-scheme: light;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body { font: 15px/1.65 var(--body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 64px; display: grid; gap: 40px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font: 400 clamp(36px, 7.4vw, 72px)/0.95 var(--display); letter-spacing: .005em; }
+h1 .sub { display: block; color: var(--gold-ink); }
+h2 { font: 400 clamp(26px, 4.6vw, 38px)/1.05 var(--display); letter-spacing: .01em; }
+h2 .n { color: var(--muted); margin-right: .35em; }
+h3 { font: 600 18px/1.3 var(--body); }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+.eyebrow { font: 500 12px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--fg); font-size: 16px; }
+.note { color: var(--muted); font-size: 13.5px; }
+section { display: grid; gap: 16px; min-width: 0; }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 13px var(--mono); }
+nav a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+nav a:hover, nav a:focus-visible { color: var(--fg); }
+
+/* summary strip */
+.specs { display: flex; flex-wrap: wrap; gap: 8px; }
+.spec { font: 500 13px var(--mono); padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; font-variant-numeric: tabular-nums; }
+.status { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.st { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--good); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.st.wait { border-left-color: var(--wait); }
+.st b { font-size: 14px; }
+.st span { color: var(--muted); font-size: 13px; }
+.spine { display: grid; gap: 6px; padding-left: 14px; border-left: 2px solid var(--line); }
+.spine p { font: italic 400 20px/1.45 "Playfair Display", Georgia, "Times New Roman", serif; }
+.spine p small { font: 500 12px var(--mono); color: var(--muted); font-style: normal; margin-left: .6em; }
+
+/* chapter bar (single neutral hue, 2px surface gaps; the farewell is the one highlighted segment) */
+.bar { display: flex; gap: 2px; height: 22px; }
+.seg { background: var(--line); border-radius: 0; }
+.seg:first-child { border-radius: 4px 0 0 4px; }
+.seg:last-child { border-radius: 0 4px 4px 0; }
+.seg.hi { background: var(--accent); }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; font: 13px var(--mono); font-variant-numeric: tabular-nums; }
+.legend li { display: flex; gap: 8px; align-items: baseline; white-space: nowrap; border-bottom: 1px solid var(--line); padding-block: 4px; }
+.legend li b { font-family: var(--body); font-weight: 600; min-width: 3.2em; }
+.legend li span:last-child { color: var(--muted); margin-left: auto; }
+.legend li.hi b { color: var(--accent); }
+
+/* emotion arc chart */
+.chart { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px 4px; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.grid-line { stroke: var(--line); stroke-width: 1; }
+.era-band { fill: var(--band); }
+.axis-text { fill: var(--muted); font: 12px var(--mono); }
+.era-text { fill: var(--muted); font: 600 12px var(--body); }
+.arc-line { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.arc-area { fill: var(--gold); opacity: .10; }
+.arc-dot { fill: var(--gold); stroke: var(--surface); stroke-width: 2; }
+.arc-dot.on { r: 6; }
+.cross { stroke: var(--muted); stroke-width: 1; }
+.tip { position: absolute; pointer-events: none; background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; max-width: 240px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.tip strong { display: block; font: 500 16px var(--mono); }
+.tip .k { display: inline-block; width: 14px; height: 2px; background: var(--gold); vertical-align: middle; margin-right: 6px; }
+details summary { cursor: pointer; color: var(--muted); font-size: 13.5px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 13px; width: 100%; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:nth-child(2), td:nth-child(3) { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* shot cards = film strip */
+.strip { display: grid; gap: 14px; }
+.shot { display: grid; grid-template-columns: minmax(120px, 210px) 1fr; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.frame { margin: 0; }
+.frame img { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 6px; background: #000; }
+.body { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.shot header { display: grid; gap: 4px; }
+.sid { font: 500 14px var(--mono); color: var(--muted); margin-right: .3em; }
+.chip { font: 600 11px var(--mono); padding: 2px 7px; border-radius: 4px; background: var(--raise); border: 1px solid var(--line); color: var(--fg); letter-spacing: .04em; }
+.chip.ch-e2026, .chip.ch-outro { border-color: var(--accent); }
+.tc { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; }
+.f { min-width: 0; }
+dt { font: 500 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+dd { margin: 2px 0 0; font-size: 14px; }
+.ost .lbl { font: 500 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ost ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ost li { font: 500 13px var(--body); padding: 3px 8px; border: 1px dashed var(--line); border-radius: 5px; }
+.ost li.none { color: var(--muted); border-style: solid; }
+
+/* steps, assets */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 10px; align-items: baseline; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.steps li::before { counter-increment: s; content: counter(s, upper-alpha); font: 400 22px var(--display); color: var(--muted); }
+.steps li div { min-width: 0; }
+.steps li p { color: var(--muted); font-size: 13.5px; }
+.pill { font: 600 12px var(--body); padding: 2px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--good); color: var(--good); }
+.pill.wait { border-color: var(--wait); color: var(--wait); }
+.pill.opt { border-color: var(--line); color: var(--muted); }
+figure.dia { margin: 0; display: grid; gap: 8px; justify-items: center; }
+figure.dia svg { width: 100%; max-width: 520px; height: auto; color: var(--fg); }
+figure.dia figcaption { color: var(--muted); font-size: 13.5px; max-width: 60ch; text-align: center; }
+.code { font: 13px/1.6 var(--mono); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+
+@media (max-width: 640px) {
+  .shot { grid-template-columns: 1fr; }
+  .frame img { max-width: 260px; margin-inline: auto; }
+  dl { grid-template-columns: 1fr; }
+  .steps li { grid-template-columns: 1.8em 1fr; }
+  .steps li .pill { grid-column: 2; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:14px">
+    <p class="eyebrow">Production storyboard · v2 · LEGO tribute</p>
+    <h1>MESSI <span class="sub">The Last Dance of a Generation</span></h1>
+    <div class="specs">
+      <span class="spec">9:16 · 2160×3840</span><span class="spec">HEVC · Main · BT.709</span><span class="spec">{{FPS}} fps · {{FRAMES}} เฟรม</span>
+      <span class="spec">{{DUR}} s · {{NSHOTS}} ช็อต</span><span class="spec">Politik 4:00–5:19</span>
+    </div>
+    <div class="status" aria-label="สถานะงาน">
+      <div class="st"><b>Storyboard v2</b><span>24 ช็อต เรนเดอร์จากตัวจริง</span></div>
+      <div class="st"><b>คลิปร่าง 540×960</b><span>เต็มเรื่อง 79 วินาที</span></div>
+      <div class="st"><b>4K HEVC master</b><span>{{STATUS_4K}}</span></div>
+      <div class="st"><b>Sound design</b><span>สังเคราะห์ใหม่ทั้งหมด วางใต้เพลง</span></div>
+      <div class="st wait"><b>ลงบีตเพลงจริง</b><span>{{STATUS_SYNC}}</span></div>
+    </div>
+    <nav aria-label="สารบัญ"><ul>
+      <li><a href="#direction">ทิศทาง</a></li><li><a href="#structure">โครงเรื่อง</a></li><li><a href="#board">สตอรีบอร์ด</a></li>
+      <li><a href="#music">ลงจังหวะเพลง</a></li><li><a href="#pipeline">ขั้นตอนผลิต</a></li><li><a href="#assets">asset</a></li>
+      <li><a href="#delivery">ส่งมอบ</a></li><li><a href="#facts">ข้อเท็จจริง</a></li>
+    </ul></nav>
+  </header>
+
+  <section id="direction">
+    <h2><span class="n">1</span>ทิศทาง</h2>
+    <p class="lede">เรายืนอยู่ข้างหลังเขา ภาพหลักคือประติมากรรม LEGO ที่ Messi หันหลัง ชูนิ้วชี้ขึ้นฟ้าทั้งสองมือ หนังเปิดด้วยภาพถ่ายนั้นตรง ๆ ไม่แตะต้องเลย แล้วให้โลกของฟุตบอลโลกทั้ง 6 ครั้งค่อย ๆ ตื่นขึ้นรอบวัตถุจริง ทั้งสนามที่ใหญ่ขึ้นตามปี แสงที่เปลี่ยนตามยุค ลูกบอล และคอนเฟตตี และมีถ้วยที่ลอยอยู่ตรงที่นิ้วชี้ไปเสมอ ปี 2014 ถ้วยลอยหนีไป ปี 2022 ถ้วยลงมาหาเขาแล้วกลายเป็นดาวดวงที่ 3 ปี 2026 ถ้วยสลายเป็นแสงลอยขึ้นฟ้า ตัวประติมากรรมไม่ถูกออกแบบใหม่ ขยับได้เพียงแบบหุ่นเชิดที่แยกชั้นจากภาพจริง (แขน หัว ลำแสง) แล้วจบด้วยการกลับไปที่ภาพถ่ายเดิม เงียบสนิท กล้องดันเข้าหาเลข 10</p>
+    <div class="spine" aria-label="ประโยคหลักของเรื่อง">
+      <p>A generation watched him dream.<small>2006</small></p>
+      <p>A generation watched him suffer.<small>2014</small></p>
+      <p>A generation watched him conquer the world.<small>2022</small></p>
+      <p>And now, a generation learns to say goodbye.<small>2026</small></p>
+      <p>Gracias, Leo.<small>ภาพสุดท้าย</small></p>
+    </div>
+    <p class="note">ตัวหนังสือบนจอลดลงจากเวอร์ชันแรกราว 35 จุดเหลือราว 15 จุด เหลือเฉพาะเลขปี ประโยคหลัก 4 ประโยค และตัวยึดข้อเท็จจริงไม่กี่จุด (AGE 18 / 39, 113', 21 ประตู, วันที่ของนัดสำคัญ) ไม่มีป้ายสกอร์เรียงกัน</p>
+  </section>
+
+  <section id="structure">
+    <h2><span class="n">2</span>โครงเรื่องและเส้นอารมณ์</h2>
+    <p>สัดส่วนเวลาตามบรีฟ: 2006 น้อยที่สุด 2014 เป็นยอดอารมณ์แรก 2018 ถอยลง 2022 ใหญ่กว่าทุกปีก่อนหน้า และบทอำลา 2026 รวมตอนจบได้เวลามากที่สุด (27 วินาที)</p>
+    <div class="bar" role="img" aria-label="สัดส่วนเวลาของแต่ละบท บท 2026 ยาวที่สุด">{{BAR}}</div>
+    <ul class="legend">{{LEGEND}}</ul>
+    <div class="chart" id="chartbox">
+      <svg id="arc" viewBox="0 0 440 280" role="img" tabindex="0" aria-label="เส้นอารมณ์ตามแผน ขึ้นลงสลับกัน ต่ำสุดที่นาที 113 ปี 2014 สูงสุดที่แชมป์ปี 2022 แล้วลงมาสงบตอนจบ"></svg>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <p class="note">เส้นนี้คือเจตนาในการออกแบบ ไม่ใช่ค่าที่วัดได้ (+1 = ชัยชนะ · −1 = อกหัก) แตะหรือเลื่อนบนกราฟเพื่อดูแต่ละช็อต เมื่อได้ไฟล์เพลงจะเพิ่มกราฟพลังงานของเพลงจริงไว้ใต้เส้นนี้ ใช้แกนเวลาเดียวกัน</p>
+    <details><summary>ดูเป็นตาราง</summary><div class="tbl"><table><thead><tr><th>ช็อต</th><th>เวลา (s)</th><th>ค่า</th><th>อารมณ์</th></tr></thead><tbody>{{TABLE_ROWS}}</tbody></table></div></details>
+  </section>
+
+  <section id="board">
+    <h2><span class="n">3</span>สตอรีบอร์ด {{NSHOTS}} ช็อต</h2>
+    <p class="note">ทุกภาพเป็นเฟรมที่เรนเดอร์จากตัวจริง เวลาตอนนี้เป็นเวลาตามแผน และจะขยับเข้าบีตเมื่อได้ beatmap จากเพลงจริง เวลาเพลงคือเวลาในเพลง Politik ถ้าเริ่มคลิปที่ 4:00</p>
+    <div class="strip">{{CARDS}}</div>
+  </section>
+
+  <section id="music">
+    <h2><span class="n">4</span>แผนลงจังหวะเพลง</h2>
+    <p><b>สถานะ:</b> ยังไม่ได้รับไฟล์เพลง จึงยังไม่มีการอ้าง BPM ตำแหน่งบีต หรือโครงท่อนเพลงใด ๆ เวลาทุกช็อตเป็นเวลาตามแผนที่รอปรับ</p>
+    <ul class="plain">
+      <li>วิเคราะห์จากเพลงจริงได้ 2 ทาง: เปิด <a href="https://claude.ai/artifact/A6149Q4q1vrV3D4TPmceg5" target="_blank" rel="noopener">Politik Beat Map</a> บนมือถือ (วิเคราะห์ในเครื่อง ไม่อัปโหลดเพลง) หรือแนบไฟล์เพลงให้ Claude แล้วรัน <code>tools/beatmap.py</code></li>
+      <li>ผลที่ได้มีแค่ตัวเลข: เวลาบีต downbeat ระดับพลังงาน 10 ค่าต่อวินาที และหมุดที่คุณปักเอง (เบาลง เร่ง พีค เปียโนเข้า คอร์ดสุดท้าย)</li>
+      <li>ขอบช็อตเลื่อนเข้า downbeat ที่ใกล้ที่สุดไม่เกิน 0.6 วินาที เหตุการณ์สำคัญ (เลขปีหมุน เลขพลิก 113' ถ้วยแตะที่) เลื่อนเข้าบีตไม่เกิน 0.35 วินาที เนื้อในช็อตยืดหดตามสัดส่วน</li>
+      <li>ไม่ได้ตัดทุกบีต จังหวะที่ลงบีตมีเฉพาะขอบช็อตกับเหตุการณ์หลัก ส่วน S01, S07, S11 และ S24 ตั้งใจให้นิ่ง ไม่มีอะไรขยับตามบีตเลย</li>
+      <li>ถ้าหมุดบอกว่าโครงเพลงไม่ตรงกับเส้นอารมณ์ (เช่นพีคใหญ่ไม่ได้อยู่ช่วง 45–50 วินาที) Claude จะเสนอการขยับขอบบท 2–3 แบบให้คุณเลือกก่อนแก้</li>
+      <li>หลังวิเคราะห์ จะได้ตารางตัดต่อ (edit list) ที่เป็นเวลาจริงทุกช็อต (<code>python3 -m render.reel report</code>) และคลิปร่างที่มีเสียงเคาะตามบีตไว้เช็กด้วยตา</li>
+    </ul>
+  </section>
+
+  <section id="pipeline">
+    <h2><span class="n">5</span>ขั้นตอนผลิต</h2>
+    <figure class="dia">
+      <svg viewBox="0 0 360 600" role="img" aria-label="ภาพถ่ายถูกแยกเป็นหุ่นเชิด 5 ชั้น ประกอบเฟรมตาม timeline ที่ดึงเข้าบีตจาก beatmap แล้วเข้ารหัส HEVC 4K รวมกับเสียงประกอบ ก่อนใส่เพลงใน IG">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path></marker>
+          <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3a82cc"></path></marker>
+        </defs>
+        <g fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="8" y="10" width="104" height="52" rx="6"></rect>
+          <rect x="128" y="10" width="104" height="52" rx="6"></rect>
+          <rect x="248" y="10" width="104" height="52" rx="6" stroke="#3a82cc" stroke-dasharray="5 4"></rect>
+          <rect x="8" y="118" width="164" height="52" rx="6"></rect>
+          <rect x="70" y="226" width="220" height="60" rx="6" stroke-width="2"></rect>
+          <rect x="8" y="350" width="164" height="52" rx="6"></rect>
+          <rect x="188" y="350" width="164" height="52" rx="6"></rect>
+          <rect x="70" y="456" width="220" height="52" rx="6"></rect>
+          <rect x="70" y="540" width="220" height="52" rx="6"></rect>
+        </g>
+        <g fill="currentColor" font-family="IBM Plex Sans Thai, system-ui, sans-serif" font-size="12" text-anchor="middle">
+          <text x="60" y="33" font-weight="600">ภาพถ่ายของคุณ</text><text x="60" y="50" opacity=".7" font-size="11">hero.jpg + rig</text>
+          <text x="180" y="33" font-weight="600">เรื่อง + เวลา</text><text x="180" y="50" opacity=".7" font-size="11">timeline.json</text>
+          <text x="300" y="33" font-weight="600">บีตเพลงจริง</text><text x="300" y="50" opacity=".7" font-size="11">beatmap.json · รอ</text>
+          <text x="90" y="141" font-weight="600">แยกชั้นหุ่นเชิด</text><text x="90" y="158" opacity=".7" font-size="11">ลำแสง แขน เสื้อ หัว · 19</text>
+          <text x="180" y="252" font-weight="600">ประกอบเฟรม 2.5D</text><text x="180" y="270" opacity=".7" font-size="11">สนาม แสง ถ้วย ตัวหนังสือ</text>
+          <text x="90" y="373" font-weight="600">เข้ารหัส x265</text><text x="90" y="390" opacity=".7" font-size="11">2160×3840 · 24 fps</text>
+          <text x="270" y="373" font-weight="600">เสียงประกอบ</text><text x="270" y="390" opacity=".7" font-size="11">sfx.py · 48 kHz</text>
+          <text x="180" y="479" font-weight="600">MP4 HEVC + เสียงประกอบ</text><text x="180" y="496" opacity=".7" font-size="11">master สำหรับอัปโหลด</text>
+          <text x="180" y="563" font-weight="600">IG Reels</text><text x="180" y="580" opacity=".7" font-size="11">ใส่ Politik ในแอป เริ่ม 4:00</text>
+        </g>
+        <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#ah)">
+          <line x1="60" y1="62" x2="76" y2="116"></line>
+          <line x1="90" y1="170" x2="150" y2="224"></line>
+          <line x1="180" y1="62" x2="180" y2="224"></line>
+          <line x1="150" y1="286" x2="100" y2="348"></line>
+          <line x1="210" y1="286" x2="262" y2="348"></line>
+          <line x1="100" y1="402" x2="150" y2="454"></line>
+          <line x1="262" y1="402" x2="210" y2="454"></line>
+          <line x1="180" y1="508" x2="180" y2="538"></line>
+        </g>
+        <line x1="300" y1="62" x2="222" y2="224" stroke="#3a82cc" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ahb)"></line>
+        <g fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity=".8">
+          <text x="18" y="96">masks · layers</text>
+          <text x="174" y="140" text-anchor="end">ช็อต · ข้อความ</text>
+          <text x="284" y="122" fill="#3a82cc">ดึงขอบช็อต</text><text x="284" y="136" fill="#3a82cc">เข้า downbeat</text>
+          <text x="20" y="324">1,896 เฟรม</text>
+          <text x="244" y="324">เวลาเดียวกับภาพ</text>
+          <text x="40" y="436">วิดีโอ</text>
+          <text x="262" y="436">AAC stereo</text>
+        </g>
+      </svg>
+      <figcaption>เส้นประสีฟ้าคือขั้นเดียวที่ยังรออยู่ เมื่อได้ beatmap จากเพลงจริง ตัว render จะตั้งเวลาใหม่ทั้งเรื่องแล้วเรนเดอร์ซ้ำ ส่วนอื่นไม่ต้องแก้</figcaption>
+    </figure>
+    <div class="tbl"><table>
+      <thead><tr><th>วิธี</th><th>ใช้ที่ช็อต</th><th>เหตุผล</th></tr></thead>
+      <tbody>
+        <tr><td>ภาพถ่ายต้นฉบับ + กล้อง</td><td>S01, ช่วงท้าย S24</td><td>ให้คนดูเห็นวัตถุจริงก่อนและหลังโลกในหนัง</td></tr>
+        <tr><td>2.5D หุ่นเชิด + parallax</td><td>S02–S24</td><td>ขยับได้โดยไม่เปลี่ยนรูปทรง ลายเสื้อ หรือตัวอักษรของงานจริง</td></tr>
+        <tr><td>โคจรบางส่วน (±3–5°)</td><td>S15, S17, S21, S23</td><td>ภาพถ่ายมีมุมเดียว หมุนรอบ 360° แบบสมจริงไม่ได้ จึงใช้การเลื่อนชั้นความลึกแทน</td></tr>
+        <tr><td>กราฟิกจากโค้ด</td><td>สนาม ไฟ ไฟมือถือ ลูกบอล ถ้วย ดาว ป้าย C คอนเฟตตี</td><td>คุมได้ทุกพิกเซล ไม่มีโลโก้ ไม่มีภาพจากการแข่งขันจริง</td></tr>
+        <tr><td>AI image-to-video</td><td>ไม่ใช้ในเวอร์ชันนี้</td><td>เสี่ยงทำให้ตัวอักษรบนเสื้อเพี้ยนและรูปทรงเลโก้ละลาย เก็บไว้เป็นทางเลือก (TASKS WP-7)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="assets">
+    <h2><span class="n">6</span>asset ที่ใช้</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>asset</th><th>สถานะ</th><th>ที่มา</th></tr></thead>
+      <tbody>
+        <tr><td>ภาพประติมากรรม 1439×1168</td><td><span class="pill">ได้แล้ว</span></td><td>จากคุณ · ไม่อยู่ใน git เพราะ repo เป็นสาธารณะ</td></tr>
+        <tr><td>โครงหุ่น 5 ชั้น + หลังเสื้อเลข 19</td><td><span class="pill">เสร็จ</span></td><td>เส้นขอบที่ลากเอง เกลาด้วย GrabCut · เลข 9 ทำจากตัวต่อจริงบนเสื้อ</td></tr>
+        <tr><td>สนาม ไฟสนาม ไฟมือถือ 5,200 ดวง</td><td><span class="pill">เสร็จ</span></td><td>โค้ด (render/compose.py)</td></tr>
+        <tr><td>ลูกบอล ถ้วยทรงทั่วไป ดาว ป้าย C</td><td><span class="pill">เสร็จ</span></td><td>โค้ด (render/gfx.py)</td></tr>
+        <tr><td>ฟอนต์ Anton · Inter · Playfair Display</td><td><span class="pill">เสร็จ</span></td><td>สัญญาอนุญาต OFL</td></tr>
+        <tr><td>เสียงประกอบ (ฝูงชน ชัตเตอร์ ลมวูบ ตัวต่อ หัวใจ ปรบมือ นกหวีด)</td><td><span class="pill">เสร็จ</span></td><td>สังเคราะห์ใหม่ (render/sfx.py) ไม่มีเสียงของใคร</td></tr>
+        <tr><td>beatmap จากเพลงจริง</td><td><span class="pill wait">รอคุณ</span></td><td>Politik Beat Map หรือ tools/beatmap.py</td></tr>
+        <tr><td>ภาพต้นฉบับความละเอียดสูงกว่า</td><td><span class="pill opt">ไม่บังคับ</span></td><td>ช่วยให้ 4K คมขึ้น (ตอนนี้ขยายราว 2.6 เท่า)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="delivery">
+    <h2><span class="n">7</span>แผนลงมือและส่งมอบ</h2>
+    <ol class="steps">
+      <li><div><b>ตรวจภาพต้นฉบับ</b><p>JPEG 1439×1168 พื้นดำ มุมหลัง นิ้วชี้สองข้าง ปลอกแขนน้ำเงินแขนซ้าย แขนขวาสัก ลำแสงฟ้า-เขียว · ข้อจำกัด: มีมุมเดียว และต้องขยายสำหรับ 4K</p></div><span class="pill">เสร็จ</span></li>
+      <li><div><b>วิเคราะห์เพลง</b><p>ต้องใช้ไฟล์เพลงที่คุณมี</p></div><span class="pill wait">รอคุณ</span></li>
+      <li><div><b>ออกแบบเรื่อง</b><p>{{NSHOTS}} ช็อต เส้นอารมณ์ และประโยคหลัก 4 ประโยค</p></div><span class="pill">เสร็จ</span></li>
+      <li><div><b>ออกแบบการเคลื่อนไหว</b><p>ภาพถ่ายจริง + 2.5D + กราฟิกจากโค้ด</p></div><span class="pill">เสร็จ</span></li>
+      <li><div><b>สร้าง asset</b><p>ชั้นหุ่น สนาม ถ้วย ลูกบอล ดาว เสียงประกอบ</p></div><span class="pill">เสร็จ</span></li>
+      <li><div><b>ตัดต่อ / เรนเดอร์</b><p>v2 เรนเดอร์ตามเวลาแผน · เวอร์ชันลงบีตตามมาเมื่อได้ beatmap</p></div><span class="pill">v2 เสร็จ</span></li>
+      <li><div><b>ตรวจคุณภาพ</b><p>ffprobe (ขนาด โคเดก fps ความยาว) + แผ่นภาพทีละวินาทีหาเฟรมดำ ข้อความเพี้ยน ตัวอักษรบนเสื้อ</p></div><span class="pill">ทำทุกรอบ</span></li>
+      <li><div><b>ส่งมอบ</b><p>master 4K HEVC (มีเสียงประกอบ) + คลิปตรวจ 1080p</p></div><span class="pill">ดูสถานะด้านบน</span></li>
+    </ol>
+    <p><b>ค่าส่งออกถ้าจะต่อในโปรแกรมตัดต่อ</b> (Premiere, Resolve, CapCut)</p>
+    <div class="code">ขนาด      2160 × 3840 (9:16)        เฟรมเรต  24 fps คงที่
+โคเดก     HEVC / H.265 Main 8-bit 4:2:0 · tag hvc1 · BT.709
+คุณภาพ    CRF 18 หรือ VBR 40–60 Mbps · keyframe ทุก 2 วินาที
+เสียง     AAC 48 kHz stereo 256 kbps · เพลงเป็นหลัก · เสียงประกอบต่ำกว่าเพลง 10–14 dB</div>
+    <p><b>โพสต์ IG:</b> ส่งไฟล์เข้ามือถือแบบไม่บีบอัด → สร้าง Reel → เลือกวิดีโอ → เพลง → ค้น "Politik" → เลื่อนจุดเริ่มไปที่ 4:00 → ลดเสียงต้นฉบับ (เสียงประกอบ) ให้อยู่ใต้เพลง → ดูพรีวิวก่อนโพสต์</p>
+  </section>
+
+  <section id="facts">
+    <h2><span class="n">8</span>ข้อเท็จจริงที่ใช้บนจอ</h2>
+    <ul class="plain">
+      <li>2006: อายุ 18 · เบอร์ 19 · ประตูแรกในบอลโลก (ชนะเซอร์เบียและมอนเตเนโกร 6–0)</li>
+      <li>2010: เปลี่ยนเป็นเบอร์ 10 · ไม่ได้ยิงทั้งทัวร์นาเมนต์ · ตกรอบ 8 ทีม</li>
+      <li>2014: กัปตัน · นัดชิงที่ Maracanã แพ้เยอรมนี 0–1 ต่อเวลา ประตูนาที 113</li>
+      <li>2018: ตกรอบ 16 ทีมที่ Kazan</li>
+      <li>2022: แพ้นัดแรก · 7 ประตู · ชนะนัดชิงที่ Lusail (18.12.2022) ดวลจุดโทษ · ดาวดวงที่ 3</li>
+      <li>2026: อายุ 39 · ยิงประตูที่ 17 แซงสถิติ 16 ของ Klose · รวม 21 ประตูในบอลโลก · ชนะน็อกเอาต์ 4 นัด · นัดชิง 19.07.2026 แพ้สเปน 0–1 ต่อเวลา · ประกาศอำลา 31.08.2026 · นัดอำลาที่ Monumental 06.10.2026</li>
+    </ul>
+    <p class="note">ตรวจเมื่อ 12 ต.ค. 2026 · แหล่งข่าวหลัก: <a href="https://www.nbcnewyork.com/world-cup/spain-argentina-final-messi-yamal-score/6527556/" target="_blank" rel="noopener">NBC New York</a> · <a href="https://www.cnn.com/2026/08/31/sport/lionel-messi-argentina-national-team" target="_blank" rel="noopener">CNN</a> · <a href="https://www.aljazeera.com/sports/2026/10/7/lionel-messis-last-game-for-argentina-ends-in-triumph-and-tears" target="_blank" rel="noopener">Al Jazeera</a> · <a href="https://www.aljazeera.com/sports/2026/6/22/lionel-messi-scores-brace-as-argentina-beat-austria-2-0-at-world-cup-2026" target="_blank" rel="noopener">Al Jazeera (สถิติ)</a> · รายละเอียดครบใน FACTS.md ของโปรเจกต์ · ไม่เขียนว่าเป็นดาวซัลโวสูงสุดตลอดกาลแบบปัจจุบัน เพราะ Mbappé แซงไปแล้ว</p>
+  </section>
+</div>
+
+<script>
+(() => {
+  const DATA = {{CHART_DATA}};
+  const ERAS = {{ERA_DATA}};
+  const DUR = {{DUR}};
+  const svg = document.getElementById("arc"), tip = document.getElementById("tip"), box = document.getElementById("chartbox");
+  const NS = "http://www.w3.org/2000/svg";
+  const L = 40, R = 430, T = 30, B = 246;
+  const X = t => L + (t / DUR) * (R - L), Y = v => T + (1 - (v + 1) / 2) * (B - T);
+  const el = (n, a, parent = svg) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); parent.appendChild(e); return e; };
+  ERAS.forEach((e, i) => {
+    if (i % 2 === 0) el("rect", { x: X(e.t0), y: T - 18, width: X(e.t1) - X(e.t0), height: B - T + 18, class: "era-band" });
+    const tx = el("text", { x: (X(e.t0) + X(e.t1)) / 2, y: T - 6, "text-anchor": "middle", class: "era-text" });
+    tx.textContent = (X(e.t1) - X(e.t0)) > 24 ? e.short : "";
+  });
+  [[1, "+1 ชัยชนะ"], [0, "0"], [-1, "−1 อกหัก"]].forEach(([v, lab]) => {
+    el("line", { x1: L, x2: R, y1: Y(v), y2: Y(v), class: "grid-line" });
+    const t = el("text", { x: L - 6, y: Y(v) + 4, "text-anchor": "end", class: "axis-text" });
+    t.textContent = v === 0 ? "0" : (v > 0 ? "+1" : "−1");
+  });
+  [0, 20, 40, 60, 79].forEach(s => { const t = el("text", { x: X(s), y: B + 18, "text-anchor": "middle", class: "axis-text" }); t.textContent = s + " s"; });
+  const pts = DATA.map(d => [X((d.t0 + d.t1) / 2), Y(d.v)]);
+  const path = "M" + pts.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" L");
+  el("path", { d: path + ` L${pts[pts.length - 1][0].toFixed(1)},${Y(0)} L${pts[0][0].toFixed(1)},${Y(0)} Z`, class: "arc-area" });
+  el("path", { d: path, class: "arc-line" });
+  const cross = el("line", { x1: 0, x2: 0, y1: T - 18, y2: B, class: "cross", visibility: "hidden" });
+  const dots = pts.map(p => el("circle", { cx: p[0], cy: p[1], r: 4, class: "arc-dot" }));
+  // ป้ายเฉพาะจุดสูงสุด/ต่ำสุด
+  const lo = DATA.reduce((a, d, i) => d.v < DATA[a].v ? i : a, 0), hi = DATA.reduce((a, d, i) => d.v > DATA[a].v ? i : a, 0);
+  [[lo, 18, "113'"], [hi, 20, "แชมป์"]].forEach(([i, dy, lab]) => {
+    const t = el("text", { x: pts[i][0], y: pts[i][1] + dy, "text-anchor": "middle", class: "axis-text" }); t.textContent = lab;
+  });
+  let cur = -1;
+  function show(i) {
+    if (i < 0 || i >= DATA.length) return;
+    cur = i;
+    const d = DATA[i], p = pts[i];
+    cross.setAttribute("x1", p[0]); cross.setAttribute("x2", p[0]); cross.setAttribute("visibility", "visible");
+    dots.forEach((c, j) => c.setAttribute("r", j === i ? 6 : 4));
+    tip.replaceChildren();
+    const s = document.createElement("strong"); s.textContent = (d.v > 0 ? "+" : d.v < 0 ? "−" : "") + Math.abs(d.v).toFixed(2);
+    const k = document.createElement("span"); k.className = "k";
+    const n = document.createElement("div"); n.append(k, document.createTextNode(`${d.id} ${d.name} · ${d.t0.toFixed(1)}–${d.t1.toFixed(1)} s`));
+    const e = document.createElement("div"); e.textContent = d.emo; e.style.color = "var(--muted)";
+    tip.append(s, n, e);
+    tip.hidden = false;
+    const r = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
+    const px = r.left - br.left + p[0] / 440 * r.width, py = r.top - br.top + p[1] / 280 * r.height;
+    const w = tip.offsetWidth, left = Math.min(Math.max(8, px - w / 2), br.width - w - 8);
+    tip.style.left = left + "px";
+    tip.style.top = Math.max(4, py - tip.offsetHeight - 14) + "px";
+  }
+  function hide() { tip.hidden = true; cross.setAttribute("visibility", "hidden"); dots.forEach(c => c.setAttribute("r", 4)); }
+  svg.addEventListener("pointermove", ev => {
+    const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * 440;
+    const t = (x - L) / (R - L) * DUR;
+    let i = DATA.findIndex(d => t >= d.t0 && t < d.t1);
+    if (i < 0) i = t < 0 ? 0 : DATA.length - 1;
+    show(i);
+  });
+  svg.addEventListener("pointerleave", hide);
+  svg.addEventListener("focus", () => show(cur < 0 ? 0 : cur));
+  svg.addEventListener("blur", hide);
+  svg.addEventListener("keydown", ev => {
+    if (ev.key === "ArrowRight") { ev.preventDefault(); show(Math.min(DATA.length - 1, cur + 1)); }
+    if (ev.key === "ArrowLeft") { ev.preventDefault(); show(Math.max(0, cur - 1)); }
+  });
+})();
+</script>

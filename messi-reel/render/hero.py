@@ -235,6 +235,7 @@ class Puppet:
         self.layers["head"] = dict(rgba=mk(rgb, al["head"]), pivot=P(rig["head"]["pivot"]))
         self.body19 = mk(rgb19, al["body"])
         self.full = mk(rgb, al["alpha"])
+        self.photo = _u8(rgb)  # ภาพถ่ายต้นฉบับทั้งกรอบ (รวมพื้นดำ) ใช้เปิด/ปิดเรื่อง
         self.tips = {k: P(rig[k]["tip"]) for k in ("arm_l", "arm_r")}
         self.armband = P(rig["armband"])
         self.ray_center = P(rig["ray_center"])

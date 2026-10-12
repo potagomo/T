@@ -249,3 +249,50 @@ def _soft_dot(px, hard=0.0):
     else:
         v = np.exp(-(r / 0.45) ** 2)
     return v.astype(np.float32)
+
+
+@functools.lru_cache(maxsize=1)
+def _ball_base():
+    """ลูกฟุตบอลขาว-ดำทรงทั่วไป (ห้าเหลี่ยมกลาง + ห้าเหลี่ยมรอบ ๆ ที่เอียงตามผิวโลก)"""
+    R = 256
+
+    def draw(d, s, im):
+        c = R * s
+        d.ellipse([4 * s, 4 * s, (2 * R - 4) * s, (2 * R - 4) * s], fill=(240, 240, 236, 255))
+        dark = (24, 24, 30, 255)
+
+        def pent(cx, cy, r, rot, squash=1.0, ang=0.0):
+            pts = []
+            for i in range(5):
+                a = rot + i * 2 * np.pi / 5
+                x, y = np.cos(a) * r, np.sin(a) * r
+                # ย่อในแนวรัศมีเพื่อให้ดูโค้งตามผิวลูก
+                ca, sa = np.cos(ang), np.sin(ang)
+                u, v = x * ca + y * sa, -x * sa + y * ca
+                u *= squash
+                x, y = u * ca - v * sa, u * sa + v * ca
+                pts.append(((cx + x) * s, (cy + y) * s))
+            d.polygon(pts, fill=dark)
+
+        pent(R, R, 0.30 * R, -np.pi / 2)
+        for i in range(5):
+            a = np.pi / 2 + i * 2 * np.pi / 5
+            dist = 0.78 * R
+            pent(R + np.cos(a) * dist, R + np.sin(a) * dist, 0.27 * R, a + np.pi, squash=0.45, ang=a)
+
+    sp = _to_sprite(_supersample(draw, 2 * R, 2 * R))
+    yy, xx = np.mgrid[-1:1:complex(0, 2 * R), -1:1:complex(0, 2 * R)].astype(np.float32)
+    r2 = xx ** 2 + yy ** 2
+    z = np.sqrt(np.clip(1 - r2, 0, 1))
+    light = np.clip(0.35 + 0.75 * (z * 0.7 - xx * 0.35 - yy * 0.45), 0.15, 1.15)
+    spec = np.exp(-(((xx + 0.35) ** 2 + (yy + 0.4) ** 2) / 0.03)) * 0.6
+    sp[..., :3] = sp[..., :3] * light[..., None] + spec[..., None] * sp[..., 3:4]
+    return np.ascontiguousarray(sp.astype(np.float32))
+
+
+def ball(h, rot=0.0):
+    sp = resize_sprite(_ball_base(), h)
+    if abs(rot) > 0.01:
+        M = cv2.getRotationMatrix2D((sp.shape[1] / 2, sp.shape[0] / 2), rot, 1.0)
+        sp = cv2.warpAffine(sp, M, (sp.shape[1], sp.shape[0]))
+    return sp

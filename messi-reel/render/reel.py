@@ -171,8 +171,8 @@ def storyboard(beatmap=None):
         f_t = gfx.font("display", 46)
         f_c = gfx.font("ui", 17)
         f_s = gfx.font("ui_medium", 15)
-        d.text((pad, 30), f"GRACIAS, LEO — STORYBOARD {sh // 12 + 1}/2", font=f_t, fill=(240, 240, 240))
-        d.text((pad, 86), "Lego Messi · 9:16 · 79s · Coldplay — Politik 4:00–5:19", font=f_s, fill=(117, 170, 219))
+        d.text((pad, 30), f"THE LAST DANCE OF A GENERATION — {sh // 12 + 1}/2", font=f_t, fill=(240, 240, 240))
+        d.text((pad, 86), f"LEGO Messi · 9:16 · {tl.duration:g}s · {tl.fps} fps · Coldplay — Politik 4:00–5:19", font=f_s, fill=(117, 170, 219))
         for k, (s, t) in enumerate(chunk):
             cx = pad + (k % cols) * (tw + pad)
             cy = 120 + (k // cols) * (th + cap + pad)
@@ -182,8 +182,11 @@ def storyboard(beatmap=None):
             yr = s["era"][1:] if s["era"].startswith("e") else s["era"].upper()
             d.text((cx, cy + th + 8), f"{s['id']} · {yr} · {s['name']}", font=f_c, fill=(245, 245, 245))
             d.text((cx, cy + th + 32), f"{s['start']:.1f}–{s['end']:.1f}s  ({s['end'] - s['start']:.1f}s)", font=f_s, fill=(117, 170, 219))
-            emo = e.get("emotion", "")
-            d.text((cx, cy + th + 52), emo, font=gfx.font("thai", 16), fill=(242, 193, 78))
+            emo = s.get("notes", {}).get("emotion", e.get("emotion", "")).split(" — ")[0]
+            f_e = gfx.font("thai", 16)
+            while emo and d.textlength(emo, font=f_e) > tw:
+                emo = emo[:-1]
+            d.text((cx, cy + th + 52), emo, font=f_e, fill=(242, 193, 78))
         p = os.path.join(ROOT, "storyboard", f"storyboard_{sh // 12 + 1}.jpg")
         sheet.save(p, quality=90)
         sheets.append(p)

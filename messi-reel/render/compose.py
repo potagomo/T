@@ -68,7 +68,7 @@ class Renderer:
         cx, cy = CX * self.W, ANCHOR_Y * self.H
         tx = cx + (self.target[0] * self.W - cx) * k
         ty = cy + (self.target[1] * self.H - cy) * k
-        px = cx + (x * self.W - tx) * z + self.shake[0] * k
+        px = cx + (x * self.W - tx) * z + self.shake[0] * k - self.orbit_s * (1 - k) * 0.6 * self.W
         py = cy + (y * self.H - ty) * z + self.shake[1] * k
         return px, py, z
 
@@ -140,11 +140,12 @@ class Renderer:
         return sorted(out)
 
     # ------------------------------------------------------------ layer 1: background (half-res, world)
-    def background(self, t, look, ea, eb, w):
+    def background(self, t, look, ea, eb, w, stadium=0.5, expand=1.0):
         h, wd = self.hh, self.hw
         top, bot = np.float32(look["bg_top"]), np.float32(look["bg_bottom"])
         g = np.linspace(0, 1, h, dtype=np.float32)[:, None, None] ** 1.3
         bg = np.broadcast_to(top + (bot - top) * g, (h, wd, 3)).copy()
+        self.stadium(bg, look, stadium, expand)
         bk = self._bokeh_layer(ea["id"])
         if w > 0 and eb["id"] != ea["id"]:
             bk = bk * (1 - w) + self._bokeh_layer(eb["id"]) * w
@@ -244,11 +245,19 @@ class Renderer:
         bg += (lay * k)[..., None] * np.float32((1.0, 0.97, 0.9))
 
     # ------------------------------------------------------------ puppet
+    def sv(self, d, key, default):
+        """ค่าในช็อต: ตัวเลขเดี่ยว หรือ [a, b] = เปลี่ยนจาก a ไป b ตลอดช็อต"""
+        v = d.get(key, default)
+        if isinstance(v, (list, tuple)):
+            return lerp(float(v[0]), float(v[1]), smooth(self.u))
+        return v
+
     def puppet_T(self):
         sh = self.shot.get("hero", {})
-        scale = sh.get("scale", 0.56)
-        x = sh.get("x", CX)
-        y = sh.get("y", self.hero_top + scale / 2)
+        scale = self.sv(sh, "scale", 0.56)
+        x = self.sv(sh, "x", CX)
+        y = self.sv(sh, "y", None)
+        y = self.hero_top + scale / 2 if y is None else y
         px, py, z = self.cam(x, y, 1.0)
         s = scale * self.H / self.pup.body_h * z
         cx, cy = self.pup.center
@@ -337,11 +346,14 @@ class Renderer:
         T, s = self.puppet_T()
         self.T = T
         sh = self.shot.get("hero", {})
-        lit = sh.get("lit", [1.0, 1.0])
-        lit = lerp(lit[0], lit[1], smooth(self.u))
+        lit = self.sv(sh, "lit", 1.0)
         P = self.pose(t)
         rim_k = self.motion_amt
         ts = pup.tile
+        # โคจรบางส่วน: ชั้นที่อยู่ลึกกว่าเลื่อนไปตามฉากหลัง ชั้นหน้า (เสื้อ) อยู่กับที่ → เห็นความลึก
+        ob = self.orbit_s * 0.12 * pup.body_h
+        for name, depth in (("rays", -1.0), ("arm_l", -0.25), ("arm_r", -0.25), ("head", -0.3)):
+            P[name] = np.array([[1, 0, ob * depth], [0, 1, 0], [0, 0, 1]], np.float64) @ P[name]
 
         # --- ประกอบร่างจากตัวต่อ (เปิดเรื่อง)
         for a in self.tl.active(t, ("build",)):
@@ -479,12 +491,20 @@ class Renderer:
                 alpha *= 1 - smooth(q)
                 blur, sc, glow = 1.4 * q, 1 - 0.2 * q, 1 - q
         elif mode == "arrive":
-            # ลงมาจากฟ้า มาหยุดเหนือหัว
+            # ลงมาจากฟ้า มาหยุดเหนือหัว แล้ว (ตั้งแต่วินาทีที่ 3.9) ลอยขึ้นไปกลายเป็นดาวดวงที่ 3
             q = back_out(clamp(u / 1.0), 1.1)
             y = lerp(-0.12 * H, y, q) + 0.005 * H * math.sin(u * 2.1)
             glow = 1.4
             if 0.9 < u < 1.4:
                 fx.add_mono(img, gfx.flare(int(0.5 * H)), x, y, PALETTE["gold"], 1.3 * (1 - (u - 0.9) / 0.5))
+            if u > 3.9:
+                k = ease_in_out(clamp((u - 3.9) / 0.7))
+                sx_, sy_ = CX * self.W + int(0.032 * H) * 1.25, POS_Y["top2"] * H
+                x, y = lerp(x, sx_, k), lerp(y, sy_, k)
+                sc = lerp(1.0, 0.032 * H / hgt, k)
+                alpha = 1 - smooth((k - 0.7) / 0.3)
+                if u > 4.65:
+                    return
         elif mode == "dissolve":
             alpha = smooth(u / 0.9) * 0.92
             y += 0.006 * H * math.sin(u * 1.7)
@@ -618,27 +638,44 @@ class Renderer:
     def _put(self, img, sp, x, y, alpha):
         fx.blit(img, sp, x * self.W, y * self.H, alpha)
 
+    def _block(self, text, key, px, color, tracking, shadow, max_w=0.84):
+        """ตัวหนังสือหลายบรรทัด (แยกด้วย \n) จัดกึ่งกลาง ย่อเองถ้ากว้างเกิน"""
+        ck = ("block", text, key, px, color, tracking, shadow, self.W)
+        if ck in self._cache:
+            return self._cache[ck]
+        lines = [gfx.text_sprite(ln, key, px, color, tracking, shadow) for ln in text.split("\n")]
+        gap = int(px * 0.12)
+        Wd = max(l.shape[1] for l in lines)
+        Hd = sum(l.shape[0] for l in lines) + gap * (len(lines) - 1)
+        sp = np.zeros((Hd, Wd, 4), np.float32)
+        y = 0
+        for l in lines:
+            x = (Wd - l.shape[1]) // 2
+            sp[y:y + l.shape[0], x:x + l.shape[1]] = np.maximum(sp[y:y + l.shape[0], x:x + l.shape[1]], l)
+            y += l.shape[0] + gap
+        if sp.shape[1] > max_w * self.W:
+            sp = gfx.resize_sprite(sp, sp.shape[0] * max_w * self.W / sp.shape[1])
+        self._cache[ck] = sp
+        return sp
+
     def text(self, img, t, a):
         style = a.get("style", "line")
-        k = env(t, a["t"], a["dur"], 0.28, 0.25)
+        k = env(t, a["t"], a["dur"], 0.28 if style != "script" else 0.45, 0.25 if style != "script" else 0.4)
         if k <= 0:
             return
-        y = POS_Y[a.get("pos", "upper")]
+        y = a.get("y", POS_Y[a.get("pos", "upper")])
         q = ease_out((t - a["t"]) / 0.45)
         H = self.H
         if style == "kicker":
-            sp = gfx.text_sprite(a["text"], "ui", int(0.0215 * H), (0.95, 0.95, 0.95), 0.16, 0.7)
-            if sp.shape[1] > 0.84 * self.W:
-                sp = gfx.resize_sprite(sp, sp.shape[0] * 0.84 * self.W / sp.shape[1])
+            sp = self._block(a["text"], "ui", int(0.0215 * H), (0.95, 0.95, 0.95), 0.16, 0.7)
             self._put(img, sp, CX, y + 0.006 * (1 - q), k * 0.95)
         elif style == "line":
-            sp = gfx.text_sprite(a["text"], "display", int(0.058 * H), (1.0, 1.0, 1.0), 0.015, 0.85)
-            if sp.shape[1] > 0.84 * self.W:
-                sp = gfx.resize_sprite(sp, sp.shape[0] * 0.84 * self.W / sp.shape[1])
+            sp = self._block(a["text"], "display", int(0.058 * H), (1.0, 1.0, 1.0), 0.015, 0.85)
             self._put(img, sp, CX, y + 0.012 * (1 - q), k)
         elif style == "script":
-            sp = gfx.text_sprite(a["text"], "script", int(0.068 * H), (1.0, 0.97, 0.92), 0.0, 0.75)
-            self._put(img, sp, CX, y + 0.01 * (1 - q), k)
+            q = ease_out((t - a["t"]) / 0.9)
+            sp = self._block(a["text"], "script", int(0.050 * H), (1.0, 0.97, 0.92), 0.0, 0.8, 0.86)
+            self._put(img, sp, CX, y + 0.008 * (1 - q), k)
         elif style == "date":
             n = len(a["text"])
             shown = a["text"][:max(1, int(clamp((t - a["t"]) / 0.6) * n + 0.999))]
@@ -798,6 +835,170 @@ class Renderer:
             fx.blit(img, gfx.star(int(sz * (1 + 1.5 * (1 - ease_out(q))))), x, y, k * q)
 
     # ------------------------------------------------------------ frame
+    # ------------------------------------------------------------ stadium (world, half-res)
+    def _stadium_base(self):
+        """อัฒจันทร์ทรงชาม มองจากในสนาม: ชั้นที่นั่ง (ฝูงคน) · ขอบชั้นเรืองแสง · ไฟหลังคา · หญ้า
+        เก็บเป็นช่องขาวดำ แล้วค่อยลงสีตามยุคทุกเฟรม"""
+        key = ("stadium", self.hh)
+        if key in self._cache:
+            return self._cache[key]
+        h, w = self.hh, self.hw
+        rng = np.random.default_rng(21)
+        yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+        Y, nx = yy / h, xx / w - CX
+        bounds = [(0.585, 0.10), (0.50, 0.14), (0.415, 0.18), (0.335, 0.22), (0.27, 0.26), (0.215, 0.30)]
+        curves = [y0 - a * nx ** 2 * 4 for y0, a in bounds]
+        stands = ((Y < curves[0]) & (Y > curves[-1])).astype(np.float32)
+        roof = ((Y <= curves[-1]) & (Y > curves[-1] - 0.05)).astype(np.float32)
+        pitch = (Y >= curves[0]).astype(np.float32)
+        # ฝูงคน: จุดสีสุ่มหนาแน่น เรียงเป็นแถวที่นั่งตามแนวโค้งของแต่ละชั้น
+        crowd = np.zeros((h, w), np.float32)
+        n = int(w * h * 0.16)
+        crowd[rng.integers(0, h, n), rng.integers(0, w, n)] = rng.uniform(0.1, 1.0, n).astype(np.float32)
+        crowd = cv2.GaussianBlur(crowd, (0, 0), 0.9) * 2.2
+        row_phase = (Y + 0.30 * nx ** 2 * 4) * h / max(2.0, h * 0.0045)
+        rows = 0.55 + 0.45 * (np.sin(row_phase * np.pi) > -0.2)
+        crowd = np.clip(crowd * rows, 0, 1.2) * stands * (0.5 + 0.5 * np.clip((Y - 0.2) / 0.4, 0, 1))
+        # ขอบหน้าชั้น: ป้ายไฟเป็นช่วง ๆ (ไม่ใช่วงต่อเนื่อง)
+        edges = np.zeros((h, w), np.float32)
+        for j, c in enumerate(curves[1:-1]):
+            seg = (np.sin(nx * (40 + 9 * j) + j) > -0.35).astype(np.float32)
+            edges += np.exp(-((Y - c) * h / 1.6) ** 2) * seg * (0.5 + 0.5 * (j % 2))
+        roof_l = np.zeros((h, w), np.float32)
+        for k in range(70):
+            x = (k + 0.5) / 70
+            yv = bounds[-1][0] - 0.03 - bounds[-1][1] * ((x - CX) ** 2) * 4
+            cv2.circle(roof_l, (int(x * w), int(yv * h)), max(1, int(h * 0.0025)), 1.0, -1, lineType=cv2.LINE_AA)
+        stripes = (np.sin((1 / np.maximum(Y - 0.5, 0.02)) * 3.2) > 0).astype(np.float32)
+        pitch_t = pitch * (0.8 + 0.2 * stripes) * np.clip((Y - 0.58) / 0.3 + 0.4, 0, 1)
+        structure = np.clip(stands + roof, 0, 1)
+        A = cv2.GaussianBlur(np.dstack([crowd, edges, roof_l, structure]), (0, 0), 0.6)
+        B = cv2.GaussianBlur(pitch_t, (0, 0), 0.8)
+        self._cache[key] = (np.ascontiguousarray(A), np.ascontiguousarray(B))
+        return self._cache[key]
+
+    def stadium(self, bg, look, amount, expand):
+        if amount <= 0.01:
+            return
+        A, B = self._stadium_base()
+        h, w = self.hh, self.hw
+        M = cv2.getRotationMatrix2D((CX * w, 0.62 * h), 0, expand)
+        A = cv2.warpAffine(A, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
+        B = cv2.warpAffine(B, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
+        crowd, edges, roof_l, structure = A[..., 0:1], A[..., 1:2], A[..., 2:3], A[..., 3:4]
+        dark = np.float32(look["bg_top"]) * 0.8 + np.float32(look["bg_bottom"]) * 0.15
+        crowd_c = np.float32(look["bokeh"][0]) * np.float32(0.10 + 0.30 * amount)
+        rim = np.float32(look["rim"]) * np.float32(0.35 * amount)
+        roof_c = np.float32((1.0, 0.96, 0.88)) * np.float32(1.1 * amount)
+        pitch_c = np.float32((0.03, 0.10, 0.05)) * np.float32(0.5 + 0.8 * amount)
+        Bp = B[..., None]
+        a = np.float32(amount)
+        bg[:] = ne.evaluate("bg * (1 - a * structure) * (1 - a * Bp * 0.85) + a * (structure * dark + crowd * crowd_c + Bp * pitch_c)"
+                            " + edges * rim + roof_l * roof_c")
+
+    def lightpulse(self, bg, t, a):
+        """สนามสว่างวาบเป็นจังหวะ (หนึ่งครั้งต่อหนึ่งนัดที่ชนะ)"""
+        times = [self.tl.beat.snap(a["t"] + i * a.get("step", 0.7), "beat", 0.25) for i in range(a.get("count", 4))]
+        last = max([x for x in times if x <= t], default=None)
+        if last is None:
+            return
+        k = math.exp(-(t - last) / 0.22)
+        bg += np.float32((0.55, 0.45, 0.30)) * np.float32(0.35 * k)
+        px, py, z = self.cam(CX, 0.2, 0.45)
+        fx.add_mono(bg, gfx.flare(int(0.5 * self.hh)), px / 2, py / 2, (1.0, 0.95, 0.85), 0.9 * k)
+
+    # ------------------------------------------------------------ foreground extras
+    def ball(self, img, t, a):
+        u = t - a["t"]
+        if u < 0 or u > a["dur"]:
+            return
+        H, W = self.H, self.W
+        if a.get("mode") == "whip":
+            # ลูกบอลใหญ่พุ่งผ่านหน้ากล้อง เบลอทั้งจากความเร็วและระยะชัด
+            q = u / a["dur"]
+            x, y = lerp(1.25, -0.3, q) * W, (0.66 - 0.08 * q) * H
+            sp = gfx.ball(int(0.30 * H), rot=-q * 260)
+            small = cv2.resize(sp, (sp.shape[1] // 4, sp.shape[0] // 4), interpolation=cv2.INTER_AREA)
+            klen = max(3, int(small.shape[1] * 0.9))
+            kern = np.zeros((1, klen), np.float32)
+            kern[0, :] = 1.0 / klen
+            pad = klen
+            small = cv2.copyMakeBorder(small, 0, 0, pad, pad, cv2.BORDER_CONSTANT, value=0)
+            small = cv2.filter2D(small, -1, kern)
+            small = cv2.GaussianBlur(small, (0, 0), 2.0)
+            sp = cv2.resize(small, (small.shape[1] * 4, small.shape[0] * 4), interpolation=cv2.INTER_LINEAR)
+            fx.blit(img, sp, x, y, 0.9)
+            return
+        # roll: ลูกเล็กกลิ้งเข้ามาจากซ้ายแล้วหยุดข้างตัว
+        k = ease_out(clamp(u / 1.6))
+        bounce = abs(math.sin(u * 7.0)) * math.exp(-u * 2.2) * 0.02
+        x = lerp(-0.08, 0.20, k)
+        y = 0.805 - bounce
+        px, py, z = self.cam(x, y, 1.0)
+        size = int(0.05 * H * z)
+        rot = -(k * 0.28 * W) / (size / 2) * 57.3
+        fade = 1 - smooth((u - a["dur"] + 0.4) / 0.4)
+        fx.add_mono(img, gfx.soft_dot(int(size * 1.4)), px, py + size * 0.45, (-0.5, -0.5, -0.5), 0.6 * fade)
+        fx.blit(img, gfx.ball(size, rot=rot), px, py, fade)
+
+    def occlude(self, img, t, a):
+        """เงาดำ (เสา/ฝูงคน) เลื่อนผ่านหน้ากล้อง — ความไม่แน่นอนของปี 2018"""
+        u = t - a["t"]
+        if u < 0 or u > a["dur"]:
+            return
+        rng = self._a(a)
+        q4 = 4
+        h, w = self.H // q4, self.W // q4
+        m = np.zeros((h, w), np.float32)
+        for i in range(4):
+            t0 = rng.uniform(0, a["dur"] * 0.6)
+            sp = rng.uniform(0.8, 1.6) * (1 if i % 2 == 0 else -1)
+            bw = rng.uniform(0.12, 0.3)
+            v = (u - t0) * sp * 0.6
+            cx = (-0.3 + v) if sp > 0 else (1.3 + v)
+            if -0.4 < cx < 1.4:
+                x0, x1 = int((cx - bw / 2) * w), int((cx + bw / 2) * w)
+                top = int(rng.uniform(0.0, 0.35) * h)
+                cv2.rectangle(m, (x0, top), (x1, h), 1.0, -1)
+        if m.max() == 0:
+            return
+        m = cv2.GaussianBlur(m, (0, 0), w * 0.03)
+        m = cv2.resize(m, (self.W, self.H), interpolation=cv2.INTER_LINEAR)[..., None]
+        img[:] = ne.evaluate("img * (1 - 0.88 * m)")
+
+    def echo(self, img, t, a):
+        """ความทรงจำ: แสงของแต่ละยุคกวาดผ่านตัวต่อเร็ว ๆ ทีละยุค (2006 → 2026)"""
+        if self.hero_a is None:
+            return
+        eras = ["e2006", "e2010", "e2014", "e2018", "e2022", "e2026"]
+        seg = a["dur"] / len(eras)
+        i = int((t - a["t"]) / seg)
+        if not 0 <= i < len(eras):
+            return
+        q = (t - a["t"] - i * seg) / seg
+        col = np.float32(LOOKS[eras[i]]["rim"])
+        ys, xs = np.nonzero(self.hero_a[::8, ::8] > 0.02)
+        if not len(ys):
+            return
+        y0, y1 = ys.min() * 8, min(self.H, ys.max() * 8 + 8)
+        x0, x1 = xs.min() * 8, min(self.W, xs.max() * 8 + 8)
+        yy = np.arange(y0, y1, dtype=np.float32)[:, None]
+        band = np.exp(-(((yy - y0) / max(1, y1 - y0) - lerp(-0.2, 1.2, q)) / 0.12) ** 2).astype(np.float32)
+        ha = self.hero_a[y0:y1, x0:x1]
+        sub = img[y0:y1, x0:x1]
+        g = np.float32(0.55)
+        img[y0:y1, x0:x1] = sub + (band * ha)[..., None] * col * g
+
+    def photo_frame(self):
+        """ภาพถ่ายต้นฉบับ (รวมพื้นดำ) วางด้วยตำแหน่ง/ขนาดเดียวกับหุ่น — สลับไปมาได้แนบเนียน"""
+        canvas = np.zeros((self.H, self.W, 3), np.float32)
+        r = fx.warp_into((self.H, self.W), self.pup.photo, self.T[:2].astype(np.float32))
+        if r is not None:
+            roi, ph = r
+            canvas[roi] = ph.astype(np.float32) * np.float32(1 / 255)
+        return canvas
+
+    # ------------------------------------------------------------ frame
     def frame(self, t, idx=0):
         tl = self.tl
         ea, eb, w = tl.era_blend(t)
@@ -810,16 +1011,23 @@ class Renderer:
         q = ease_in_out(self.u)
         self.zoom = lerp(z0, z1, q)
         self.target = (lerp(tg[0][0], tg[1][0], q), lerp(tg[0][1], tg[1][1], q))
+        ob = cam.get("orbit", [0, 0])
+        self.orbit_s = math.sin(math.radians(lerp(ob[0], ob[1], q)))
         act = tl.active(t)
         kinds = {a["do"] for a in act}
 
-        # ความแรงของการขยับ: ระหว่างประกอบร่างหุ่นนิ่ง แล้วค่อย ๆ มีชีวิต
-        self.motion_amt = 1.0
+        # ภาพถ่ายต้นฉบับ: เปิดเรื่อง/ปิดเรื่อง (1 = ภาพจริงล้วน)
+        photo = 0.0
+        for a in tl.active(t, ("photo",)):
+            photo = max(photo, lerp(a.get("from", 1), a.get("to", 1), smooth((t - a["t"]) / max(1e-6, a["dur"]))))
+
+        # ความแรงของการขยับ: ตอนเป็นภาพถ่ายหุ่นนิ่ง แล้วค่อย ๆ มีชีวิต
+        self.motion_amt = 1.0 - photo
         for a in tl.actions:
             if a["do"] == "build":
                 e = a["t"] + a["dur"]
                 if t <= e + 0.6:
-                    self.motion_amt = smooth((t - e) / 0.6)
+                    self.motion_amt = min(self.motion_amt, smooth((t - e) / 0.6))
 
         shk = cam.get("shake", 0.0)
         for a in act:
@@ -837,60 +1045,16 @@ class Renderer:
         self.shake = (shk * 0.004 * self.H * (math.sin(ts * 37.1) + 0.6 * math.sin(ts * 23.7 + 1.3)),
                       shk * 0.004 * self.H * (math.sin(ts * 29.3 + 0.7) + 0.6 * math.sin(ts * 41.9)))
         self._haze_boost = 1.0 if "haze" in kinds else 0.0
-
-        # ---- 1 ฉากหลัง
-        bg = self.background(t, look, ea, eb, w)
-        for a in act:
-            d = a["do"]
-            if d == "flashbulbs":
-                self.flashbulbs(bg, t, a)
-            elif d == "lightbanks":
-                self.lightbanks(bg, t, a)
-            elif d == "rays":
-                self.godrays(bg, t, a, look)
-            elif d == "phonelights":
-                self.phonelights(bg, t, a)
-        bg = self._bg_cam(bg)
-        for a in act:
-            if a["do"] == "spotlight":
-                self.spotlight(bg, t, a)
-        img = cv2.resize(bg, (self.W, self.H), interpolation=cv2.INTER_LINEAR)
-
-        # ---- 2+3 หุ่น และของรอบตัว
         self.T, _ = self.puppet_T()
-        for a in act:
-            if a["do"] == "trophy":
-                self.trophy(img, t, a)
-            elif a["do"] == "ember":
-                self.motes(img, t, a, "ember")
-            elif a["do"] == "rising":
-                self.motes(img, t, a, "rising")
-        self.track_alpha = "sweep" in kinds  # เก็บรูปร่างหุ่นบนจอเฉพาะเฟรมที่มีแสงกวาด
-        self.hero_a = np.zeros((self.H, self.W), np.float32) if self.track_alpha else None
-        self.draw_puppet(img, t, look)
-        for a in act:
-            if a["do"] == "armband":
-                self.armband(img, t, a)
-            elif a["do"] == "sweep":
-                self.sweep(img, t, a)
 
-        # ---- 4 อนุภาคข้างหน้า
-        for a in tl.active(t, ("confetti",), pad=0.5):
-            self.confetti(img, t, a)
-        for a in act:
-            if a["do"] == "dust":
-                self.motes(img, t, a, "dust")
+        if photo < 0.999:
+            img = self.world(t, idx, look, ea, eb, w, act, kinds)
+            if photo > 0.001:
+                img = ne.evaluate("img * (1 - p) + ph * p", local_dict=dict(img=img, ph=self.photo_frame(), p=np.float32(photo)))
+        else:
+            img = self.photo_frame()
 
-        # ---- 5 เกรดสี
-        desat = 0.0
-        for a in tl.active(t, ("desaturate",)):
-            desat = max(desat, a.get("amount", 0.8) * env(t, a["t"], a["dur"], 0.15, 0.6))
-        np.clip(img, 0, 1.6, out=img)
-        img = fx.bloom(img, look["bloom"])
-        img = fx.grade(img, look, desat)
-        img = fx.soften(img, look["soft"])
-
-        # ---- 6 ตัวหนังสือ
+        # ---- ตัวหนังสือ
         stars_on = "stars" in kinds
         for a in act:
             d = a["do"]
@@ -909,20 +1073,22 @@ class Renderer:
         for a in tl.active(t, ("counter",), pad=0.6):
             self.counter(img, t, a)
 
-        # ---- 7 ทีวีเก่า กลิตช์ ขอบมืด เกรน แฟลช เฟด
-        off = 0.0
-        for a in tl.active(t, ("crt_off",)):
-            off = clamp((t - a["t"]) / a["dur"])
-        if look["crt"] > 0.01 or off > 0:
-            img = fx.crt(img, look["crt"], t, off)
-        for a in tl.active(t, ("glitch",)):
-            g = 1.0 if any(s_.get("slam") and 0 <= t - s_["t"] < 0.16 for s_ in tl.active(t, ("score",))) else 0.0
-            if g == 0 and (_seed(idx, "g") % 100) < 14:
-                g = 0.35
-            img = fx.glitch(img, g, idx)
-        img = fx.vignette(img, look["vignette"])
-        img = fx.chroma(img, 0.0015)
-        img = fx.grain(img, look["grain"], idx)
+        # ---- ทีวีเก่า กลิตช์ ขอบมืด เกรน แฟลช เฟด
+        if photo < 0.999:
+            off = 0.0
+            for a in tl.active(t, ("crt_off",)):
+                off = clamp((t - a["t"]) / a["dur"])
+            if look["crt"] > 0.01 or off > 0:
+                img = fx.crt(img, look["crt"], t, off)
+            for a in tl.active(t, ("glitch",)):
+                g = 1.0 if any(s_.get("slam") and 0 <= t - s_["t"] < 0.16 for s_ in tl.active(t, ("score",))) else 0.0
+                if g == 0 and (_seed(idx, "g") % 100) < 14:
+                    g = 0.35
+                img = fx.glitch(img, g, idx)
+            vig = look["vignette"] * (1 - photo)
+            img = fx.vignette(img, vig)
+            img = fx.chroma(img, 0.0015 * (1 - photo))
+            img = fx.grain(img, look["grain"] * (1 - photo), idx)
         for a in tl.active(t, ("flash",)):
             img = img + np.float32(1 - ease_out((t - a["t"]) / a["dur"])) * 0.9
         for a in tl.active(t, ("fade_out",)):
@@ -931,6 +1097,71 @@ class Renderer:
             sp = gfx.text_sprite(self.debug_text, "ui", int(0.016 * self.H), (1, 0.85, 0.3), 0.04, 0.9)
             fx.blit(img, sp, 0.5 * self.W, 0.975 * self.H, 1.0)
         return fx.to_u8(img)
+
+    def world(self, t, idx, look, ea, eb, w, act, kinds):
+        """โลกของเรื่อง: ฉากหลัง → ถ้วย → หุ่น → อนุภาค → เกรดสี (ยังไม่มีตัวหนังสือ)"""
+        tl = self.tl
+        wd = self.shot.get("world", {})
+        # ---- 1 ฉากหลัง (ครึ่งความละเอียด): ไล่สี + อัฒจันทร์ + ไฟเบลอ + หมอก → กล้อง → ไฟที่อยู่บนจอ
+        bg = self.background(t, look, ea, eb, w, self.sv(wd, "stadium", 0.5), self.sv(wd, "expand", 1.0))
+        bg = self._bg_cam(bg)
+        for a in act:
+            d = a["do"]
+            if d == "flashbulbs":
+                self.flashbulbs(bg, t, a)
+            elif d == "lightbanks":
+                self.lightbanks(bg, t, a)
+            elif d == "rays":
+                self.godrays(bg, t, a, look)
+            elif d == "phonelights":
+                self.phonelights(bg, t, a)
+            elif d == "lightpulse":
+                self.lightpulse(bg, t, a)
+        for a in act:
+            if a["do"] == "spotlight":
+                self.spotlight(bg, t, a)
+        img = cv2.resize(bg, (self.W, self.H), interpolation=cv2.INTER_LINEAR)
+
+        # ---- 2+3 ของรอบตัว + หุ่น
+        for a in act:
+            if a["do"] == "trophy":
+                self.trophy(img, t, a)
+            elif a["do"] == "ember":
+                self.motes(img, t, a, "ember")
+            elif a["do"] == "rising":
+                self.motes(img, t, a, "rising")
+        self.track_alpha = bool({"sweep", "echo"} & kinds)  # เก็บรูปร่างหุ่นบนจอเฉพาะเฟรมที่มีแสงกวาด
+        self.hero_a = np.zeros((self.H, self.W), np.float32) if self.track_alpha else None
+        self.draw_puppet(img, t, look)
+        for a in act:
+            d = a["do"]
+            if d == "armband":
+                self.armband(img, t, a)
+            elif d == "sweep":
+                self.sweep(img, t, a)
+            elif d == "echo":
+                self.echo(img, t, a)
+
+        # ---- 4 ข้างหน้า
+        for a in act:
+            if a["do"] == "ball":
+                self.ball(img, t, a)
+        for a in tl.active(t, ("confetti",), pad=0.5):
+            self.confetti(img, t, a)
+        for a in act:
+            if a["do"] == "dust":
+                self.motes(img, t, a, "dust")
+            elif a["do"] == "occlude":
+                self.occlude(img, t, a)
+
+        # ---- 5 เกรดสี
+        desat = 0.0
+        for a in tl.active(t, ("desaturate",)):
+            desat = max(desat, a.get("amount", 0.8) * env(t, a["t"], a["dur"], 0.15, 0.6))
+        np.clip(img, 0, 1.6, out=img)
+        img = fx.bloom(img, look["bloom"])
+        img = fx.grade(img, look, desat)
+        return fx.soften(img, look["soft"])
 
     def _bg_cam(self, bg):
         M = self.cam_matrix(0.45)

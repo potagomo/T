@@ -34,7 +34,7 @@ python3 -m render.reel report                 # เวลาช็อตหล�
 python3 -m render.reel still 23.6 47.5        # ภาพนิ่ง → out/still_*.png  (--size preview|storyboard|final)
 python3 -m render.reel storyboard             # สตอรีบอร์ด → storyboard/
 python3 -m render.reel preview [--clicks]     # คลิปร่าง 540x960 ~2 นาที → out/preview.mp4
-python3 -m render.reel final                  # 4K HEVC ~1 ชม. (4 คอร์) → out/messi_reel_4k_hevc.mp4
+python3 -m render.reel final                  # 4K HEVC ~40 นาที (4 คอร์) → out/messi_reel_4k_hevc.mp4
 python3 -m render.reel final --from 45 --to 48   # render เฉพาะช่วง ไว้ตรวจ
 python3 tools/beatmap.py <ไฟล์เพลง>            # จับบีต → sync/beatmap.json
 ```

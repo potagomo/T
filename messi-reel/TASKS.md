@@ -57,7 +57,7 @@
 เกณฑ์เสร็จ: storyboard ใหม่ + ภาพก่อน/หลังของแต่ละข้อ ส่งให้เจ้าของงานดู
 
 ## WP-4 ตัวจริง 4K HEVC `[ ]` ต่อจาก WP-2 (+WP-3 ถ้าทำ)
-1. `python3 -m render.reel final` (~1 ชั่วโมงบนเครื่อง 4 คอร์ — รันแบบ background)
+1. `python3 -m render.reel final` (~40 นาทีบนเครื่อง 4 คอร์ — รันแบบ background)
 2. QC อัตโนมัติ:
    `ffprobe -v error -show_entries stream=codec_name,codec_tag_string,profile,width,height,pix_fmt,r_frame_rate,color_primaries:format=duration,size -of compact out/messi_reel_4k_hevc.mp4`
    ต้องได้: hevc · hvc1 · Main · 2160x3840 · yuv420p · 30/1 · bt709 · duration 79.0

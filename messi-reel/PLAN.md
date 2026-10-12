@@ -105,7 +105,7 @@
 | เฟรมเรต | 30 fps |
 | โคเดก | HEVC (libx265) Main 8-bit 4:2:0 · tag `hvc1` (เปิดบน iPhone/IG ได้) |
 | สี | BT.709 · tv range |
-| คุณภาพ | CRF 17 · preset medium · keyframe ทุก 2 วินาที |
+| คุณภาพ | CRF 18 · preset fast · keyframe ทุก 2 วินาที (ใช้เวลา render ~35–40 นาทีบน 4 คอร์) |
 | เสียง | ไม่มี (ใส่เพลงใน IG) — มีคำสั่งรวมเพลงไว้ดูเองในเครื่องได้ แต่ห้ามขึ้น git |
 | ไฟล์ | `out/messi_reel_4k_hevc.mp4` |
 

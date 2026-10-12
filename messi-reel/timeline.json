@@ -1,0 +1,302 @@
+{
+  "_doc": "board = วินาทีที่ใช้เป็นภาพตัวแทนช็อตในสตอรีบอร์ด · ไฟล์นี้คือความจริงหนึ่งเดียวของจังหวะเวลา ข้อความ และลำดับช็อต เวลาทั้งหมดเป็นวินาทีของคลิป (0 = นาที 4:00 ของเพลง) แก้ที่นี่ที่เดียวแล้ว render ใหม่ ห้ามแก้เวลาใน code — ถ้ามี sync/beatmap.json ตัว render จะดึงขอบช็อตเข้าหา downbeat และดึงเหตุการณ์เข้าหา beat ให้เอง  ตำแหน่งตัวหนังสือ: top (0.15) · top2 (0.205) · upper (0.25) · upper2 (0.30) ของความสูงจอ — ทั้งหมดอยู่เหนือปลายนิ้ว ไม่บังเลข 10",
+  "meta": {
+    "title": "Gracias, Leo — Lego Messi World Cup Reel",
+    "duration": 79.0,
+    "fps": 30,
+    "final": { "w": 2160, "h": 3840 },
+    "preview": { "w": 540, "h": 960 },
+    "storyboard": { "w": 720, "h": 1280 }
+  },
+  "music": {
+    "track": "Coldplay — Politik (A Rush of Blood to the Head, 2002)",
+    "song_in": "4:00",
+    "song_out": "5:19",
+    "beatmap": "sync/beatmap.json",
+    "shot_snap": "downbeat",
+    "event_snap": "beat",
+    "snap_tolerance": 0.6
+  },
+  "hero": {
+    "image": "input/hero.jpg",
+    "rig": "input/hero_rig.json",
+    "top": 0.36
+  },
+  "eras": [
+    { "id": "intro", "start": 0.0,  "end": 4.0,  "label": "",                      "emotion": "เกริ่น — ตื่นตะลึง" },
+    { "id": "e2006", "start": 4.0,  "end": 9.0,  "label": "GERMANY",               "emotion": "ความหวัง ไร้เดียงสา" },
+    { "id": "e2010", "start": 9.0,  "end": 17.0, "label": "SOUTH AFRICA",          "emotion": "คาดหวัง → ผิดหวัง" },
+    { "id": "e2014", "start": 17.0, "end": 29.0, "label": "BRAZIL",                "emotion": "เกือบ — อกหัก" },
+    { "id": "e2018", "start": 29.0, "end": 36.0, "label": "RUSSIA",                "emotion": "มืดมน" },
+    { "id": "e2022", "start": 36.0, "end": 52.0, "label": "QATAR",                 "emotion": "ลุกขึ้น → สำเร็จ" },
+    { "id": "e2026", "start": 52.0, "end": 74.0, "label": "USA · MEXICO · CANADA", "emotion": "ขอบคุณ → เกือบอีกครั้ง → ปล่อยวาง" },
+    { "id": "outro", "start": 74.0, "end": 79.0, "label": "",                      "emotion": "สงบ — ลาก่อน" }
+  ],
+  "shots": [
+    {
+      "id": "S01", "era": "intro", "start": 0.0, "end": 1.8, "name": "Build", "board": 1.0,
+      "camera": { "zoom": [1.10, 1.05] },
+      "hero": { "scale": 0.56, "lit": [0.2, 0.45], "rays": [0.9, 1.0] },
+      "actions": [
+        { "do": "build", "t": 0.0, "dur": 1.65 },
+        { "do": "haze", "t": 0.0, "dur": 4.0 },
+        { "do": "flashbulbs", "t": 0.4, "dur": 1.4, "rate": 3 }
+      ]
+    },
+    {
+      "id": "S02", "era": "intro", "start": 1.8, "end": 4.0, "name": "Reveal", "board": 3.0,
+      "camera": { "zoom": [1.05, 1.0] },
+      "hero": { "scale": 0.56, "lit": [0.45, 1.0], "rays": [1.0, 1.04] },
+      "actions": [
+        { "do": "sweep", "t": 1.8, "dur": 0.9 },
+        { "do": "flashbulbs", "t": 1.8, "dur": 2.2, "rate": 7 },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 2.1, "dur": 1.8, "text": "LIONEL ANDRÉS MESSI" },
+        { "do": "text", "style": "line", "pos": "upper", "t": 2.6, "dur": 1.35, "text": "6 WORLD CUPS" },
+        { "do": "flash", "t": 3.95, "dur": 0.25 }
+      ]
+    },
+
+    {
+      "id": "S03", "era": "e2006", "start": 4.0, "end": 6.5, "name": "The kid · 19", "board": 5.6,
+      "camera": { "zoom": [1.0, 1.04] },
+      "hero": { "scale": 0.44 },
+      "actions": [
+        { "do": "odometer", "t": 4.0, "dur": 2.4, "from": "    ", "to": "2006" },
+        { "do": "number", "t": 4.0, "dur": 5.0, "seq": ["19"] },
+        { "do": "text", "style": "line", "pos": "upper", "t": 4.9, "dur": 1.5, "text": "AGE 18." }
+      ]
+    },
+    {
+      "id": "S04", "era": "e2006", "start": 6.5, "end": 9.0, "name": "First goal", "board": 7.6,
+      "camera": { "zoom": [1.04, 1.16], "target": [[0.47, 0.6], [0.47, 0.66]] },
+      "hero": { "scale": 0.44 },
+      "actions": [
+        { "do": "score", "pos": "top2", "t": 6.6, "dur": 2.0, "text": "ARG 6–0 SCG" },
+        { "do": "text", "style": "line", "pos": "upper", "t": 7.0, "dur": 1.6, "text": "FIRST WORLD CUP GOAL." },
+        { "do": "flashbulbs", "t": 7.0, "dur": 1.4, "rate": 5 },
+        { "do": "pump", "t": 7.0, "dur": 1.5, "every": 0.5 },
+        { "do": "crt_off", "t": 8.55, "dur": 0.45 }
+      ]
+    },
+
+    {
+      "id": "S05", "era": "e2010", "start": 9.0, "end": 12.5, "name": "The number 10", "board": 10.9,
+      "camera": { "zoom": [1.45, 1.38], "target": [[0.47, 0.70], [0.47, 0.69]] },
+      "hero": { "scale": 0.50 },
+      "actions": [
+        { "do": "odometer", "t": 9.0, "dur": 2.4, "from": "2006", "to": "2010" },
+        { "do": "number", "t": 9.0, "dur": 3.5, "seq": ["19", "10"], "flip": 9.9 },
+        { "do": "text", "style": "line", "pos": "upper", "t": 10.4, "dur": 2.0, "text": "THE NUMBER 10." }
+      ]
+    },
+    {
+      "id": "S06", "era": "e2010", "start": 12.5, "end": 15.0, "name": "Pressure", "board": 14.3,
+      "camera": { "zoom": [1.0, 1.14], "shake": 0.25 },
+      "hero": { "scale": 0.50, "rays": [1.0, 1.06] },
+      "actions": [
+        { "do": "flashbulbs", "t": 12.5, "dur": 2.5, "rate": 4, "rate_end": 28 }
+      ]
+    },
+    {
+      "id": "S07", "era": "e2010", "start": 15.0, "end": 17.0, "name": "Crash", "board": 15.95,
+      "camera": { "zoom": [1.14, 1.10] },
+      "hero": { "scale": 0.50, "lit": [1.0, 0.45], "rays": [1.06, 0.9] },
+      "actions": [
+        { "do": "score", "pos": "top2", "t": 15.0, "dur": 1.9, "text": "ARG 0–4 GER", "slam": true },
+        { "do": "desaturate", "t": 15.0, "dur": 2.0, "amount": 0.85 },
+        { "do": "text", "style": "line", "pos": "upper", "t": 15.7, "dur": 1.2, "text": "0 GOALS." }
+      ]
+    },
+
+    {
+      "id": "S08", "era": "e2014", "start": 17.0, "end": 20.0, "name": "Captain", "board": 19.6,
+      "camera": { "zoom": [1.32, 1.06], "target": [[0.30, 0.62], [0.47, 0.58]] },
+      "hero": { "scale": 0.54 },
+      "actions": [
+        { "do": "odometer", "t": 17.0, "dur": 2.4, "from": "2010", "to": "2014" },
+        { "do": "armband", "t": 17.6, "dur": 2.3 },
+        { "do": "text", "style": "kicker", "pos": "upper", "t": 17.8, "dur": 2.1, "text": "CAPTAIN" },
+        { "do": "counter", "pos": "upper2", "t": 18.4, "dur": 1.5, "from": 1, "to": 4, "suffix": " GOALS" }
+      ]
+    },
+    {
+      "id": "S09", "era": "e2014", "start": 20.0, "end": 23.5, "name": "Road to Maracanã", "board": 22.0,
+      "camera": { "zoom": [1.0, 1.06], "target": [[0.47, 0.55], [0.47, 0.50]] },
+      "hero": { "scale": 0.54 },
+      "actions": [
+        { "do": "text", "style": "kicker", "pos": "top", "t": 20.2, "dur": 3.2, "text": "FINAL · MARACANÃ" },
+        { "do": "trophy", "t": 20.5, "dur": 5.5, "mode": "pass" },
+        { "do": "pump", "t": 21.0, "dur": 2.4, "every": 0.6 }
+      ]
+    },
+    {
+      "id": "S10", "era": "e2014", "start": 23.5, "end": 26.0, "name": "113'", "board": 24.1,
+      "camera": { "zoom": [1.06, 1.12], "target": [[0.47, 0.50], [0.47, 0.47]] },
+      "hero": { "scale": 0.54, "lit": [1.0, 0.65], "rays": [1.0, 0.88] },
+      "actions": [
+        { "do": "bignum", "pos": "top", "t": 23.5, "dur": 1.4, "seq": ["113'"], "slam": true },
+        { "do": "desaturate", "t": 23.5, "dur": 5.5, "amount": 0.75 },
+        { "do": "score", "pos": "top", "t": 24.95, "dur": 1.0, "text": "ARG 0–1 GER  a.e.t." }
+      ]
+    },
+    {
+      "id": "S11", "era": "e2014", "start": 26.0, "end": 29.0, "name": "So close", "board": 27.6,
+      "camera": { "zoom": [1.12, 1.04] },
+      "hero": { "scale": 0.54, "lit": [0.65, 0.6], "rays": [0.88, 0.86] },
+      "actions": [
+        { "do": "dust", "t": 26.0, "dur": 3.0 },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 27.0, "dur": 1.85, "text": "GOLDEN BALL — NOT THE CUP" },
+        { "do": "text", "style": "line", "pos": "upper", "t": 26.2, "dur": 2.65, "text": "SO CLOSE." }
+      ]
+    },
+
+    {
+      "id": "S12", "era": "e2018", "start": 29.0, "end": 32.5, "name": "Bad nights", "board": 30.9,
+      "camera": { "zoom": [1.04, 1.10], "shake": 0.6 },
+      "hero": { "scale": 0.52, "rays": [0.9, 0.9] },
+      "actions": [
+        { "do": "odometer", "t": 29.0, "dur": 2.4, "from": "2014", "to": "2018" },
+        { "do": "score", "pos": "upper", "t": 29.8, "dur": 0.75, "text": "ARG 1–1 ISL", "slam": true },
+        { "do": "score", "pos": "upper", "t": 30.6, "dur": 0.75, "text": "ARG 0–3 CRO", "slam": true },
+        { "do": "score", "pos": "upper", "t": 31.4, "dur": 1.05, "text": "ARG 3–4 FRA", "slam": true },
+        { "do": "glitch", "t": 29.8, "dur": 2.7 }
+      ]
+    },
+    {
+      "id": "S13", "era": "e2018", "start": 32.5, "end": 36.0, "name": "Not yet", "board": 35.3,
+      "camera": { "zoom": [1.10, 1.02] },
+      "hero": { "scale": 0.52, "lit": [0.7, 0.55], "rays": [0.86, 0.84] },
+      "actions": [
+        { "do": "spotlight", "t": 32.5, "dur": 3.5 },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 32.7, "dur": 2.9, "text": "KAZAN · ROUND OF 16" },
+        { "do": "text", "style": "line", "pos": "upper", "t": 33.9, "dur": 1.7, "text": "NOT YET." },
+        { "do": "ember", "t": 34.9, "dur": 1.2 }
+      ]
+    },
+
+    {
+      "id": "S14", "era": "e2022", "start": 36.0, "end": 38.5, "name": "Shock", "board": 37.5,
+      "camera": { "zoom": [1.0, 1.03] },
+      "hero": { "scale": 0.56, "lit": [0.55, 0.65], "rays": [0.86, 0.9] },
+      "actions": [
+        { "do": "odometer", "t": 36.0, "dur": 2.4, "from": "2018", "to": "2022" },
+        { "do": "score", "pos": "upper", "t": 36.6, "dur": 1.8, "text": "ARG 1–2 KSA", "slam": true },
+        { "do": "text", "style": "line", "pos": "upper2", "t": 37.1, "dur": 1.3, "text": "LOST THE FIRST GAME." }
+      ]
+    },
+    {
+      "id": "S15", "era": "e2022", "start": 38.5, "end": 42.5, "name": "Rise", "board": 41.7,
+      "camera": { "zoom": [1.03, 1.10] },
+      "hero": { "scale": 0.56, "lit": [0.65, 1.0], "rays": [0.9, 1.04] },
+      "actions": [
+        { "do": "lightbanks", "t": 38.5, "dur": 4.0, "count": 7 },
+        { "do": "counter", "pos": "upper", "t": 38.9, "dur": 3.0, "from": 1, "to": 7, "suffix": " GOALS" },
+        { "do": "pump", "t": 38.9, "dur": 3.4, "every": 0.5 }
+      ]
+    },
+    {
+      "id": "S16", "era": "e2022", "start": 42.5, "end": 45.5, "name": "Lusail", "board": 44.8,
+      "camera": { "zoom": [1.10, 1.22], "target": [[0.47, 0.55], [0.47, 0.60]] },
+      "hero": { "scale": 0.56, "lit": [1.0, 0.7], "rays": [1.04, 0.96] },
+      "actions": [
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 42.6, "dur": 2.8, "text": "FINAL · LUSAIL · 18.12.2022" },
+        { "do": "score", "pos": "upper", "t": 43.4, "dur": 2.0, "text": "ARG 3–3 FRA" },
+        { "do": "text", "style": "line", "pos": "upper2", "t": 44.3, "dur": 1.1, "text": "PENALTIES." },
+        { "do": "heartbeat", "t": 43.4, "dur": 2.1 }
+      ]
+    },
+    {
+      "id": "S17", "era": "e2022", "start": 45.5, "end": 52.0, "name": "Glory", "board": 48.6,
+      "camera": { "zoom": [1.0, 1.06], "shake": 0.3 },
+      "hero": { "scale": 0.56, "rays": [1.1, 1.08], "gold": 1.0 },
+      "actions": [
+        { "do": "flash", "t": 45.5, "dur": 0.5 },
+        { "do": "trophy", "t": 45.6, "dur": 6.4, "mode": "arrive" },
+        { "do": "confetti", "t": 45.9, "dur": 6.1, "mode": "burst" },
+        { "do": "rays", "t": 45.6, "dur": 6.4 },
+        { "do": "pump", "t": 45.8, "dur": 6.0, "every": 0.5 },
+        { "do": "score", "pos": "top", "t": 45.7, "dur": 1.4, "text": "ARG 4–2 FRA  PENS", "slam": true },
+        { "do": "text", "style": "line", "pos": "top", "t": 47.2, "dur": 4.6, "text": "CAMPEONES DEL MUNDO" },
+        { "do": "stars", "t": 47.3, "dur": 4.5, "from": 2, "to": 3 }
+      ]
+    },
+
+    {
+      "id": "S18", "era": "e2026", "start": 52.0, "end": 55.5, "name": "One last dance", "board": 54.5,
+      "camera": { "zoom": [1.0, 1.05] },
+      "hero": { "scale": 0.56 },
+      "actions": [
+        { "do": "odometer", "t": 52.0, "dur": 2.4, "from": "2022", "to": "2026" },
+        { "do": "text", "style": "line", "pos": "upper", "t": 52.8, "dur": 1.05, "text": "AGE 39." },
+        { "do": "text", "style": "script", "pos": "upper2", "t": 53.9, "dur": 1.55, "text": "One last dance." }
+      ]
+    },
+    {
+      "id": "S19", "era": "e2026", "start": 55.5, "end": 59.0, "name": "Record", "board": 57.0,
+      "camera": { "zoom": [1.05, 1.10] },
+      "hero": { "scale": 0.56, "rays": [1.0, 1.06] },
+      "actions": [
+        { "do": "bignum", "pos": "upper", "t": 55.5, "dur": 3.4, "seq": ["16", "17", "21"], "flip": [55.9, 57.7] },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 55.5, "dur": 2.1, "text": "THE WORLD CUP RECORD" },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 57.7, "dur": 1.2, "text": "WORLD CUP GOALS" },
+        { "do": "pump", "t": 55.9, "dur": 0.6, "every": 0.3 },
+        { "do": "flashbulbs", "t": 55.9, "dur": 3.0, "rate": 8 }
+      ]
+    },
+    {
+      "id": "S20", "era": "e2026", "start": 59.0, "end": 62.0, "name": "The run", "board": 60.6,
+      "camera": { "zoom": [1.04, 1.12], "shake": 0.2 },
+      "hero": { "scale": 0.56, "rays": [1.04, 1.08] },
+      "actions": [
+        { "do": "list", "t": 59.1, "dur": 2.85, "items": ["CABO VERDE", "EGYPT", "SWITZERLAND", "ENGLAND"], "labels": ["ROUND OF 32", "ROUND OF 16", "QUARTER-FINAL", "SEMI-FINAL"], "step": 0.7 },
+        { "do": "flashbulbs", "t": 59.0, "dur": 3.0, "rate": 10 },
+        { "do": "pump", "t": 59.1, "dur": 2.9, "every": 0.7 }
+      ]
+    },
+    {
+      "id": "S21", "era": "e2026", "start": 62.0, "end": 65.5, "name": "So close, again", "board": 64.3,
+      "camera": { "zoom": [1.04, 1.08], "target": [[0.47, 0.55], [0.47, 0.50]] },
+      "hero": { "scale": 0.56, "rays": [1.0, 0.96] },
+      "actions": [
+        { "do": "text", "style": "kicker", "pos": "top", "t": 62.2, "dur": 1.35, "text": "FINAL · 19.07.2026" },
+        { "do": "trophy", "t": 62.4, "dur": 3.1, "mode": "dissolve" },
+        { "do": "score", "pos": "top", "t": 63.65, "dur": 1.7, "text": "ARG 0–1 ESP  a.e.t." }
+      ]
+    },
+    {
+      "id": "S22", "era": "e2026", "start": 65.5, "end": 68.0, "name": "Goodbye", "board": 66.9,
+      "camera": { "zoom": [1.08, 1.04], "target": [[0.47, 0.50], [0.47, 0.55]] },
+      "hero": { "scale": 0.56, "lit": [0.85, 0.75], "rays": [0.96, 0.94] },
+      "actions": [
+        { "do": "rising", "t": 64.9, "dur": 4.2 },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 66.3, "dur": 1.6, "text": "THE DAY HE SAID GOODBYE" },
+        { "do": "text", "style": "date", "pos": "upper", "t": 65.7, "dur": 2.2, "text": "31.08.2026" }
+      ]
+    },
+    {
+      "id": "S23", "era": "e2026", "start": 68.0, "end": 74.0, "name": "Monumental", "board": 71.6,
+      "camera": { "zoom": [1.0, 1.10] },
+      "hero": { "scale": 0.56, "lit": [0.75, 1.0], "rays": [0.94, 1.02] },
+      "actions": [
+        { "do": "phonelights", "t": 68.0, "dur": 11.0 },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 68.4, "dur": 2.6, "text": "06.10.2026 · MONUMENTAL" },
+        { "do": "text", "style": "line", "pos": "upper", "t": 70.6, "dur": 2.4, "text": "ONE LAST GOAL." },
+        { "do": "pump", "t": 70.6, "dur": 1.6, "every": 0.55 },
+        { "do": "confetti", "t": 71.0, "dur": 8.0, "mode": "gentle" }
+      ]
+    },
+
+    {
+      "id": "S24", "era": "outro", "start": 74.0, "end": 79.0, "name": "Gracias", "board": 77.4,
+      "camera": { "zoom": [1.10, 1.0] },
+      "hero": { "scale": 0.56, "lit": [1.0, 0.9] },
+      "actions": [
+        { "do": "release", "t": 74.2, "dur": 4.8 },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 74.3, "dur": 1.9, "text": "2006 — 2026" },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 76.3, "dur": 2.3, "text": "6 WORLD CUPS · 21 GOALS · 1 TROPHY" },
+        { "do": "text", "style": "script", "pos": "upper2", "t": 76.4, "dur": 2.4, "text": "Gracias, Leo." },
+        { "do": "fade_out", "t": 77.9, "dur": 1.1 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# วิดีโอที่ render และ cache — ไม่เข้า git
+out/
+.cache/
+__pycache__/
+# ไฟล์เพลงห้ามเข้า git ไม่ว่ากรณีใด
+*.m4a
+*.mp3
+*.wav
+*.aac
+*.flac
+*.ogg
+*.mp4
+*.mov
+# repo นี้เป็น public — ภาพ Lego (ผลงานของคนต่อ) และภาพที่สร้างจากมัน ไม่ขึ้น git จนกว่าเจ้าของงานจะอนุญาต
+input/hero.*
+storyboard/*.jpg

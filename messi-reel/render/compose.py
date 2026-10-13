@@ -222,15 +222,19 @@ class Renderer:
         key = ("phones",)
         if key not in self._cache:
             rng = np.random.default_rng(5)
-            n = 5200
-            row = rng.random(n)
+            n = 6400
+            row = rng.beta(1.7, 1.0, n)  # แถวหน้า (row → 1) แน่นกว่าแถวไกล
             x = rng.uniform(-0.1, 1.1, n)
             # อัฒจันทร์เป็นชั้นโค้ง: แถวไกลอยู่สูง
             y = 0.10 + row * 0.55 - np.sin(np.clip(x, 0, 1) * np.pi) * (0.05 + 0.04 * row) + rng.normal(0, 0.006, n)
-            self._cache[key] = tuple(v.astype(np.float32) for v in (x, y, row, rng.uniform(0, 6.28, n), rng.uniform(0.6, 2.4, n), rng.random(n)))
-        x, y, row, ph, sp, order = self._cache[key]
+            wave = (rng.random(n) < 0.22) * (0.004 + 0.010 * row)  # บางดวงโบกซ้าย-ขวา (แถวหน้าโบกกว้างกว่า)
+            self._cache[key] = tuple(v.astype(np.float32) for v in (x, y, row, rng.uniform(0, 6.28, n), rng.uniform(0.6, 2.4, n), rng.random(n),
+                                                                     wave, rng.uniform(1.6, 2.6, n)))
+        x, y, row, ph, sp, order, wave, wf = self._cache[key]
         vis = order < clamp((t - a["t"]) / 2.6)  # ไฟเปิดทีละดวงจนเต็มสนาม
         tw = 0.55 + 0.45 * np.sin(t * sp + ph)
+        x = x + wave * np.sin(t * wf + ph)
+        y = y - wave * 0.35 * np.abs(np.cos(t * wf + ph))  # โบกเป็นแนวโค้งเหมือนแกว่งแขน
         M = self.cam_matrix(0.5)
         X = ((M[0, 0] * x * self.W + M[0, 2]) / 2).astype(np.int32)
         Y = ((M[1, 1] * y * self.H + M[1, 2]) / 2).astype(np.int32)
@@ -437,29 +441,50 @@ class Renderer:
         num, flip_p = self.number_state(t)
         cur = pup.body19 if num == "19" else None
         self.draw_layer(img, pup.layers["body"], Mb, look, lit, rim_k, img_override=cur)
-        if flip_p is not None:  # พลิกเลข: ภาพเลขใหม่ค่อย ๆ ทับ + แสงวาบบนตัวต่อ
-            new = pup.body19 if num == "10" else None
+        if flip_p is not None:  # พลิกแบบป้ายพลิก: ครึ่งบนของเลขเดิมพับลง → ครึ่งล่างของเลขใหม่ตามลงมาปิด
             x0, y0, x1, y1 = pup.number_box
-            L = pup.layers["body"] if new is None else new
-            sub = dict(img=L["img"][y0 - L["off"][1]:y1 - L["off"][1], x0 - L["off"][0]:x1 - L["off"][0]].copy(),
-                       aux=np.zeros((y1 - y0, x1 - x0, 4), np.uint8), off=(x0, y0))
-            sub["img"] = (sub["img"].astype(np.float32) * smooth(flip_p)).astype(np.uint8)
-            self.draw_layer(img, pup.layers["body"], Mb, look, lit, 0.0, img_override=sub)
-            fl = math.sin(clamp(flip_p) * math.pi)
-            px, py = self.to_screen(Mb, ((x0 + x1) / 2, (y0 + y1) / 2))
-            fx.add_mono(img, gfx.flare(int((y1 - y0) * s * 2.2)), px, py, (1, 0.97, 0.9), 0.9 * fl)
+            ym = (y0 + y1) // 2
+            old_L = pup.body19 if num == "19" else pup.layers["body"]
+            new_L = pup.body19 if num == "10" else pup.layers["body"]
+            body = pup.layers["body"]
+
+            def part(L, ya, yb, shade):
+                im = L["img"][ya - L["off"][1]:yb - L["off"][1], x0 - L["off"][0]:x1 - L["off"][0]].astype(np.float32)
+                im[..., :3] *= shade
+                return dict(img=np.clip(im, 0, 255).astype(np.uint8), aux=np.zeros(im.shape[:2] + (4,), np.uint8), off=(x0, ya))
+
+            def fold(c):  # ย่อแนวตั้งเข้าหาเส้นกลางป้าย
+                return Mb @ np.array([[1, 0, 0], [0, c, ym * (1 - c)], [0, 0, 1]], np.float64)
+
+            p = clamp(flip_p)
+            self.draw_layer(img, body, Mb, look, lit, 0.0, img_override=part(new_L, y0, ym, 1.0))
+            if p < 0.5:
+                q = p / 0.5
+                self.draw_layer(img, body, fold(max(0.03, math.cos(q * math.pi / 2))), look, lit, 0.0, img_override=part(old_L, y0, ym, 1 - 0.45 * q))
+            else:
+                q = (p - 0.5) / 0.5
+                self.draw_layer(img, body, fold(max(0.03, math.sin(q * math.pi / 2))), look, lit, 0.0, img_override=part(new_L, ym, y1, 0.55 + 0.45 * q))
+            seam = np.zeros((3, x1 - x0, 4), np.uint8)
+            seam[..., 3] = int(150 * math.sin(p * math.pi))
+            self.draw_layer(img, body, Mb, look, lit, 0.0, img_override=dict(img=seam, aux=np.zeros_like(seam), off=(x0, ym - 1)))
+            fl = math.sin(p * math.pi)
+            px, py = self.to_screen(Mb, ((x0 + x1) / 2, ym))
+            fx.add_mono(img, gfx.flare(int((y1 - y0) * s * 1.8)), px, py, (1, 0.97, 0.9), 0.6 * fl)
         self.draw_layer(img, pup.layers["head"], T @ P["head"], look, lit, rim_k)
+
+    FLIP_PRE, FLIP_POST = 0.22, 0.06  # ป้ายพลิกเริ่มก่อนจุด flip และ "แปะ" ลงหลังจุด flip เล็กน้อย (ตรงกับเสียงแปะใน sfx)
 
     def number_state(self, t):
         """เลขหลังเสื้อ ณ เวลา t → ('19'|'10', ความคืบหน้าการพลิก หรือ None)"""
+        a0, a1 = self.FLIP_PRE, self.FLIP_POST
         for a in self.tl.active(t, ("number",)):
             seq = a["seq"]
             flips = a.get("flip", [])
             flips = flips if isinstance(flips, list) else [flips]
-            idx = sum(1 for f in flips if t >= f + 0.15)
+            idx = sum(1 for f in flips if t >= f + a1)
             for f in flips:
-                if f - 0.15 <= t < f + 0.15:
-                    return seq[min(idx, len(seq) - 1)], (t - (f - 0.15)) / 0.3
+                if f - a0 <= t < f + a1:
+                    return seq[min(idx, len(seq) - 1)], (t - (f - a0)) / (a0 + a1)
             return seq[min(idx, len(seq) - 1)], None
         return "10", None
 
@@ -510,6 +535,17 @@ class Renderer:
             y += 0.006 * H * math.sin(u * 1.7)
             dissolve = clamp((u - 1.5) / 1.4)
         sp = gfx.trophy(max(8, int(hgt * sc)))
+        if mode != "pass" or u < 3.0:  # แสงสะท้อนวิ่งพาดผิวโลหะ (เฉียงจากล่างซ้ายขึ้นขวา) ทุก ~2.6 วินาที
+            hs, ws = sp.shape[:2]
+            key = ("tsheen", sp.shape)
+            if key not in self._cache:
+                yy, xx = np.mgrid[0:hs, 0:ws].astype(np.float32)
+                self._cache[key] = (xx / ws - 0.5) * 0.9 - (yy / hs - 0.5) * 0.55
+            pos = ((u + 0.4) / 2.6) % 1.0 * 1.9 - 0.95
+            d = self._cache[key]
+            band = ne.evaluate("exp(-((d - pos) / 0.06) ** 2) * 0.8 + exp(-((d - pos + 0.13) / 0.025) ** 2) * 0.35")
+            sp = sp.copy()  # sprite มาจาก cache ห้ามแก้ตรง ๆ
+            sp[..., :3] += (band * sp[..., 3])[..., None] * np.float32((1.0, 0.94, 0.78))
         if blur > 0:
             sp = fx.blur_fast(sp, blur * 0.01 * H)
         if glow > 0:
@@ -877,12 +913,44 @@ class Renderer:
         self._cache[key] = (np.ascontiguousarray(A), np.ascontiguousarray(B))
         return self._cache[key]
 
+    def _pylons_base(self):
+        """เสาไฟสนาม 4 ต้นยืนหลังอัฒจันทร์ (ส่วนล่างจะถูกอัฒจันทร์บังเอง) → (ตัวเสา, หลอดไฟ, แสงฟุ้ง)"""
+        key = ("pylons", self.hh)
+        if key in self._cache:
+            return self._cache[key]
+        h, w = self.hh, self.hw
+        mast, lamps = np.zeros((h, w), np.float32), np.zeros((h, w), np.float32)
+        for xc, top, lean in ((CX - 0.30, 0.040, 0.020), (CX - 0.19, 0.080, 0.010), (CX + 0.19, 0.080, -0.010), (CX + 0.30, 0.040, -0.020)):
+            # เสาเอียงเข้าหากลางสนามนิดหน่อย ปลายบนเป็นแผงไฟ 5 x 3 ดวง
+            x_top, x_bot = (xc + lean) * w, xc * w
+            cv2.line(mast, (int(x_bot), int(0.40 * h)), (int(x_top), int((top + 0.02) * h)), 1.0, max(1, int(0.0035 * h)), cv2.LINE_AA)
+            pw, ph = 0.075 * w, 0.022 * h
+            x0, y0 = x_top - pw / 2, top * h - ph / 2
+            cv2.rectangle(mast, (int(x0 - 2), int(y0 - 2)), (int(x0 + pw + 2), int(y0 + ph + 2)), 1.0, -1)
+            for r in range(3):
+                for c in range(5):
+                    cx_, cy_ = x0 + (c + 0.5) * pw / 5, y0 + (r + 0.5) * ph / 3
+                    cv2.circle(lamps, (int(cx_), int(cy_)), max(1, int(0.0045 * h)), 1.0, -1, cv2.LINE_AA)
+        mast = cv2.GaussianBlur(mast, (0, 0), 0.6)
+        glow = cv2.GaussianBlur(lamps, (0, 0), 0.02 * h) * 6.0 + cv2.GaussianBlur(lamps, (0, 0), 0.004 * h) * 1.5
+        self._cache[key] = (mast, lamps, glow)
+        return self._cache[key]
+
     def stadium(self, bg, look, amount, expand):
         if amount <= 0.01:
             return
         A, B = self._stadium_base()
         h, w = self.hh, self.hw
         M = cv2.getRotationMatrix2D((CX * w, 0.62 * h), 0, expand)
+        py_k = look.get("pylons", 0.0) * amount
+        if py_k > 0.01:  # วาดก่อนอัฒจันทร์ ตัวอัฒจันทร์จะบังโคนเสาเอง
+            mast, lamps, glow = (cv2.warpAffine(c, M, (w, h)) for c in self._pylons_base())
+            dark = np.float32(look["bg_top"]) * np.float32(0.6)
+            lamp_c = np.float32((1.0, 0.97, 0.9)) * np.float32(1.3 * py_k)
+            glow_c = np.float32(look["rim"]) * np.float32(0.22 * py_k)
+            pk = np.float32(py_k)
+            m3, l3, g3 = mast[..., None], lamps[..., None], glow[..., None]
+            bg[:] = ne.evaluate("bg * (1 - pk * m3) + pk * m3 * dark + l3 * lamp_c + g3 * glow_c")
         A = cv2.warpAffine(A, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
         B = cv2.warpAffine(B, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
         crowd, edges, roof_l, structure = A[..., 0:1], A[..., 1:2], A[..., 2:3], A[..., 3:4]

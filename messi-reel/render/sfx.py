@@ -249,7 +249,7 @@ def build(tl):
                 bus.put(t0 + RNG.uniform(0, a["dur"]), sh, RNG.uniform(0.02, 0.06), RNG.uniform(-0.8, 0.8))
         elif d == "number" and a.get("flip"):
             f = a["flip"] if not isinstance(a["flip"], list) else a["flip"][0]
-            bus.put(f - 0.02, brick_clack(4), 0.22)
+            bus.put(f + 0.04, brick_clack(4), 0.22)  # ตอนแผ่นป้ายพลิกแปะลง (compose.FLIP_POST)
         elif d in ("bignum", "score") and a.get("slam"):
             bus.put(t0, boom(), 0.5)
         elif d == "bignum" and a.get("flip"):

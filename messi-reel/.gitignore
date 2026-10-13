@@ -18,3 +18,4 @@ storyboard/*.jpg
 input/archive/*
 !input/archive/README.md
 !input/archive/credits.md
+!input/archive/SHORTLIST.md

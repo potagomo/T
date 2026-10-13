@@ -36,7 +36,7 @@
     {
       "id": "S01", "era": "intro", "start": 0.0, "end": 2.0, "name": "The photograph", "board": 1.2,
       "camera": { "zoom": [1.0, 1.025] },
-      "hero": { "scale": 0.44, "y": 0.5 },
+      "hero": { "scale": 0.42, "x": 0.5, "y": 0.5 },
       "world": { "stadium": [0, 0] },
       "actions": [
         { "do": "photo", "t": 0.0, "dur": 2.0, "from": 1, "to": 1 }
@@ -55,7 +55,7 @@
     {
       "id": "S02", "era": "intro", "start": 2.0, "end": 4.0, "name": "The world wakes", "board": 3.3,
       "camera": { "zoom": [1.02, 1.0] },
-      "hero": { "scale": [0.44, 0.56], "y": [0.5, 0.64], "lit": [0.7, 1.0], "rays": [1.0, 1.04] },
+      "hero": { "scale": [0.42, 0.56], "x": [0.5, 0.47], "y": [0.5, 0.64], "lit": [0.7, 1.0], "rays": [1.0, 1.04] },
       "world": { "stadium": [0, 0.35] },
       "actions": [
         { "do": "photo", "t": 2.0, "dur": 1.4, "from": 1, "to": 0 },
@@ -85,7 +85,7 @@
       "actions": [
         { "do": "odometer", "t": 4.0, "dur": 2.4, "from": "    ", "to": "2006" },
         { "do": "number", "t": 4.0, "dur": 5.0, "seq": ["19"] },
-        { "do": "ball", "t": 4.3, "dur": 4.7, "mode": "roll" },
+        { "do": "ball", "t": 4.3, "dur": 4.7, "mode": "roll", "x_end": 0.28, "y": 0.74 },
         { "do": "text", "style": "line", "pos": "upper", "t": 4.9, "dur": 1.5, "text": "AGE 18." }
       ],
       "notes": {
@@ -101,13 +101,13 @@
     },
     {
       "id": "S04", "era": "e2006", "start": 6.5, "end": 9.0, "name": "First dream", "board": 7.9,
-      "camera": { "zoom": [1.03, 1.12], "target": [[0.47, 0.6], [0.47, 0.64]] },
+      "camera": { "zoom": [1.03, 1.08], "target": [[0.47, 0.55], [0.47, 0.57]] },
       "hero": { "scale": 0.42 },
       "world": { "stadium": [0.25, 0.3] },
       "actions": [
         { "do": "flashbulbs", "t": 6.8, "dur": 1.6, "rate": 4 },
         { "do": "pump", "t": 6.9, "dur": 0.6, "every": 0.5 },
-        { "do": "text", "style": "script", "pos": "upper", "t": 7.0, "dur": 1.65, "text": "A generation\nwatched him dream." },
+        { "do": "text", "style": "script", "pos": "upper", "y": 0.195, "t": 6.7, "dur": 1.9, "text": "A generation\nwatched him dream." },
         { "do": "crt_off", "t": 8.6, "dur": 0.4 }
       ],
       "notes": {
@@ -128,9 +128,9 @@
       "hero": { "scale": 0.50 },
       "world": { "stadium": [0.4, 0.45] },
       "actions": [
-        { "do": "odometer", "t": 9.0, "dur": 2.4, "from": "2006", "to": "2010" },
+        { "do": "odometer", "t": 9.0, "dur": 1.3, "from": "2006", "to": "2010" },
         { "do": "number", "t": 9.0, "dur": 3.5, "seq": ["19", "10"], "flip": 9.9 },
-        { "do": "text", "style": "line", "pos": "upper", "t": 10.4, "dur": 2.0, "text": "THE NUMBER 10." }
+        { "do": "text", "style": "line", "pos": "top", "t": 10.4, "dur": 2.0, "text": "THE NUMBER 10." }
       ],
       "notes": {
         "emotion": "คาดหวัง — ภาระของเบอร์ 10",
@@ -145,16 +145,16 @@
     },
     {
       "id": "S06", "era": "e2010", "start": 12.5, "end": 15.0, "name": "Pressure", "board": 14.3,
-      "camera": { "zoom": [0.96, 1.14], "shake": 0.2 },
+      "camera": { "zoom": [1.36, 1.14], "target": [[0.47, 0.69], [0.47, 0.55]], "shake": 0.2 },
       "hero": { "scale": 0.50, "rays": [1.0, 1.06] },
-      "world": { "stadium": [0.5, 0.9], "expand": [0.9, 1.08] },
+      "world": { "stadium": [0.6, 1.0], "expand": [0.85, 1.2] },
       "actions": [
-        { "do": "flashbulbs", "t": 12.5, "dur": 2.5, "rate": 4, "rate_end": 26 },
-        { "do": "ball", "t": 13.3, "dur": 0.55, "mode": "whip" }
+        { "do": "flashbulbs", "t": 12.5, "dur": 2.5, "rate": 4, "rate_end": 26, "size": [0.10, 0.22], "decay": 0.08, "life": 0.3, "lift": 0.05 },
+        { "do": "ball", "t": 13.3, "dur": 0.42, "mode": "whip" }
       ],
       "notes": {
         "emotion": "กดดัน — ทุกสายตาจ้องมา",
-        "camera": "ถอยกว้างแล้วดันเข้าเร็วขึ้น ภาพสั่นเบา ๆ",
+        "camera": "ถอยกล้องต่อเนื่องจาก S05 เผยสนามที่ขยายออกรอบตัว ภาพสั่นเบา ๆ",
         "layers": "หน้า: ลูกบอลพุ่งผ่านหน้ากล้อง (เบลอ) · กลาง: หุ่น · หลัง: อัฒจันทร์ขยายใหญ่ขึ้น",
         "light": "แฟลชถี่ขึ้นเรื่อย ๆ จนแทบติดกัน คอนทราสต์สูง",
         "motion": "สนามขยายตัว ลำแสงกางออก แฟลชเร่ง",
@@ -166,10 +166,10 @@
     {
       "id": "S07", "era": "e2010", "start": 15.0, "end": 17.0, "name": "Silence", "board": 16.2,
       "camera": { "zoom": [1.12, 1.08] },
-      "hero": { "scale": 0.50, "lit": [1.0, 0.45], "rays": [1.06, 0.9] },
+      "hero": { "scale": 0.50, "lit": [1.0, 0.45], "rays": [1.06, 0.9], "rim": 0.5 },
       "world": { "stadium": [0.9, 0.3] },
       "actions": [
-        { "do": "desaturate", "t": 15.0, "dur": 2.0, "amount": 0.85 }
+        { "do": "desaturate", "t": 15.0, "dur": 2.0, "amount": 0.85, "release": 0.05 }
       ],
       "notes": {
         "emotion": "คับข้องใจ — ตกรอบ 8 ทีมแบบไม่ได้ยิงสักลูก",

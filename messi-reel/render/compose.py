@@ -11,6 +11,7 @@
   7 ทีวีเก่า/กลิตช์ → ขอบมืด → เกรน → แฟลชขาว/เฟดดำ
 """
 import math
+import os
 import zlib
 
 import cv2
@@ -20,8 +21,12 @@ import numpy as np
 from . import fx, gfx
 from .hero import Puppet
 from .looks import CX, LOOKS, PALETTE, POS_Y, mix
-from .timeline import back_out, clamp, ease_in, ease_in_out, ease_out, env, lerp, smooth
+from .timeline import ROOT, back_out, clamp, ease_in, ease_in_out, ease_out, env, lerp, smooth
 
+ARCHIVE_DIR = os.path.join(ROOT, "input", "archive")  # ภาพถ่ายจริงที่ใช้สิทธิ์ได้ (ไม่เข้า git) — ดู input/archive/README.md
+# ภาพบนจอยักษ์ "แก่" ตามยุค: (ความอิ่มสี, โทนอุ่น, คอนทราสต์)
+ARCHIVE_GRADE = {2006: (0.55, 0.05, 0.92), 2010: (0.75, 0.03, 0.96), 2014: (0.95, 0.01, 1.0),
+                 2018: (0.85, 0.0, 1.06), 2022: (1.0, 0.02, 1.03), 2026: (1.0, 0.0, 1.0)}
 TWOS = 12.0  # หุ่นขยับ 12 ครั้ง/วินาที ให้ความรู้สึกหนังเลโก้สต็อปโมชัน ส่วนกล้องลื่นเต็ม 30 fps
 ANCHOR_Y = 0.55
 
@@ -55,6 +60,7 @@ class Renderer:
         self._rays = self._make_rays()
         self._cache = {}
         self.debug_text = None
+        self.placeholders = False  # True = วาดกรอบ "รอภาพ" แทนภาพถ่ายจริงที่ยังไม่มีไฟล์ (ไว้ดูตำแหน่งเท่านั้น)
         self._pumps = self._pump_times()
 
     # ------------------------------------------------------------ helpers
@@ -79,12 +85,16 @@ class Renderer:
 
     # ------------------------------------------------------------ static textures
     def _make_haze(self):
+        """หมอกที่ต่อกันได้ในแนวนอน (ขอบซ้ายต่อขอบขวาพอดี) — เลื่อนวนด้วย np.roll แล้วไม่เห็นรอยต่อ"""
+        def tile(n):
+            c, p = n.shape[1], 3
+            big = cv2.resize(np.pad(n, ((0, 0), (p, p)), mode="wrap"), (self.hw * (c + 2 * p) // c, self.hh), interpolation=cv2.INTER_CUBIC)
+            x0 = self.hw * p // c
+            return big[:, x0:x0 + self.hw]
         rng = np.random.default_rng(3)
-        n = rng.random((18, 10)).astype(np.float32)
-        hz = cv2.resize(n, (self.hw, self.hh), interpolation=cv2.INTER_CUBIC)
-        n2 = rng.random((40, 22)).astype(np.float32)
-        hz = 0.65 * hz + 0.35 * cv2.resize(n2, (self.hw, self.hh), interpolation=cv2.INTER_CUBIC)
-        return np.clip((hz - 0.35) * 1.6, 0, 1)
+        hz = tile(rng.random((18, 10)).astype(np.float32))
+        hz = 0.65 * hz + 0.35 * tile(rng.random((40, 22)).astype(np.float32))
+        return np.ascontiguousarray(np.clip((hz - 0.35) * 1.6, 0, 1))
 
     def _make_rays(self):
         h, w = self.hh, self.hw
@@ -152,7 +162,7 @@ class Renderer:
         drift = np.float32([[1, 0, math.sin(t * 0.13) * 0.01 * wd], [0, 1, 0]])
         bg += cv2.warpAffine(bk, drift, (wd, h), borderMode=cv2.BORDER_REFLECT)
         hz_amt = 0.05 + 0.10 * self._haze_boost
-        off = (t * 0.012 * h) % h
+        off = (t * 0.012 * h) % wd
         bg += np.roll(self._haze, int(off), axis=1)[..., None] * np.float32(look["rim"]) * hz_amt
         return bg
 
@@ -166,13 +176,19 @@ class Renderer:
             u = (np.sqrt(r0 ** 2 + (r1 ** 2 - r0 ** 2) * u) - r0) / (r1 - r0)
         births = a["t"] + u * dur
         xs, ys = rng.uniform(-0.02, 1.02, n), 0.04 + rng.beta(1.4, 2.6, n) * 0.6
-        sz = rng.uniform(0.04, 0.11, n)
+        s0, s1 = a.get("size", [0.04, 0.11])
+        sz = rng.uniform(s0, s1, n)
+        decay, life, lift = a.get("decay", 0.05), a.get("life", 0.22), a.get("lift", 0.0)
         energy = 0.6 + 0.8 * self.tl.beat.level(t) if self.tl.beat.ok else 1.0
+        exposure = 0.0
         for b, x, y, s in zip(births, xs, ys, sz):
             dt = t - b
-            if 0 <= dt < 0.22:
+            if 0 <= dt < life:
                 px, py, z = self.cam(x, y, 0.45)
-                fx.add_mono(bg, gfx.flare(int(s * self.hh * z)), px / 2, py / 2, (1.0, 0.98, 0.95), 1.4 * math.exp(-dt / 0.05) * energy)
+                fx.add_mono(bg, gfx.flare(int(s * self.hh * z)), px / 2, py / 2, (1.0, 0.98, 0.95), 1.4 * math.exp(-dt / decay) * energy)
+                exposure += lift * math.exp(-dt / 0.06)
+        if exposure > 0:  # ทั้งฉากสว่างวาบตามแฟลช (ช่วงท้ายที่ถี่มากจะกะพริบเป็นสโตรบ)
+            bg += np.float32(min(exposure, 0.18))
 
     def lightbanks(self, bg, t, a):
         n = a.get("count", 7)
@@ -247,6 +263,102 @@ class Renderer:
         lay = lay + cv2.GaussianBlur(lay, (0, 0), max(1.0, 0.004 * self.hh)) * 3.0
         bg *= np.float32(1 - 0.25 * k)
         bg += (lay * k)[..., None] * np.float32((1.0, 0.97, 0.9))
+
+
+    # ------------------------------------------------------------ giant screen (real archive photos)
+    def _archive_src(self, name):
+        key = ("arch", name)
+        if key not in self._cache:
+            p = os.path.join(ARCHIVE_DIR, name)
+            im = cv2.imread(p, cv2.IMREAD_COLOR) if os.path.isfile(p) else None
+            if im is not None:
+                lim = 2 * self.W  # ย่อครั้งเดียวพอให้ warp ไม่ต้องย่อมาก (ไม่เป็นรอยหยัก)
+                if max(im.shape[:2]) > lim:
+                    k = lim / max(im.shape[:2])
+                    im = cv2.resize(im, (int(im.shape[1] * k), int(im.shape[0] * k)), interpolation=cv2.INTER_AREA)
+                im = np.ascontiguousarray(im[..., ::-1].astype(np.float32) / 255)
+            self._cache[key] = im
+        return self._cache[key]
+
+    def _archive_placeholder(self, a, sw, sh):
+        key = ("arch_ph", a["src"], sw, sh)
+        if key not in self._cache:
+            g = np.linspace(0, 1, sh, dtype=np.float32)[:, None, None]
+            pic = np.broadcast_to(np.float32((0.10, 0.11, 0.13)) * (1 - 0.4 * g), (sh, sw, 3)).copy()
+            yy, xx = np.mgrid[0:sh, 0:sw]
+            pic += (((xx + yy) // max(2, sh // 14)) % 2 == 0)[..., None].astype(np.float32) * 0.025
+            for txt, fk, sz, y in ((f"ARCHIVE PHOTO · {a.get('year', '')}", "display", 0.13, 0.40),
+                                   (a.get("label", "รอภาพถ่ายจริงที่ใช้สิทธิ์ได้"), "thai", 0.07, 0.60)):
+                sp = gfx.text_sprite(txt, fk, int(sz * sh), (0.85, 0.87, 0.9), 0.04 if fk == "display" else 0.0, 0.0)
+                fx.blit(pic, sp, sw / 2, y * sh, 1.0)
+            self._cache[key] = pic
+        return self._cache[key]
+
+    def screen(self, img, t, a):
+        """จอยักษ์ในสนามเหนือหัวหุ่น: ฉายภาพถ่ายจริงของเหตุการณ์ในปีนั้น (หุ่นชี้นิ้วขึ้นไปที่จอ เรายืนดูอยู่ข้างหลังเขา)
+        ภาพมาจาก input/archive/<src> เท่านั้น ถ้าไม่มีไฟล์ = ไม่วาดอะไรเลย (คลิปเหมือนเดิมทุกพิกเซล)"""
+        u, dur = t - a["t"], a["dur"]
+        if u < 0 or u > dur:
+            return
+        src = self._archive_src(a["src"])
+        if src is None and not self.placeholders:
+            return
+        H, W = self.H, self.W
+        px, py, z = self.cam(a.get("x", CX), a.get("y", 0.25), 0.6)  # ขอบบนพ้นแถบหัว Reels
+        sw = max(16, int(a.get("w", 0.84) * W * z))
+        sh = max(9, int(sw / a.get("aspect", 1.5)))  # 3:2 เท่าภาพข่าวกีฬาส่วนใหญ่ — ขอบล่างจอให้ปลายนิ้วชี้แตะพอดี
+        # เปิดจอแบบจอ LED สนาม: เส้นสว่างกลางจอแล้วกางขึ้นลง · ปิดจอ: หุบกลับเป็นเส้น
+        vs = ease_out(clamp(u / 0.22)) * (1 - ease_in(clamp((u - dur + 0.28) / 0.28)))
+        if src is not None:
+            ih, iw = src.shape[:2]
+            fx_, fy_ = a.get("focus", [0.5, 0.4])
+            z0, z1 = a.get("zoom", [1.0, 1.07])
+            s0 = max(sw / iw, sh / ih) * lerp(z0, z1, ease_in_out(u / dur))  # เต็มจอ (cover) + ซูมช้า ๆ แบบ Ken Burns
+            cx_ = min(max(fx_ * iw, sw / (2 * s0)), iw - sw / (2 * s0))
+            cy_ = min(max(fy_ * ih, sh / (2 * s0)), ih - sh / (2 * s0))
+            Ms = np.float32([[s0, 0, sw / 2 - s0 * cx_], [0, s0, sh / 2 - s0 * cy_]])
+            pic = cv2.warpAffine(src, Ms, (sw, sh), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+            sat, warm, con = ARCHIVE_GRADE.get(int(a.get("year", 2026)), (1.0, 0.0, 1.0))
+            lum = pic @ np.float32([0.2126, 0.7152, 0.0722])
+            pic = lum[..., None] + (pic - lum[..., None]) * np.float32(sat)
+            pic = (pic - 0.45) * np.float32(con) + 0.45 + np.float32((warm, warm * 0.4, -warm * 0.8))
+        else:
+            pic = self._archive_placeholder(a, sw, sh).copy()
+        # เนื้อจอ LED: ตารางพิกเซลจาง ๆ + สว่างแบบเปล่งแสง
+        mk = ("ledmesh", sw, sh)
+        if mk not in self._cache:
+            pitch = max(2.5, sh / 190)
+            yy = np.arange(sh, dtype=np.float32)[:, None]
+            xx = np.arange(sw, dtype=np.float32)[None, :]
+            self._cache[mk] = ((0.88 + 0.12 * np.cos(2 * np.pi * xx / pitch)) * (0.9 + 0.10 * np.cos(2 * np.pi * yy / pitch))).astype(np.float32)[..., None]
+        pic = np.clip(pic, 0, 1) * self._cache[mk] * np.float32(a.get("gain", 0.92))
+        hv = max(2, int(sh * vs))
+        if hv < sh:
+            pic = cv2.resize(pic, (sw, hv), interpolation=cv2.INTER_AREA)
+            if vs < 0.12:  # เส้นไฟตอนเปิด/ปิดจอ
+                pic = pic * 0.3 + np.float32(0.9)
+        al = a.get("alpha", 1.0)
+        # แสงจากจอฟุ้งลงบนฉากรอบ ๆ (สีเฉลี่ยของภาพ)
+        gk = ("scrglow", sw // 8, sh // 8)
+        if gk not in self._cache:
+            gw, gh = sw // 8 + 40, sh // 8 + 40
+            m = np.zeros((gh, gw), np.float32)
+            m[20:gh - 20, 20:gw - 20] = 1
+            m = cv2.GaussianBlur(m, (0, 0), 7)
+            self._cache[gk] = cv2.resize(m, (int(gw * 8 * 1.1), int(gh * 8 * 1.25)), interpolation=cv2.INTER_LINEAR)
+        mean = pic.reshape(-1, 3).mean(0)
+        fx.add_mono(img, self._cache[gk], px, py, tuple(float(c) for c in mean), 0.35 * al * vs)
+        # กรอบจอ (ขอบมืด + เส้นขอบบางสะท้อนแสง)
+        b = max(2, int(0.006 * H * z))
+        x0, y0 = int(px - sw / 2), int(py - hv / 2)
+        X0, Y0, X1, Y1 = max(0, x0 - b), max(0, y0 - b), min(W, x0 + sw + b), min(H, y0 + hv + b)
+        if X1 > X0 and Y1 > Y0:
+            img[Y0:Y1, X0:X1] *= np.float32(1 - 0.85 * al)
+            img[Y0:Y1, X0:X1] += np.float32(0.03 * al)
+        X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(W, x0 + sw), min(H, y0 + hv)
+        if X1 > X0 and Y1 > Y0:
+            sub = pic[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0]
+            img[Y0:Y1, X0:X1] = img[Y0:Y1, X0:X1] * np.float32(1 - al) + sub * np.float32(al)
 
     # ------------------------------------------------------------ puppet
     def sv(self, d, key, default):
@@ -352,7 +464,7 @@ class Renderer:
         sh = self.shot.get("hero", {})
         lit = self.sv(sh, "lit", 1.0)
         P = self.pose(t)
-        rim_k = self.motion_amt
+        rim_k = self.motion_amt * self.sv(sh, "rim", 1.0)
         ts = pup.tile
         # โคจรบางส่วน: ชั้นที่อยู่ลึกกว่าเลื่อนไปตามฉากหลัง ชั้นหน้า (เสื้อ) อยู่กับที่ → เห็นความลึก
         ob = self.orbit_s * 0.12 * pup.body_h
@@ -676,7 +788,7 @@ class Renderer:
 
     def _block(self, text, key, px, color, tracking, shadow, max_w=0.84):
         """ตัวหนังสือหลายบรรทัด (แยกด้วย \n) จัดกึ่งกลาง ย่อเองถ้ากว้างเกิน"""
-        ck = ("block", text, key, px, color, tracking, shadow, self.W)
+        ck = ("block", text, key, px, color, tracking, shadow, max_w, self.W)
         if ck in self._cache:
             return self._cache[ck]
         lines = [gfx.text_sprite(ln, key, px, color, tracking, shadow) for ln in text.split("\n")]
@@ -703,7 +815,7 @@ class Renderer:
         q = ease_out((t - a["t"]) / 0.45)
         H = self.H
         if style == "kicker":
-            sp = self._block(a["text"], "ui", int(0.0215 * H), (0.95, 0.95, 0.95), 0.16, 0.7)
+            sp = self._block(a["text"], "ui", int(0.0215 * H), (0.95, 0.95, 0.95), 0.16, 0.7, a.get("max_w", 0.76))  # แกน CX=0.47 → กว้างได้ไม่เกิน 0.76 ไม่ล้นเขต 86%
             self._put(img, sp, CX, y + 0.006 * (1 - q), k * 0.95)
         elif style == "line":
             sp = self._block(a["text"], "display", int(0.058 * H), (1.0, 1.0, 1.0), 0.015, 0.85)
@@ -825,11 +937,8 @@ class Renderer:
                 seq, q = [ta], 0.0
             elif fa == " ":
                 seq, q = [" ", ta], p
-            else:
-                ia, ib = int(fa), int(ta)
-                steps = (ib - ia) % 10 or 10
-                seq = [str((ia + j) % 10) for j in range(steps + 1)]
-                q = p * steps
+            else:  # เลื่อนจากเลขเดิมไปเลขใหม่ทีเดียว (ไม่ไล่ผ่านเลขกลาง ๆ — กันเห็นปีอื่นแวบขึ้นมา เช่น 2018 ระหว่าง 2006→2010)
+                seq, q = [fa, ta], p
             j = min(int(math.floor(q)), len(seq) - 1)
             f = q - j
             canvas = np.zeros((ch, cw, 4), np.float32)
@@ -850,7 +959,8 @@ class Renderer:
         era = self.tl.era_at(t)
         if era["label"] and not stars_on:
             lb = gfx.text_sprite(era["label"], "ui", int(0.0175 * self.H), PALETTE["celeste"], 0.32, 0.6)
-            self._put(img, lb, CX, POS_Y["top2"] - 0.006, k * smooth((u - 0.4) / 0.4))
+            land = 0.08 * (len(to) - 1) + 0.75  # ชื่อประเทศขึ้นหลังหลักสุดท้ายหมุนเสร็จ ไม่โดนตัวเลขที่กำลังหมุนทับ
+            self._put(img, lb, CX, POS_Y["top2"] - 0.006, k * smooth((u - land) / 0.3))
 
     def stars(self, img, t, a):
         k = env(t, a["t"], a["dur"], 0.2, 0.3)
@@ -957,7 +1067,7 @@ class Renderer:
         dark = np.float32(look["bg_top"]) * 0.8 + np.float32(look["bg_bottom"]) * 0.15
         crowd_c = np.float32(look["bokeh"][0]) * np.float32(0.10 + 0.30 * amount)
         rim = np.float32(look["rim"]) * np.float32(0.35 * amount)
-        roof_c = np.float32((1.0, 0.96, 0.88)) * np.float32(1.1 * amount)
+        roof_c = np.float32((1.0, 0.96, 0.88)) * np.float32(1.1 * amount * smooth((amount - 0.25) / 0.4))  # ไฟหลังคาขึ้นพร้อมอัฒจันทร์ ไม่ลอยเดี่ยวเป็นเส้นจุด
         pitch_c = np.float32((0.03, 0.10, 0.05)) * np.float32(0.5 + 0.8 * amount)
         Bp = B[..., None]
         a = np.float32(amount)
@@ -984,24 +1094,24 @@ class Renderer:
         if a.get("mode") == "whip":
             # ลูกบอลใหญ่พุ่งผ่านหน้ากล้อง เบลอทั้งจากความเร็วและระยะชัด
             q = u / a["dur"]
-            x, y = lerp(1.25, -0.3, q) * W, (0.66 - 0.08 * q) * H
-            sp = gfx.ball(int(0.30 * H), rot=-q * 260)
+            x, y = lerp(1.25, -0.3, q) * W, (0.90 - 0.07 * q) * H  # ผ่านใต้เลข 10 ไม่บังชื่อ/เลขบนเสื้อ
+            sp = gfx.ball(int(0.24 * H), rot=-q * 260)
             small = cv2.resize(sp, (sp.shape[1] // 4, sp.shape[0] // 4), interpolation=cv2.INTER_AREA)
-            klen = max(3, int(small.shape[1] * 0.9))
+            klen = max(3, int(small.shape[1] * 0.22))  # เบลอแค่พอรู้ว่าเร็ว ยังเห็นลายลูกบอล
             kern = np.zeros((1, klen), np.float32)
             kern[0, :] = 1.0 / klen
             pad = klen
             small = cv2.copyMakeBorder(small, 0, 0, pad, pad, cv2.BORDER_CONSTANT, value=0)
             small = cv2.filter2D(small, -1, kern)
-            small = cv2.GaussianBlur(small, (0, 0), 2.0)
+            small = cv2.GaussianBlur(small, (0, 0), 0.7)
             sp = cv2.resize(small, (small.shape[1] * 4, small.shape[0] * 4), interpolation=cv2.INTER_LINEAR)
-            fx.blit(img, sp, x, y, 0.9)
+            fx.blit(img, sp, x, y, 1.0)
             return
         # roll: ลูกเล็กกลิ้งเข้ามาจากซ้ายแล้วหยุดข้างตัว
         k = ease_out(clamp(u / 1.6))
         bounce = abs(math.sin(u * 7.0)) * math.exp(-u * 2.2) * 0.02
-        x = lerp(-0.08, 0.20, k)
-        y = 0.805 - bounce
+        x = lerp(-0.08, a.get("x_end", 0.28), k)
+        y = a.get("y", 0.74) - bounce
         px, py, z = self.cam(x, y, 1.0)
         size = int(0.05 * H * z)
         rot = -(k * 0.28 * W) / (size / 2) * 57.3
@@ -1190,6 +1300,11 @@ class Renderer:
                 self.spotlight(bg, t, a)
         img = cv2.resize(bg, (self.W, self.H), interpolation=cv2.INTER_LINEAR)
 
+        # ---- จอยักษ์ (ภาพถ่ายจริง) อยู่ในสนาม หลังถ้วยและหุ่น
+        for a in act:
+            if a["do"] == "screen":
+                self.screen(img, t, a)
+
         # ---- 2+3 ของรอบตัว + หุ่น
         for a in act:
             if a["do"] == "trophy":
@@ -1225,7 +1340,7 @@ class Renderer:
         # ---- 5 เกรดสี
         desat = 0.0
         for a in tl.active(t, ("desaturate",)):
-            desat = max(desat, a.get("amount", 0.8) * env(t, a["t"], a["dur"], 0.15, 0.6))
+            desat = max(desat, a.get("amount", 0.8) * env(t, a["t"], a["dur"], a.get("attack", 0.15), a.get("release", 0.6)))
         np.clip(img, 0, 1.6, out=img)
         img = fx.bloom(img, look["bloom"])
         img = fx.grade(img, look, desat)

@@ -85,13 +85,15 @@ def main():
     ap.add_argument("--owner", help="ไฟล์ภาพที่เจ้าของงานส่งมาเอง (เจ้าของงานรับผิดชอบเรื่องสิทธิ์)")
     ap.add_argument("--credit", default="ภาพจากเจ้าของงาน", help="บรรทัดเครดิตสำหรับ --owner / --url")
     ap.add_argument("--url", help="ลิงก์ภาพโดยตรง (ไม่ตรวจสิทธิ์)")
+    ap.add_argument("--source", default="", help="ที่มาของไฟล์ --owner (ลิงก์หน้าเว็บ) — ไม่ใส่ = ภาพที่เจ้าของงานส่งมาเอง")
     a = ap.parse_args()
     os.makedirs(ARCH, exist_ok=True)
 
     if a.owner:
         dst = os.path.join(ARCH, a.name or os.path.basename(a.owner))
         shutil.copyfile(a.owner, dst)
-        append_credit(f"- {os.path.basename(dst)} — {a.credit} (เจ้าของงานส่งมาเอง)")
+        note = f" · {a.source}" if a.source else " (เจ้าของงานส่งมาเอง)"
+        append_credit(f"- {os.path.basename(dst)} — {a.credit}{note}")
         print(dst)
         return
     if a.url:

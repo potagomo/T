@@ -107,6 +107,7 @@
       "actions": [
         { "do": "flashbulbs", "t": 6.8, "dur": 1.6, "rate": 4 },
         { "do": "pump", "t": 6.9, "dur": 0.6, "every": 0.5 },
+        { "do": "screen", "t": 6.4, "dur": 1.0, "src": "2006_goal.jpg", "year": 2006, "focus": [0.5, 0.3], "zoom": [1.0, 1.05], "gain": 0.95 },
         { "do": "text", "style": "script", "pos": "upper", "y": 0.195, "t": 6.7, "dur": 1.9, "text": "A generation\nwatched him dream." },
         { "do": "crt_off", "t": 8.6, "dur": 0.4 }
       ],
@@ -150,7 +151,8 @@
       "world": { "stadium": [0.6, 1.0], "expand": [0.85, 1.2] },
       "actions": [
         { "do": "flashbulbs", "t": 12.5, "dur": 2.5, "rate": 4, "rate_end": 26, "size": [0.10, 0.22], "decay": 0.08, "life": 0.3, "lift": 0.05 },
-        { "do": "ball", "t": 13.3, "dur": 0.42, "mode": "whip" }
+        { "do": "ball", "t": 13.3, "dur": 0.42, "mode": "whip" },
+        { "do": "screen", "t": 12.65, "dur": 2.2, "src": "2010_duel.jpg", "year": 2010, "focus": [0.45, 0.40], "zoom": [1.0, 1.08] }
       ],
       "notes": {
         "emotion": "กดดัน — ทุกสายตาจ้องมา",
@@ -169,7 +171,8 @@
       "hero": { "scale": 0.50, "lit": [1.0, 0.45], "rays": [1.06, 0.9], "rim": 0.5 },
       "world": { "stadium": [0.9, 0.3] },
       "actions": [
-        { "do": "desaturate", "t": 15.0, "dur": 2.0, "amount": 0.85, "release": 0.05 }
+        { "do": "desaturate", "t": 15.0, "dur": 2.0, "amount": 0.85, "release": 0.05 },
+        { "do": "screen", "t": 15.1, "dur": 1.85, "src": "2010_hug.jpg", "year": 2010, "focus": [0.47, 0.35], "zoom": [1.0, 1.04] }
       ],
       "notes": {
         "emotion": "คับข้องใจ — ตกรอบ 8 ทีมแบบไม่ได้ยิงสักลูก",
@@ -232,7 +235,8 @@
       "world": { "stadium": [1.0, 0.45] },
       "actions": [
         { "do": "bignum", "pos": "top", "t": 23.5, "dur": 1.6, "seq": ["113'"], "slam": true },
-        { "do": "desaturate", "t": 23.5, "dur": 5.5, "amount": 0.75, "release": 0.05 }
+        { "do": "desaturate", "t": 23.5, "dur": 5.5, "amount": 0.75, "release": 0.05 },
+        { "do": "screen", "t": 25.4, "dur": 1.45, "src": "2014_final_game.jpg", "year": 2014, "focus": [0.55, 0.52], "zoom": [1.6, 1.75] }
       ],
       "notes": {
         "emotion": "อกหัก — ประตูนาที 113 ของนัดชิง",
@@ -252,7 +256,7 @@
       "world": { "stadium": [0.45, 0.35] },
       "actions": [
         { "do": "dust", "t": 26.0, "dur": 3.0 },
-        { "do": "text", "style": "script", "pos": "upper", "t": 26.4, "dur": 2.4, "text": "A generation\nwatched him suffer." }
+        { "do": "text", "style": "script", "pos": "upper", "t": 26.85, "dur": 2.05, "text": "A generation\nwatched him suffer." }
       ],
       "notes": {
         "emotion": "เจ็บ — ระยะที่ห่างจากความฝันที่สุดทั้งที่ใกล้ที่สุด",
@@ -274,7 +278,8 @@
       "actions": [
         { "do": "odometer", "t": 29.0, "dur": 2.4, "from": "2014", "to": "2018" },
         { "do": "occlude", "t": 29.3, "dur": 3.2 },
-        { "do": "glitch", "t": 30.0, "dur": 2.4 }
+        { "do": "glitch", "t": 30.0, "dur": 2.4 },
+        { "do": "screen", "t": 31.45, "dur": 1.0, "src": "2018_kazan.jpg", "year": 2018, "focus": [0.55, 0.42], "zoom": [1.0, 1.05] }
       ],
       "notes": {
         "emotion": "ไม่แน่นอน — ทางที่ยังไม่ชัด",
@@ -404,6 +409,7 @@
       "actions": [
         { "do": "stars", "t": 49.5, "dur": 2.4, "from": 2, "to": 3 },
         { "do": "confetti", "t": 49.5, "dur": 2.5, "mode": "gentle", "fade": 1.0 },
+        { "do": "screen", "t": 50.2, "dur": 1.8, "src": "2022_kiss.jpg", "year": 2022, "focus": [0.0, 0.44], "zoom": [1.25, 1.3], "gain": 0.6 },
         { "do": "text", "style": "script", "pos": "upper2", "t": 49.6, "dur": 2.35, "text": "A generation watched him\nconquer the world." }
       ],
       "notes": {
@@ -511,11 +517,13 @@
       "world": { "stadium": [0.6, 0.55] },
       "actions": [
         { "do": "phonelights", "t": 65.5, "dur": 10.5 },
-        { "do": "text", "style": "kicker", "pos": "top2", "t": 66.4, "dur": 2.6, "text": "06.10.2026 · MONUMENTAL" },
+        { "do": "screen", "t": 65.55, "dur": 1.4, "src": "2026_alone.jpg", "year": 2026, "focus": [0.51, 0.56], "zoom": [1.0, 1.12] },
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 67.0, "dur": 2.3, "text": "06.10.2026 · MONUMENTAL" },
+        { "do": "screen", "t": 69.35, "dur": 1.25, "src": "2026_tears.jpg", "year": 2026, "focus": [0.49, 0.44], "zoom": [1.0, 1.06] },
         { "do": "confetti", "t": 67.5, "dur": 6.5, "mode": "gentle", "fade": 2.5 },
         { "do": "sweep", "t": 68.6, "dur": 3.2, "gain": 0.4, "color": [1.0, 0.85, 0.65] },
         { "do": "pump", "t": 69.2, "dur": 0.5, "every": 0.5 },
-        { "do": "text", "style": "script", "pos": "top2", "t": 70.4, "dur": 3.4, "text": "And a generation must now\nlearn to say goodbye." }
+        { "do": "text", "style": "script", "pos": "top2", "t": 70.6, "dur": 3.2, "text": "And a generation must now\nlearn to say goodbye." }
       ],
       "notes": {
         "emotion": "ซาบซึ้ง — แฟน 85,000 คนบอกลาที่บ้าน",

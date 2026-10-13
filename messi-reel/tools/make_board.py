@@ -65,6 +65,8 @@ def main():
                 out_.append(f"{x['from']}→{x['to']}{x.get('suffix', '')}")
             elif x["do"] == "stars":
                 out_.append("★★★")
+            elif x["do"] == "screen":
+                out_.append(f"[จอยักษ์ · ภาพจริง {x['src']}]")
         return out_
 
     cards = []

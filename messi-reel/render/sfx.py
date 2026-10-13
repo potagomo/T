@@ -255,6 +255,11 @@ def build(tl):
         elif d == "bignum" and a.get("flip"):
             for f in a["flip"]:
                 bus.put(f, brick_clack(2), 0.12)
+        elif d == "screen" and os.path.isfile(os.path.join(ROOT, "input", "archive", a["src"])):
+            # จอยักษ์ติด: เสียงไฟฟ้า "ตึ้ม" เบา ๆ + ฮัมสั้น ๆ (ไม่มีภาพ = ไม่มีเสียง เหมือนภาพ)
+            bus.put(t0, thunk(), 0.05)
+            hum = (np.sin(2 * np.pi * 100 * np.arange(int(SR * 0.35)) / SR) * env_exp(0.35, 0.12)).astype(np.float32)
+            bus.put(t0, hum, 0.02)
         elif d == "crt_off":
             bus.put(t0, (high(noise(0.08), 4000) * env_exp(0.08, 0.02)).astype(np.float32), 0.15)
             bus.put(t0 + 0.05, boom(1.2), 0.25)

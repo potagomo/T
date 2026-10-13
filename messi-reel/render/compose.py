@@ -629,7 +629,7 @@ class Renderer:
             q0 = smooth(u / 0.9)
             alpha, y = q0, y - 0.03 * H * (1 - ease_out(u / 0.9)) + 0.006 * H * math.sin(u * 1.7)
             if u > 3.0:  # ลอยขึ้นหนีให้เห็นระยะที่ห่างออกก่อน แล้วค่อยจางหาย
-                q = clamp((u - 3.0) / 2.4)
+                q = clamp((u - 3.0) / 2.0)  # หายหมดก่อนจอยักษ์ขึ้นภาพถ้วยจริง (25.4 s)
                 y -= 0.20 * H * ease_in_out(q)
                 alpha *= 1 - smooth(clamp((q - 0.4) / 0.6))
                 blur, sc, glow = 1.4 * q, 1 - 0.2 * q, 1 - q

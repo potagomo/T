@@ -1,6 +1,6 @@
 # เครดิตภาพถ่ายจริง (ใส่ในแคปชันโพสต์)
 
-ภาพทั้งหมดนี้ไม่อยู่ใน git — เจ้าของงานยืนยันสิทธิ์การใช้ภาพทุกแหล่ง (13 ต.ค. 2026)
+ภาพทั้งหมดนี้ไม่อยู่ใน git — เจ้าของงานยืนยันว่าได้รับสิทธิ์และการคุ้มครองครบถ้วนแล้ว (13 ต.ค. 2026)
 
 - 2006_goal.jpg — Jung Yeon-je / AFP via Getty Images · Sports Illustrated gallery (si.com)
 - 2010_duel.jpg — Stewart Kendall / Sportsphoto / Allstar via Getty Images · https://digitalhub.fifa.com/asset/54bf5d2b-e299-4e75-a0f8-3f38ec561258

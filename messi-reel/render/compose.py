@@ -738,7 +738,8 @@ class Renderer:
         n = 160 if gentle else 420
         cols = ([PALETTE["celeste"], PALETTE["white"], PALETTE["celeste"], PALETTE["gold"]] if gentle
                 else [PALETTE["gold"], PALETTE["celeste"], PALETTE["white"], PALETTE["gold_deep"]])
-        fade = 1 - smooth((u - a["dur"] + 0.6) / 0.6)
+        fo = a.get("fade", 0.6)  # ช่วงจาง: ยาวขึ้น = คอนเฟตตีค่อย ๆ บางลงจนหมด (S23 ร่วงหมดก่อนเสียงนกหวีด)
+        fade = 1 - smooth((u - a["dur"] + fo) / fo)
         H = self.H
         tx, ty, _ = self.trophy_anchor()
         for i in range(n):
@@ -785,7 +786,7 @@ class Renderer:
         yy, xx = np.ogrid[y0:y1, x0:x1]
         band = ((xx - x0) / max(1, x1 - x0) * 0.8 + (yy - y0) / max(1, y1 - y0) * 0.6).astype(np.float32) - lerp(-0.3, 1.7, ease_in_out(q))
         sheen = np.exp(-(band / 0.07) ** 2) * self.hero_a[y0:y1, x0:x1]
-        img[y0:y1, x0:x1] += sheen[..., None] * np.float32((1.0, 0.97, 0.9)) * 0.85
+        img[y0:y1, x0:x1] += sheen[..., None] * np.float32(a.get("color", (1.0, 0.97, 0.9))) * np.float32(a.get("gain", 0.85))
 
     # ------------------------------------------------------------ text (screen space)
     def _put(self, img, sp, x, y, alpha):
@@ -827,7 +828,7 @@ class Renderer:
             self._put(img, sp, CX, y + 0.012 * (1 - q), k)
         elif style == "script":
             q = ease_out((t - a["t"]) / 0.9)
-            sp = self._block(a["text"], "script", int(0.050 * H), (1.0, 0.97, 0.92), 0.0, 0.8, 0.86)
+            sp = self._block(a["text"], "script", int(0.050 * H), (1.0, 0.97, 0.92), 0.0, 0.8, a.get("max_w", 0.805))  # รวมขอบเผื่อ ~0.09 → ตัวอักษรจริงไม่เกิน ~0.72 ของจอ ขอบขวาไม่ล้น 0.86
             self._put(img, sp, CX, y + 0.008 * (1 - q), k)
         elif style == "date":
             n = len(a["text"])

@@ -485,8 +485,8 @@
     },
     {
       "id": "S22", "era": "e2026", "start": 62.0, "end": 65.5, "name": "Let it go", "board": 64.4,
-      "camera": { "zoom": [1.04, 1.08], "target": [[0.47, 0.55], [0.47, 0.50]] },
-      "hero": { "scale": 0.56, "rays": [1.0, 0.96] },
+      "camera": { "zoom": [1.10, 1.04], "target": [[0.47, 0.55], [0.47, 0.60]], "orbit": [3, 5] },
+      "hero": { "scale": 0.56, "lit": [1.0, 0.85], "rays": [1.0, 0.96] },
       "world": { "stadium": [0.9, 0.6] },
       "actions": [
         { "do": "text", "style": "kicker", "pos": "top", "t": 62.2, "dur": 3.0, "text": "FINAL · 19.07.2026" },
@@ -506,16 +506,16 @@
     },
     {
       "id": "S23", "era": "e2026", "start": 65.5, "end": 74.0, "name": "Monumental", "board": 71.4,
-      "camera": { "zoom": [1.0, 1.08], "orbit": [5, -4] },
+      "camera": { "zoom": [1.04, 1.06], "target": [[0.47, 0.60], [0.47, 0.60]], "orbit": [5, -4] },
       "hero": { "scale": 0.56, "lit": [0.85, 1.0], "rays": [0.96, 1.0] },
       "world": { "stadium": [0.6, 0.55] },
       "actions": [
         { "do": "phonelights", "t": 65.5, "dur": 10.5 },
         { "do": "text", "style": "kicker", "pos": "top2", "t": 66.4, "dur": 2.6, "text": "06.10.2026 · MONUMENTAL" },
-        { "do": "confetti", "t": 67.5, "dur": 9.0, "mode": "gentle" },
-        { "do": "sweep", "t": 68.6, "dur": 2.4 },
+        { "do": "confetti", "t": 67.5, "dur": 6.5, "mode": "gentle", "fade": 2.5 },
+        { "do": "sweep", "t": 68.6, "dur": 3.2, "gain": 0.3, "color": [1.0, 0.85, 0.65] },
         { "do": "pump", "t": 69.2, "dur": 0.5, "every": 0.5 },
-        { "do": "text", "style": "script", "pos": "upper", "t": 70.4, "dur": 3.4, "text": "And now, a generation\nlearns to say goodbye." }
+        { "do": "text", "style": "script", "pos": "top2", "t": 70.4, "dur": 3.4, "text": "And now, a generation\nlearns to say goodbye." }
       ],
       "notes": {
         "emotion": "ซาบซึ้ง — แฟน 85,000 คนบอกลาที่บ้าน",
@@ -531,9 +531,9 @@
 
     {
       "id": "S24", "era": "outro", "start": 74.0, "end": 79.0, "name": "Gracias", "board": 78.0,
-      "camera": { "zoom": [1.0, 1.28], "target": [[0.47, 0.55], [0.47, 0.66]] },
+      "camera": { "zoom": [1.06, 1.16], "target": [[0.47, 0.60], [0.447, 0.64]], "orbit": [-4, 0] },
       "hero": { "scale": 0.56, "lit": [1.0, 1.0] },
-      "world": { "stadium": [0.4, 0.0] },
+      "world": { "stadium": [0.55, 0.0] },
       "actions": [
         { "do": "echo", "t": 74.0, "dur": 1.5 },
         { "do": "photo", "t": 74.6, "dur": 1.6, "from": 0, "to": 1 },

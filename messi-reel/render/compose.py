@@ -150,7 +150,7 @@ class Renderer:
         return sorted(out)
 
     # ------------------------------------------------------------ layer 1: background (half-res, world)
-    def background(self, t, look, ea, eb, w, stadium=0.5, expand=1.0):
+    def background(self, t, look, ea, eb, w, stadium=0.5, expand=1.0, bokeh=1.0):
         h, wd = self.hh, self.hw
         top, bot = np.float32(look["bg_top"]), np.float32(look["bg_bottom"])
         g = np.linspace(0, 1, h, dtype=np.float32)[:, None, None] ** 1.3
@@ -160,7 +160,8 @@ class Renderer:
         if w > 0 and eb["id"] != ea["id"]:
             bk = bk * (1 - w) + self._bokeh_layer(eb["id"]) * w
         drift = np.float32([[1, 0, math.sin(t * 0.13) * 0.01 * wd], [0, 1, 0]])
-        bg += cv2.warpAffine(bk, drift, (wd, h), borderMode=cv2.BORDER_REFLECT)
+        bk = cv2.warpAffine(bk, drift, (wd, h), borderMode=cv2.BORDER_REFLECT)
+        bg += bk if bokeh >= 0.999 else bk * np.float32(bokeh)  # world.bokeh: หรี่ไฟสนามในช็อตที่ต้องมืด (เช่นต้นปี 2022)
         hz_amt = 0.05 + 0.10 * self._haze_boost
         off = (t * 0.012 * h) % wd
         bg += np.roll(self._haze, int(off), axis=1)[..., None] * np.float32(look["rim"]) * hz_amt
@@ -192,10 +193,12 @@ class Renderer:
 
     def lightbanks(self, bg, t, a):
         n = a.get("count", 7)
-        times = [self.tl.beat.snap(a["t"] + i * a["dur"] * 0.85 / n, "beat", 0.3) for i in range(n)]
+        step = a.get("step", a["dur"] * 0.85 / n)  # ระยะห่างไม่ผูกกับ dur → ยืด dur ไว้เฟดหางได้โดยจังหวะไม่เพี้ยน
+        times = [self.tl.beat.snap(a["t"] + i * step, "beat", 0.3) for i in range(n)]
         col = np.float32((1.0, 0.95, 0.85))
+        tail = env(t, a["t"], a["dur"], 0.0, a.get("tail", 0.01))  # ไฟดับแบบค่อย ๆ หรี่ ไม่วูบหายในเฟรมเดียว
         for i, tb in enumerate(times):
-            k = smooth((t - tb) / 0.12)
+            k = smooth((t - tb) / 0.12) * tail
             if k <= 0:
                 continue
             flick = 1.0 if t - tb > 0.25 else (0.5 + 0.5 * math.sin((t - tb) * 90))
@@ -207,8 +210,8 @@ class Renderer:
                     fx.add_mono(bg, gfx.soft_dot(int(0.03 * self.hh * z), hard=0.5),
                                 px / 2 + (c - 1.5) * 0.012 * self.hh * z, py / 2 + (r - 0.5) * 0.012 * self.hh * z, col, 1.4 * k * flick)
             fx.add_mono(bg, gfx.soft_dot(int(0.22 * self.hh * z)), px / 2, py / 2, col, 0.35 * k * flick)
-        on = sum(1 for tb in times if t >= tb) / n
-        bg += np.float32((0.10, 0.075, 0.04)) * on
+        on = sum(1 for tb in times if t >= tb) / n * tail
+        bg += np.float32((0.10, 0.075, 0.04)) * np.float32(on)
 
     def godrays(self, bg, t, a, look):
         k = env(t, a["t"], a["dur"], 0.4, 0.8)
@@ -304,7 +307,7 @@ class Renderer:
         if src is None and not self.placeholders:
             return
         H, W = self.H, self.W
-        px, py, z = self.cam(a.get("x", CX), a.get("y", 0.25), 0.6)  # ขอบบนพ้นแถบหัว Reels
+        px, py, z = self.cam(a.get("x", CX), a.get("y", 0.25), a.get("parallax", 0.3))  # ขอบบนพ้นแถบหัว Reels · ตามกล้องแค่ 30% ช็อตซูมแล้วจอไม่ล้นกรอบ
         sw = max(16, int(a.get("w", 0.84) * W * z))
         sh = max(9, int(sw / a.get("aspect", 1.5)))  # 3:2 เท่าภาพข่าวกีฬาส่วนใหญ่ — ขอบล่างจอให้ปลายนิ้วชี้แตะพอดี
         # เปิดจอแบบจอ LED สนาม: เส้นสว่างกลางจอแล้วกางขึ้นลง · ปิดจอ: หุบกลับเป็นเส้น
@@ -435,8 +438,9 @@ class Renderer:
             _, aux = self._warp(L["aux"] if img_override is None else img_override["aux"], off, M)
             aux = aux.astype(np.float32)
             hl, rl, rr = aux[..., 2:3], aux[..., 0:1], aux[..., 1:2]
-            hcol = rim_c * np.float32((0.10 + 0.25 * (1 - lit)) * rim_k / 255)
-            rcol = rim_c * np.float32((0.45 + 1.1 * (1 - lit)) * rim_k / 255 / 255)
+            # ไฟขอบเพิ่มได้นิดเดียวตอนแสงหรี่ (เดิมเพิ่มเกือบเท่าตัว → เป็นเส้นเรืองรอบชั้นภาพเหมือนสติกเกอร์)
+            hcol = rim_c * np.float32((0.10 + 0.08 * (1 - lit)) * rim_k / 255)
+            rcol = rim_c * np.float32((0.45 + 0.35 * (1 - lit)) * rim_k / 255 / 255)
             img[roi] = ne.evaluate("(d + hl * hcol) * (1 - a * k) + rgb * lit_k + (rl + rr) * a * rcol")
         else:
             img[roi] = ne.evaluate("d * (1 - a * k) + rgb * lit_k")
@@ -622,10 +626,10 @@ class Renderer:
             # ลอยลงมาอยู่ตรงหน้า (นิ้วชี้ไปที่ถ้วย) → นาที 113 ลอยขึ้นหนีไป สีจาง
             q0 = smooth(u / 0.9)
             alpha, y = q0, y - 0.03 * H * (1 - ease_out(u / 0.9)) + 0.006 * H * math.sin(u * 1.7)
-            if u > 3.0:
-                q = clamp((u - 3.0) / 1.9)
-                y -= 0.12 * H * ease_in(q)
-                alpha *= 1 - smooth(q)
+            if u > 3.0:  # ลอยขึ้นหนีให้เห็นระยะที่ห่างออกก่อน แล้วค่อยจางหาย
+                q = clamp((u - 3.0) / 2.4)
+                y -= 0.20 * H * ease_in_out(q)
+                alpha *= 1 - smooth(clamp((q - 0.4) / 0.6))
                 blur, sc, glow = 1.4 * q, 1 - 0.2 * q, 1 - q
         elif mode == "arrive":
             # ลงมาจากฟ้า มาหยุดเหนือหัว แล้ว (ตั้งแต่วินาทีที่ 3.9) ลอยขึ้นไปกลายเป็นดาวดวงที่ 3
@@ -658,8 +662,9 @@ class Renderer:
             band = ne.evaluate("exp(-((d - pos) / 0.06) ** 2) * 0.8 + exp(-((d - pos + 0.13) / 0.025) ** 2) * 0.35")
             sp = sp.copy()  # sprite มาจาก cache ห้ามแก้ตรง ๆ
             sp[..., :3] += (band * sp[..., 3])[..., None] * np.float32((1.0, 0.94, 0.78))
-        if blur > 0:
-            sp = fx.blur_fast(sp, blur * 0.01 * H)
+        if blur > 0:  # เผื่อขอบก่อนเบลอ ไม่งั้นฐานถ้วยโดนกรอบ sprite ตัดเป็นเส้นตรง
+            pd = int(3 * blur * 0.01 * H) + 2
+            sp = fx.blur_fast(cv2.copyMakeBorder(sp, pd, pd, pd, pd, cv2.BORDER_CONSTANT, value=0), blur * 0.01 * H)
         if glow > 0:
             fx.add_mono(img, gfx.soft_dot(int(hgt * 1.6)), x, y, PALETTE["gold"], 0.25 * glow * alpha)
         if dissolve > 0:
@@ -818,7 +823,7 @@ class Renderer:
             sp = self._block(a["text"], "ui", int(0.0215 * H), (0.95, 0.95, 0.95), 0.16, 0.7, a.get("max_w", 0.76))  # แกน CX=0.47 → กว้างได้ไม่เกิน 0.76 ไม่ล้นเขต 86%
             self._put(img, sp, CX, y + 0.006 * (1 - q), k * 0.95)
         elif style == "line":
-            sp = self._block(a["text"], "display", int(0.058 * H), (1.0, 1.0, 1.0), 0.015, 0.85)
+            sp = self._block(a["text"], "display", int(0.058 * H), (1.0, 1.0, 1.0), 0.015, 0.85, a.get("max_w", 0.76))
             self._put(img, sp, CX, y + 0.012 * (1 - q), k)
         elif style == "script":
             q = ease_out((t - a["t"]) / 0.9)
@@ -855,7 +860,7 @@ class Renderer:
         s2 = gfx.resize_sprite(sp, sp.shape[0] * sc)
         if sq < 0.999:
             s2 = cv2.resize(s2, (s2.shape[1], max(2, int(s2.shape[0] * max(0.03, sq)))), interpolation=cv2.INTER_AREA)
-        y = POS_Y[a.get("pos", "upper")] + (0.015 if a.get("pos", "upper") != "top" else 0.01)
+        y = POS_Y[a.get("pos", "upper")] + (0.015 if a.get("pos", "upper") != "top" else 0.02)
         self._put(img, s2, CX, y, k)
 
     def score(self, img, t, a):
@@ -1013,7 +1018,7 @@ class Renderer:
         roof_l = np.zeros((h, w), np.float32)
         for k in range(70):
             x = (k + 0.5) / 70
-            yv = bounds[-1][0] - 0.03 - bounds[-1][1] * ((x - CX) ** 2) * 4
+            yv = bounds[-1][0] - 0.095 - bounds[-1][1] * ((x - CX) ** 2) * 4  # สูงพ้นช่องตัวหนังสือ top/top2 (ไม่ร้อยผ่านตัวอักษร)
             cv2.circle(roof_l, (int(x * w), int(yv * h)), max(1, int(h * 0.0025)), 1.0, -1, lineType=cv2.LINE_AA)
         stripes = (np.sin((1 / np.maximum(Y - 0.5, 0.02)) * 3.2) > 0).astype(np.float32)
         pitch_t = pitch * (0.8 + 0.2 * stripes) * np.clip((Y - 0.58) / 0.3 + 0.4, 0, 1)
@@ -1065,8 +1070,9 @@ class Renderer:
         B = cv2.warpAffine(B, M, (w, h), borderMode=cv2.BORDER_REPLICATE)
         crowd, edges, roof_l, structure = A[..., 0:1], A[..., 1:2], A[..., 2:3], A[..., 3:4]
         dark = np.float32(look["bg_top"]) * 0.8 + np.float32(look["bg_bottom"]) * 0.15
-        crowd_c = np.float32(look["bokeh"][0]) * np.float32(0.10 + 0.30 * amount)
-        rim = np.float32(look["rim"]) * np.float32(0.35 * amount)
+        fin = look.get("pylons", 0.0)  # นัดชิง (2014/2022): อัฒจันทร์ใหญ่ต้องอ่านออก
+        crowd_c = np.float32(look["bokeh"][0]) * np.float32((0.10 + 0.30 * amount) * (1 - fin) + (0.15 + 0.55 * amount) * fin)
+        rim = np.float32(look["rim"]) * np.float32((0.35 + 0.25 * fin) * amount)
         roof_c = np.float32((1.0, 0.96, 0.88)) * np.float32(1.1 * amount * smooth((amount - 0.25) / 0.4))  # ไฟหลังคาขึ้นพร้อมอัฒจันทร์ ไม่ลอยเดี่ยวเป็นเส้นจุด
         pitch_c = np.float32((0.03, 0.10, 0.05)) * np.float32(0.5 + 0.8 * amount)
         Bp = B[..., None]
@@ -1281,7 +1287,7 @@ class Renderer:
         tl = self.tl
         wd = self.shot.get("world", {})
         # ---- 1 ฉากหลัง (ครึ่งความละเอียด): ไล่สี + อัฒจันทร์ + ไฟเบลอ + หมอก → กล้อง → ไฟที่อยู่บนจอ
-        bg = self.background(t, look, ea, eb, w, self.sv(wd, "stadium", 0.5), self.sv(wd, "expand", 1.0))
+        bg = self.background(t, look, ea, eb, w, self.sv(wd, "stadium", 0.5), self.sv(wd, "expand", 1.0), self.sv(wd, "bokeh", 1.0))
         bg = self._bg_cam(bg)
         for a in act:
             d = a["do"]

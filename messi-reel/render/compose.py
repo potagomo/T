@@ -662,6 +662,8 @@ class Renderer:
             pos = ((u + 0.4) / 2.6) % 1.0 * 1.9 - 0.95
             d = self._cache[key]
             band = ne.evaluate("exp(-((d - pos) / 0.06) ** 2) * 0.8 + exp(-((d - pos + 0.13) / 0.025) ** 2) * 0.35")
+            if os.path.isfile(gfx.REAL_TROPHY):
+                band *= np.float32(0.4)  # ถ้วยจริงมีแสงสะท้อนในภาพอยู่แล้ว เติมแค่ประกายวิ่งจาง ๆ
             sp = sp.copy()  # sprite มาจาก cache ห้ามแก้ตรง ๆ
             sp[..., :3] += (band * sp[..., 3])[..., None] * np.float32((1.0, 0.94, 0.78))
         if blur > 0:  # เผื่อขอบก่อนเบลอ ไม่งั้นฐานถ้วยโดนกรอบ sprite ตัดเป็นเส้นตรง

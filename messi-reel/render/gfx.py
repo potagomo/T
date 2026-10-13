@@ -1,7 +1,8 @@
 """กราฟิกที่วาดด้วยโค้ด: ถ้วย ดาว เสื้อเบอร์ 10 ปลอกแขนกัปตัน แฟลช ตัวหนังสือ
 
 ทุกอย่างคืนเป็น sprite แบบ float32 premultiplied RGBA และ cache ตามขนาด
-ถ้วยเป็นทรงทั่วไป (ถ้วยทอง + ลูกโลก) ไม่ลอกแบบถ้วยจริงหรือโลโก้ของ FIFA
+ถ้วย: ถ้ามีภาพตัดพื้นของถ้วยฟุตบอลโลกจริงที่ input/trophy/fifa_trophy.png (เจ้าของงานขอ 13 ต.ค. 2026) จะใช้ภาพนั้น
+     ไม่มีไฟล์ = ใช้ถ้วยทรงทั่วไปที่วาดเอง (ถ้วยทอง + ลูกโลก)
 """
 import functools
 import os
@@ -110,8 +111,20 @@ def _trophy_at(h):
     return resize_sprite(_trophy_base(), h)
 
 
+REAL_TROPHY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "input", "trophy", "fifa_trophy.png")
+
+
 @functools.lru_cache(maxsize=1)
 def _trophy_base():
+    if os.path.isfile(REAL_TROPHY):  # ถ้วยจริง: PNG มีช่อง alpha ครอปชิดตัวถ้วย
+        im = Image.open(REAL_TROPHY).convert("RGBA")
+        if im.height > 1400:  # ต้นแบบสูงพอสำหรับถ้วย ~700 px ที่ 4K แล้วย่อลงตามขั้น
+            im = im.resize((round(im.width * 1400 / im.height), 1400), Image.LANCZOS)
+        return np.ascontiguousarray(_to_sprite(im))
+    return _trophy_drawn()
+
+
+def _trophy_drawn():
     W, H = 400, 900
 
     def draw(d, s, im):

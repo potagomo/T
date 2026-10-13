@@ -19,3 +19,5 @@ input/archive/*
 !input/archive/README.md
 !input/archive/credits.md
 !input/archive/SHORTLIST.md
+input/trophy/*
+!input/trophy/README.md

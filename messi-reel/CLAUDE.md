@@ -24,9 +24,9 @@ repo นี้เป็น public จึงไม่เก็บ `input/hero.jpg
 - ตัวหนังสือบนจอทุกบรรทัดต้องมาจากแถว ✅ ใน `FACTS.md` — จะเพิ่มข้อเท็จจริงใหม่ต้องค้นแหล่งอ้างอิงและใส่ลิงก์ก่อน
 - ห้ามเขียนว่า Messi เป็น "all-time top scorer" แบบปัจจุบันกาล (Mbappé แซงไปแล้ว 22 > 21)
 - ห้ามใช้โลโก้ FIFA/AFA/แบรนด์ และห้ามใช้ฟุตเทจ/คลิปจริงจากการแข่งขัน ถ้วยต้องเป็นทรงทั่วไปที่วาดเอง
-- ภาพถ่ายจริง (เจ้าของงานอนุมัติ 2026-10-13): ขึ้นได้เฉพาะบน "จอยักษ์" (`screen` action) และต้องเป็นภาพสิทธิ์เปิด (PD/CC0/CC BY/CC BY-SA)
-  ที่ตรวจสิทธิ์ด้วย `tools/archive_fetch.py` แล้ว หรือภาพที่เจ้าของงานส่งมาเอง — ทุกภาพต้องมีเครดิตใน `input/archive/credits.md`
-  ภาพไม่เข้า git · ห้ามภาพเอเจนซี (Getty/AP/AFP/Reuters) หรือภาพจับจากทีวีที่เราหาเอง · จอกับตัวหนังสือต้องไม่ชนกัน
+- ภาพถ่ายจริง: ขึ้นได้เฉพาะบน "จอยักษ์" (`screen` action) · เจ้าของงานยืนยันว่ามีสิทธิ์ใช้ภาพจากทุกแหล่ง (2026-10-13)
+  จึงเลือกภาพที่สวยและทรงพลังที่สุดได้เลย (Getty/AFP/Reuters/Commons ฯลฯ) — ใส่ที่มาทุกภาพใน `input/archive/credits.md`
+  ภาพไม่เข้า git (repo เป็น public) · ห้ามคลิปวิดีโอจากการแข่งขัน · จอกับตัวหนังสือต้องไม่ชนกัน
 - **ไฟล์เพลงห้ามเข้า git ไม่ว่ากรณีใด** และห้ามเผยแพร่ เก็บนอก repo หรือใน `out/` (ถูก ignore)
 - วิดีโอที่ render (`out/`) cache (`.cache/`) ภาพหลัก และภาพสตอรีบอร์ด ไม่เข้า git (ถ้าเจ้าของงานอนุญาตค่อยเอาบรรทัดใน `.gitignore` ออก)
 - แก้หน้าตาเมื่อไร ต้อง `python3 -m render.reel storyboard` แล้วเปิดดูภาพ `storyboard/storyboard_*.jpg` ก่อน commit
@@ -45,7 +45,7 @@ python3 tools/beatmap.py <ไฟล์เพลง>            # จับบี
 python3 -m render.sfx --mux out/messi_reel_4k_hevc.mp4   # เสียงประกอบ → out/sfx_bed.wav + ไฟล์ _sfx.mp4
 python3 cover/make_cover.py                   # ภาพปก Reel → out/cover_1080x1920.png
 python3 tools/make_board.py                   # หน้า Production Storyboard → out/board/ + STORYBOARD.md
-python3 tools/archive_fetch.py "File:...jpg" --as 2010.jpg   # ตรวจสิทธิ์ + โหลดภาพจริงจาก Commons → input/archive/
+python3 tools/archive_fetch.py --url <ลิงก์ภาพ> --as 2014.jpg --credit "ช่างภาพ/สำนักข่าว"   # โหลดภาพจริง → input/archive/
 ```
 ครั้งแรกที่ render จะแยกชั้นภาพ (~15 วินาที) แล้วเก็บไว้ใน `.cache/`
 

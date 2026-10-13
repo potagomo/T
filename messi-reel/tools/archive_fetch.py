@@ -3,9 +3,10 @@
   python3 tools/archive_fetch.py "File:Lionel Messi 2010.jpg" --as 2010_cape_town.jpg
   python3 tools/archive_fetch.py --check "File:Messi vs Nigeria1.jpg"        # ตรวจอย่างเดียว ไม่โหลด
   python3 tools/archive_fetch.py --owner my_photo.jpg --as 2006_owner.jpg --credit "ภาพจากเจ้าของงาน"
+  python3 tools/archive_fetch.py --url https://.../photo.jpg --as 2022_trophy.jpg --credit "ช่างภาพ / สำนักข่าว"
 
-กติกา (เหมือน input/archive/README.md)
-  รับ: Public domain · CC0 · CC BY · CC BY-SA     ไม่รับ: ND · NC · ภาพที่ไม่มีสัญญาอนุญาตชัดเจน
+โหมด Commons ตรวจสัญญาอนุญาตให้ด้วย (รับ PD · CC0 · CC BY · CC BY-SA)
+โหมด --url / --owner ไม่ตรวจสิทธิ์ (เจ้าของงานยืนยันว่ามีสิทธิ์ใช้ภาพทุกแหล่ง 2026-10-13) แต่ต้องใส่ --credit เสมอ
 ผลลัพธ์: ไฟล์ใน input/archive/ (ไม่เข้า git) + บรรทัดเครดิตต่อท้าย input/archive/credits.md
 ต้องเปิดโดเมน commons.wikimedia.org และ upload.wikimedia.org ใน network ของ environment ก่อน
 """
@@ -82,7 +83,8 @@ def main():
     ap.add_argument("--as", dest="name", help="ชื่อไฟล์ปลายทางใน input/archive/")
     ap.add_argument("--check", action="store_true", help="ตรวจสิทธิ์อย่างเดียว")
     ap.add_argument("--owner", help="ไฟล์ภาพที่เจ้าของงานส่งมาเอง (เจ้าของงานรับผิดชอบเรื่องสิทธิ์)")
-    ap.add_argument("--credit", default="ภาพจากเจ้าของงาน", help="บรรทัดเครดิตสำหรับ --owner")
+    ap.add_argument("--credit", default="ภาพจากเจ้าของงาน", help="บรรทัดเครดิตสำหรับ --owner / --url")
+    ap.add_argument("--url", help="ลิงก์ภาพโดยตรง (ไม่ตรวจสิทธิ์)")
     a = ap.parse_args()
     os.makedirs(ARCH, exist_ok=True)
 
@@ -92,8 +94,17 @@ def main():
         append_credit(f"- {os.path.basename(dst)} — {a.credit} (เจ้าของงานส่งมาเอง)")
         print(dst)
         return
+    if a.url:
+        if not a.name:
+            ap.error("--url ต้องมี --as")
+        dst = os.path.join(ARCH, a.name)
+        with open(dst, "wb") as f:
+            f.write(_get(a.url))
+        append_credit(f"- {a.name} — {a.credit} · {a.url}")
+        print(dst)
+        return
     if not a.title:
-        ap.error("ต้องระบุชื่อไฟล์บน Commons หรือ --owner")
+        ap.error("ต้องระบุชื่อไฟล์บน Commons, --url หรือ --owner")
     title = a.title if a.title.startswith("File:") else "File:" + a.title
     ii, md = info(title)
     ok, why = verdict(md)

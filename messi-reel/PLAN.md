@@ -48,11 +48,11 @@
 | S04 (2006) | A generation watched him dream. |
 | S11 (2014) | A generation watched him suffer. |
 | S18 (2022) | A generation watched him conquer the world. |
-| S23 (2026) | And now, a generation learns to say goodbye. |
+| S23 (2026) | And a generation must now learn to say goodbye. (ถ้อยคำเดิมของเจ้าของงาน) |
 | S24 (ภาพสุดท้าย) | Gracias, Leo. |
 
 นอกจากนี้มีแค่เลขปี และตัวยึดข้อเท็จจริงไม่กี่จุด (AGE 18 / 39, THE NUMBER 10, CAPTAIN, 113', LOST THE FIRST GAME, PENALTIES,
-CAMPEONES DEL MUNDO, 16→17→21, ONE LAST RUN, วันที่นัดชิง 2014/2022/2026 และนัดอำลา) — ไม่มีป้ายสกอร์เรียงกัน
+CAMPEONES DEL MUNDO, WORLD CUP GOALS 16→17→21, ONE LAST RUN, วันที่นัดชิง 2014/2022/2026 และนัดอำลา) — ไม่มีป้ายสกอร์เรียงกัน
 
 ## 3. โครงเรื่องและสัดส่วนเวลา
 

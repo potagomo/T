@@ -269,7 +269,7 @@
     {
       "id": "S12", "era": "e2018", "start": 29.0, "end": 32.5, "name": "Fragments", "board": 31.0,
       "camera": { "zoom": [1.04, 1.09], "shake": 0.35 },
-      "hero": { "scale": 0.52, "lit": [0.6, 0.58], "rays": [0.9, 0.9] },
+      "hero": { "scale": 0.50, "lit": [0.6, 0.58], "rays": [0.9, 0.9] },
       "world": { "stadium": [0.5, 0.4] },
       "actions": [
         { "do": "odometer", "t": 29.0, "dur": 2.4, "from": "2014", "to": "2018" },
@@ -290,7 +290,7 @@
     {
       "id": "S13", "era": "e2018", "start": 32.5, "end": 36.0, "name": "Not yet", "board": 35.2,
       "camera": { "zoom": [1.08, 1.02] },
-      "hero": { "scale": 0.52, "lit": [0.58, 0.5], "rays": [0.86, 0.84] },
+      "hero": { "scale": 0.50, "lit": [0.58, 0.5], "rays": [0.86, 0.84] },
       "world": { "stadium": [0.3, 0.15] },
       "actions": [
         { "do": "spotlight", "t": 32.5, "dur": 3.5 },
@@ -311,8 +311,8 @@
 
     {
       "id": "S14", "era": "e2022", "start": 36.0, "end": 38.5, "name": "Persistence", "board": 37.6,
-      "camera": { "zoom": [1.0, 1.03] },
-      "hero": { "scale": 0.56, "lit": [0.55, 0.65], "rays": [0.86, 0.9] },
+      "camera": { "zoom": [0.98, 1.0], "orbit": [-5, -5] },
+      "hero": { "scale": 0.50, "lit": [0.55, 0.65], "rays": [0.86, 0.9] },
       "world": { "stadium": [0.1, 0.15], "bokeh": [0.12, 0.18] },
       "actions": [
         { "do": "odometer", "t": 36.0, "dur": 2.4, "from": "2018", "to": "2022" },
@@ -375,12 +375,12 @@
     {
       "id": "S17", "era": "e2022", "start": 45.5, "end": 49.5, "name": "Champions", "board": 47.3,
       "camera": { "zoom": [1.0, 1.06], "orbit": [4, -4], "shake": 0.25 },
-      "hero": { "scale": 0.56, "rays": [1.1, 1.08], "gold": 1.0 },
+      "hero": { "scale": 0.50, "rays": [1.1, 1.08], "gold": 0.3 },
       "world": { "stadium": [1.0, 1.0] },
       "actions": [
         { "do": "flash", "t": 45.5, "dur": 0.5 },
         { "do": "trophy", "t": 45.6, "dur": 5.9, "mode": "arrive" },
-        { "do": "confetti", "t": 45.9, "dur": 6.1, "mode": "burst" },
+        { "do": "confetti", "t": 45.9, "dur": 4.6, "mode": "burst", "fade": 1.2 },
         { "do": "rays", "t": 45.6, "dur": 6.4 },
         { "do": "pump", "t": 45.8, "dur": 3.6, "every": 0.5 },
         { "do": "text", "style": "line", "pos": "top", "t": 46.4, "dur": 2.9, "text": "CAMPEONES DEL MUNDO" }
@@ -398,12 +398,13 @@
     },
     {
       "id": "S18", "era": "e2022", "start": 49.5, "end": 52.0, "name": "The third star", "board": 51.3,
-      "camera": { "zoom": [1.06, 1.0] },
-      "hero": { "scale": 0.56, "rays": [1.08, 1.04], "gold": 0.6 },
+      "camera": { "zoom": [1.06, 1.0], "orbit": [-4, 0] },
+      "hero": { "scale": 0.50, "rays": [1.08, 1.04], "gold": 0.15 },
       "world": { "stadium": [1.0, 0.8] },
       "actions": [
         { "do": "stars", "t": 49.5, "dur": 2.4, "from": 2, "to": 3 },
-        { "do": "text", "style": "script", "pos": "upper2", "t": 50.0, "dur": 1.95, "text": "A generation watched him\nconquer the world." }
+        { "do": "confetti", "t": 49.5, "dur": 2.5, "mode": "gentle", "fade": 1.0 },
+        { "do": "text", "style": "script", "pos": "upper2", "t": 49.6, "dur": 2.35, "text": "A generation watched him\nconquer the world." }
       ],
       "notes": {
         "emotion": "อิ่มใจ — ชัยชนะกลายเป็นความทรงจำ",
@@ -419,14 +420,14 @@
 
     {
       "id": "S19", "era": "e2026", "start": 52.0, "end": 55.5, "name": "One last dance", "board": 54.6,
-      "camera": { "zoom": [1.0, 1.04] },
-      "hero": { "scale": 0.56 },
+      "camera": { "zoom": [1.0, 1.06], "orbit": [0, -3] },
+      "hero": { "scale": 0.50 },
       "world": { "stadium": [0.8, 0.85] },
       "actions": [
         { "do": "odometer", "t": 52.0, "dur": 2.4, "from": "2022", "to": "2026" },
-        { "do": "text", "style": "line", "pos": "upper", "t": 52.8, "dur": 1.05, "text": "AGE 39." },
-        { "do": "text", "style": "script", "pos": "upper2", "t": 53.9, "dur": 1.55, "text": "One last dance." },
-        { "do": "sweep", "t": 53.0, "dur": 1.6 }
+        { "do": "text", "style": "line", "pos": "upper", "t": 52.8, "dur": 1.4, "text": "AGE 39." },
+        { "do": "text", "style": "script", "pos": "upper2", "t": 54.15, "dur": 1.3, "text": "One last dance." },
+        { "do": "sweep", "t": 52.6, "dur": 2.4 }
       ],
       "notes": {
         "emotion": "ขอบคุณ — กลับมาอีกครั้งในวัย 39",
@@ -441,15 +442,14 @@
     },
     {
       "id": "S20", "era": "e2026", "start": 55.5, "end": 59.0, "name": "The record", "board": 57.0,
-      "camera": { "zoom": [1.04, 1.09] },
-      "hero": { "scale": 0.56, "rays": [1.0, 1.05] },
+      "camera": { "zoom": [1.06, 1.06], "orbit": [-3, 0] },
+      "hero": { "scale": 0.50, "rays": [1.0, 1.05] },
       "world": { "stadium": [0.85, 0.9] },
       "actions": [
         { "do": "bignum", "pos": "upper", "t": 55.5, "dur": 3.4, "seq": ["16", "17", "21"], "flip": [55.9, 57.7] },
-        { "do": "text", "style": "kicker", "pos": "top2", "t": 55.5, "dur": 2.1, "text": "THE WORLD CUP RECORD" },
-        { "do": "text", "style": "kicker", "pos": "top2", "t": 57.7, "dur": 1.2, "text": "WORLD CUP GOALS" },
-        { "do": "pump", "t": 55.9, "dur": 0.6, "every": 0.3 },
-        { "do": "flashbulbs", "t": 55.9, "dur": 3.0, "rate": 6 }
+        { "do": "text", "style": "kicker", "pos": "top2", "t": 55.5, "dur": 3.4, "text": "WORLD CUP GOALS" },
+        { "do": "pump", "t": 55.9, "dur": 0.6, "every": 0.3, "count": 1 },
+        { "do": "flashbulbs", "t": 55.9, "dur": 3.0, "rate": 3 }
       ],
       "notes": {
         "emotion": "ภูมิใจ — แซงสถิติ Klose (16 → 17) จบที่ 21 ประตู",
@@ -464,13 +464,13 @@
     },
     {
       "id": "S21", "era": "e2026", "start": 59.0, "end": 62.0, "name": "One last run", "board": 60.9,
-      "camera": { "zoom": [1.04, 1.10], "orbit": [-3, 3], "shake": 0.15 },
-      "hero": { "scale": 0.56, "rays": [1.04, 1.08] },
+      "camera": { "zoom": [1.06, 1.08], "orbit": [0, 3] },
+      "hero": { "scale": 0.50, "rays": [1.04, 1.08] },
       "world": { "stadium": [0.9, 1.0] },
       "actions": [
         { "do": "text", "style": "kicker", "pos": "upper", "t": 59.1, "dur": 2.8, "text": "ONE LAST RUN" },
         { "do": "lightpulse", "t": 59.1, "dur": 2.9, "count": 4, "step": 0.7 },
-        { "do": "pump", "t": 59.1, "dur": 2.9, "every": 0.7 }
+        { "do": "pump", "t": 59.1, "dur": 2.9, "every": 0.7, "count": 4 }
       ],
       "notes": {
         "emotion": "หวังอีกครั้ง — ชนะน็อกเอาต์ 4 นัดติดถึงนัดชิง",
@@ -485,8 +485,8 @@
     },
     {
       "id": "S22", "era": "e2026", "start": 62.0, "end": 65.5, "name": "Let it go", "board": 64.4,
-      "camera": { "zoom": [1.10, 1.04], "target": [[0.47, 0.55], [0.47, 0.60]], "orbit": [3, 5] },
-      "hero": { "scale": 0.56, "lit": [1.0, 0.85], "rays": [1.0, 0.96] },
+      "camera": { "zoom": [1.08, 1.04], "target": [[0.47, 0.55], [0.47, 0.60]], "orbit": [3, 5] },
+      "hero": { "scale": [0.50, 0.56], "lit": [1.0, 0.85], "rays": [1.0, 0.96] },
       "world": { "stadium": [0.9, 0.6] },
       "actions": [
         { "do": "text", "style": "kicker", "pos": "top", "t": 62.2, "dur": 3.0, "text": "FINAL · 19.07.2026" },
@@ -513,9 +513,9 @@
         { "do": "phonelights", "t": 65.5, "dur": 10.5 },
         { "do": "text", "style": "kicker", "pos": "top2", "t": 66.4, "dur": 2.6, "text": "06.10.2026 · MONUMENTAL" },
         { "do": "confetti", "t": 67.5, "dur": 6.5, "mode": "gentle", "fade": 2.5 },
-        { "do": "sweep", "t": 68.6, "dur": 3.2, "gain": 0.3, "color": [1.0, 0.85, 0.65] },
+        { "do": "sweep", "t": 68.6, "dur": 3.2, "gain": 0.4, "color": [1.0, 0.85, 0.65] },
         { "do": "pump", "t": 69.2, "dur": 0.5, "every": 0.5 },
-        { "do": "text", "style": "script", "pos": "top2", "t": 70.4, "dur": 3.4, "text": "And now, a generation\nlearns to say goodbye." }
+        { "do": "text", "style": "script", "pos": "top2", "t": 70.4, "dur": 3.4, "text": "And a generation must now\nlearn to say goodbye." }
       ],
       "notes": {
         "emotion": "ซาบซึ้ง — แฟน 85,000 คนบอกลาที่บ้าน",
@@ -535,7 +535,7 @@
       "hero": { "scale": 0.56, "lit": [1.0, 1.0] },
       "world": { "stadium": [0.55, 0.0] },
       "actions": [
-        { "do": "echo", "t": 74.0, "dur": 1.5 },
+        { "do": "echo", "t": 74.0, "dur": 2.4 },
         { "do": "photo", "t": 74.6, "dur": 1.6, "from": 0, "to": 1 },
         { "do": "photo", "t": 76.2, "dur": 2.8, "from": 1, "to": 1 },
         { "do": "text", "style": "script", "pos": "top2", "y": 0.215, "t": 76.6, "dur": 2.4, "text": "Gracias, Leo." },

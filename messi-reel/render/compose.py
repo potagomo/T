@@ -138,14 +138,16 @@ class Renderer:
             if a["do"] != "pump":
                 continue
             ev = a.get("every", 0.5)
+            cnt = a.get("count", 99)  # จำนวนครั้งสูงสุด (เช่น S21 = 4 ครั้ง ตามชัยชนะ 4 นัดในรอบน็อกเอาต์)
             if self.tl.beat.ok:
-                last = -9.0
+                last, got = -9.0, []
                 for b in self.tl.beat.beats:
-                    if a["t"] - 0.05 <= b <= a["t"] + a["dur"] and b - last >= ev * 0.75:
-                        out.append(b)
+                    if a["t"] - 0.05 <= b <= a["t"] + a["dur"] and b - last >= ev * 0.75 and len(got) < cnt:
+                        got.append(b)
                         last = b
+                out += got
             else:
-                n = int(a["dur"] / ev) + 1
+                n = min(cnt, int(a["dur"] / ev) + 1)
                 out += [a["t"] + i * ev for i in range(n)]
         return sorted(out)
 
@@ -785,8 +787,11 @@ class Renderer:
         y0, y1, x0, x1 = ys.min() * 8, min(self.H, ys.max() * 8 + 8), xs.min() * 8, min(self.W, xs.max() * 8 + 8)
         yy, xx = np.ogrid[y0:y1, x0:x1]
         band = ((xx - x0) / max(1, x1 - x0) * 0.8 + (yy - y0) / max(1, y1 - y0) * 0.6).astype(np.float32) - lerp(-0.3, 1.7, ease_in_out(q))
-        sheen = np.exp(-(band / 0.07) ** 2) * self.hero_a[y0:y1, x0:x1]
-        img[y0:y1, x0:x1] += sheen[..., None] * np.float32(a.get("color", (1.0, 0.97, 0.9))) * np.float32(a.get("gain", 0.85))
+        sheen = np.exp(-(band / 0.12) ** 2) * self.hero_a[y0:y1, x0:x1]
+        # ผสมแบบ screen: เติมแสงเฉพาะส่วนที่ยังไม่สว่าง → แสงอุ่นลูบขอบตัวต่อ ไม่ทำให้มือ/หัวขาวโพลน
+        sub = img[y0:y1, x0:x1]
+        add = sheen[..., None] * np.float32(a.get("color", (1.0, 0.86, 0.66))) * np.float32(a.get("gain", 0.5))
+        img[y0:y1, x0:x1] = sub + add * np.clip(1 - sub, 0, 1)
 
     # ------------------------------------------------------------ text (screen space)
     def _put(self, img, sp, x, y, alpha):
@@ -980,7 +985,7 @@ class Renderer:
             if i < n0:
                 fx.blit(img, gfx.star(sz), x, y, k)
                 continue
-            q = clamp((t - a["t"] - 0.6) / 0.35)  # ดาวดวงที่ 3 ตกลงมาพร้อมแสงวาบ
+            q = clamp((t - a["t"] - 0.45) / 0.35)  # ดาวดวงที่ 3 ตกลงมาพร้อมแสงวาบ (ทับเฟรมสุดท้ายของถ้วยที่หดลง)
             if q <= 0:
                 continue
             fx.add_mono(img, gfx.flare(int(sz * 5 * (1.2 - q))), x, y, PALETTE["gold"], 1.2 * (1 - q) + 0.25)
@@ -1156,23 +1161,24 @@ class Renderer:
         if self.hero_a is None:
             return
         eras = ["e2006", "e2010", "e2014", "e2018", "e2022", "e2026"]
-        seg = a["dur"] / len(eras)
-        i = int((t - a["t"]) / seg)
-        if not 0 <= i < len(eras):
+        q = (t - a["t"]) / a["dur"]
+        if not 0 <= q < 1:
             return
-        q = (t - a["t"] - i * seg) / seg
-        col = np.float32(LOOKS[eras[i]]["rim"])
+        # แถบแสงเดียวเลื่อนช้า ๆ จากหัวลงเท้า สีค่อย ๆ เปลี่ยนตามยุค 2006 → 2026 (ความทรงจำ ไม่ใช่ไฟกะพริบ)
+        f = q * (len(eras) - 1)
+        i = min(int(f), len(eras) - 2)
+        col = np.float32(mix({"c": LOOKS[eras[i]]["rim"]}, {"c": LOOKS[eras[i + 1]]["rim"]}, f - i)["c"])
         ys, xs = np.nonzero(self.hero_a[::8, ::8] > 0.02)
         if not len(ys):
             return
         y0, y1 = ys.min() * 8, min(self.H, ys.max() * 8 + 8)
         x0, x1 = xs.min() * 8, min(self.W, xs.max() * 8 + 8)
         yy = np.arange(y0, y1, dtype=np.float32)[:, None]
-        band = np.exp(-(((yy - y0) / max(1, y1 - y0) - lerp(-0.2, 1.2, q)) / 0.12) ** 2).astype(np.float32)
+        band = np.exp(-(((yy - y0) / max(1, y1 - y0) - lerp(-0.2, 1.2, q)) / 0.30) ** 2).astype(np.float32)
         ha = self.hero_a[y0:y1, x0:x1]
         sub = img[y0:y1, x0:x1]
-        g = np.float32(0.55)
-        img[y0:y1, x0:x1] = sub + (band * ha)[..., None] * col * g
+        g = np.float32(0.18 * math.sin(math.pi * q) ** 0.5)
+        img[y0:y1, x0:x1] = sub + (band * ha)[..., None] * col * g * np.clip(1 - sub, 0, 1)
 
     def photo_frame(self):
         """ภาพถ่ายต้นฉบับ (รวมพื้นดำ) วางด้วยตำแหน่ง/ขนาดเดียวกับหุ่น — สลับไปมาได้แนบเนียน"""

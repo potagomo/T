@@ -62,7 +62,7 @@ LOOKS = {
         sat=1.0, contrast=1.04, bloom=0.65, grain=0.014, vignette=0.5, soft=0.0, crt=0.0, pylons=0.0),
     "outro": dict(
         bg_top=(0.015, 0.025, 0.05), bg_bottom=(0.05, 0.08, 0.15),
-        bokeh=((0.6, 0.78, 1.0), 40), rim=(0.75, 0.88, 1.0), rim_amt=0.9,
+        bokeh=((1.0, 0.8, 0.6), 40), rim=(1.0, 0.85, 0.65), rim_amt=0.9,  # อุ่นต่อจาก 2026 ไม่เย็นวูบตอนกลับสู่ภาพถ่าย
         lift=(0.0, 0.0, 0.01), gamma=(1.0, 1.0, 1.0), gain=(1.0, 1.0, 1.03),
         sat=0.95, contrast=1.04, bloom=0.6, grain=0.015, vignette=0.6, soft=0.0, crt=0.0, pylons=0.0),
 }

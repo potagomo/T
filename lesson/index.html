@@ -10011,7 +10011,7 @@ function regenRecoveryCode() {
    แปลเสร็จก่อนผู้ใช้ปลดล็อกเข้าแอปทัน · ไทย → อังกฤษ เปลี่ยนทันที · อังกฤษ → ไทย โหลดหน้าใหม่ */
 (function () {
   "use strict";
-  var KEY = "td_lang", DICT_V = "b9afa57b01";
+  var KEY = "td_lang", DICT_V = "04cdd6649f";
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
   var LANG = ls(KEY) === "en" ? "en" : "th";
   window.__lang = LANG;
@@ -11449,16 +11449,16 @@ function regenRecoveryCode() {
 <!-- layer:50-new-lesson-planned.js:end -->
 <!-- layer:55-place-time.js:start -->
 <script>
-/* ชั้นเว็บแอป: เวลาเรียนประจำของแต่ละสถานที่ + วางตารางจากไลน์เลือก "ส่วนตัว" ได้ — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
+/* ชั้นเว็บแอป: เวลาเรียนประจำของแต่ละสถานที่ + วางตารางจากข้อความเลือก "ส่วนตัว" ได้ — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
 
    เดิมคาบใหม่เริ่มที่ 60 นาทีเสมอ (ฟอร์ม + เพิ่ม / นักเรียนใหม่จากไลน์ / ตารางประจำที่ยังไม่เคยสอน)
    ครูที่สอนโรงเรียนละ 50 นาทีต้องกดเปลี่ยนทุกคาบ
    ชั้นนี้: สถานที่สอนมี "เวลาเรียนปกติ" (⚙ › สถานที่สอน › ✎ หรือปุ่ม "ตั้งราคาและเวลา…เป็นค่าประจำ" ในฟอร์ม)
-   ลำดับที่ใช้กับคาบใหม่: เวลาที่ข้อความไลน์ระบุ › เวลาของคาบล่าสุดของนักเรียนคนนั้นที่สถานที่นั้น (ค่าเดิม ไม่ต้องทำอะไร)
+   ลำดับที่ใช้กับคาบใหม่: เวลาที่ข้อความระบุ › เวลาของคาบล่าสุดของนักเรียนคนนั้นที่สถานที่นั้น (ค่าเดิม ไม่ต้องทำอะไร)
    › เวลาปกติของสถานที่ (ยังไม่ตั้ง = ความยาวที่สอนบ่อยที่สุดใน 20 คาบล่าสุดที่นั่น) › 60 นาที · เปลี่ยนเองในฟอร์มได้ตลอด และคาบถัดไปของนักเรียนคนนั้นจะใช้ค่าที่เปลี่ยน
    คาบที่บันทึกไว้แล้วไม่ถูกแก้
 
-   วางตารางจากไลน์: ช่องสถานที่สอนมีตัวเลือก "ส่วนตัว (คอร์ส)" — ลงเป็นคาบส่วนตัว ผูกคอร์สให้ถ้าน้องมีคอร์สเดียว
+   วางตารางจากข้อความ: ช่องสถานที่สอนมีตัวเลือก "ส่วนตัว (คอร์ส)" — ลงเป็นคาบส่วนตัว ผูกคอร์สให้ถ้าน้องมีคอร์สเดียว
    ตรวจซ้ำกับคาบส่วนตัววันนั้น (ไม่แตะคาบโรงเรียน) */
 (function () {
   "use strict";
@@ -11470,7 +11470,7 @@ function regenRecoveryCode() {
 
   // ยังไม่ได้ตั้งเวลาปกติ: ดูจากคาบที่สอนจริงล่าสุดที่นั่น (20 คาบ) ถ้าความยาวเดียวกันเกินครึ่งก็ใช้ค่านั้น ไม่ต้องตั้งเอง
   function guessDur(p) {
-    // คำนวณครั้งเดียวต่อรอบการวาด (วางตารางจากไลน์เรียกทุกแถว ทุกครั้งที่พิมพ์)
+    // คำนวณครั้งเดียวต่อรอบการวาด (วางตารางจากข้อความเรียกทุกแถว ทุกครั้งที่พิมพ์)
     return window.__memo ? __memo("guessDur:" + p.id, function () { return guessDur0(p); }) : guessDur0(p);
   }
   function guessDur0(p) {
@@ -11562,7 +11562,7 @@ function regenRecoveryCode() {
     return l;
   };
 
-  /* ── วางตารางจากไลน์ ── */
+  /* ── วางตารางจากข้อความ ── */
   function isPriv() { return window.PI && PI.kind === "private"; }
   function privDur(key) {
     var cs = coursesOf(key), act = cs.filter(function (c) { return courseStats(c).remaining > 0; });
@@ -11677,6 +11677,253 @@ function regenRecoveryCode() {
 })();
 </script>
 <!-- layer:55-place-time.js:end -->
+<!-- layer:56-paste-text.js:start -->
+<script>
+/* ชั้นเว็บแอป: วางตารางจากข้อความของแอปไหนก็ได้ — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
+
+   ตัวอ่านตารางของแอปเขียนมาสำหรับข้อความที่คัดลอกจาก LINE ตรง ๆ ข้อความจากแอปอื่นมีของแถมที่ทำให้อ่านผิด:
+     • WhatsApp: "[14/10/2569 09:15] แอดมินโบว์: …" / "14/10/69 09:15 - แอดมินโบว์: …" → เวลาส่งถูกอ่านเป็นเวลาเรียน ชื่อคนส่งเป็นนักเรียน
+     • LINE แบบบันทึกแชท (.txt): "09:15⇥แอดมินโบว์⇥"ข้อความ"" และบรรทัดวันที่ของแชท
+     • Telegram: "แอดมินโบว์, [14.10.2026 09:15]" · Messenger/อื่น ๆ: "ส่งเมื่อ 09:15" "อ่านแล้ว"
+     • ตัวเลข/โคลอนเต็มความกว้าง (１６：００) · เลขข้อ "1) 16.00 ภีม" · สัญลักษณ์หัวข้อ ▪ ◦ ➤ ☐ 📌 · ตารางจาก Google Sheets/Excel (แท็บ)
+     • ขึ้นบรรทัดแบบ \r หรือ U+2028 (คัดลอกจาก iOS/แอปเก่า)
+   ชั้นนี้ทำความสะอาดก่อนส่งให้ตัวอ่านเดิม ทีละบรรทัด (จำนวนบรรทัดเท่าเดิม "ที่มา: บรรทัด N" ยังชี้ถูก)
+   และเปลี่ยนชื่อปุ่ม/หัวข้อ "วางตารางจากไลน์" → "วางตารางจากข้อความ" */
+(function () {
+  "use strict";
+  if (typeof window.parseSchedule !== "function") { window.__pasteText = "missing"; return; }
+
+  var TIME = "\\d{1,2}[:.]\\d{2}(?:[:.]\\d{2})?(?:\\s?[AaPp]\\.?\\s?[Mm]\\.?)?";
+  var DATE = "\\d{1,4}[\\/.\\-]\\d{1,2}[\\/.\\-]\\d{1,4}";
+  // WhatsApp: [วันที่, เวลา] ชื่อ: ข้อความ  หรือ  วันที่ เวลา - ชื่อ: ข้อความ
+  var WA = new RegExp("^\\[?" + DATE + ",?\\s+" + TIME + "\\]?\\s*(?:-\\s*)?([^:\\[\\]]{1,40}):\\s?");
+  var WA_SYS = new RegExp("^\\[?" + DATE + ",?\\s+" + TIME + "\\]?\\s*-\\s*[^:]*$");          // ข้อความระบบ (ไม่มีผู้ส่ง)
+  var TG_HEAD = new RegExp("^[^\\[\\]\\n]{1,40},\\s*\\[" + DATE + "\\s+" + TIME + "\\]\\s*$");    // Telegram: ชื่อ, [วันที่ เวลา]
+  var TG_INLINE = new RegExp("^\\[" + DATE + "\\s+" + TIME + "\\]\\s*([^:]{1,40}):\\s?");        // [วันที่ เวลา] ชื่อ: …
+  var LINE_ROW = /^\d{1,2}:\d{2}\t[^\t]*\t/;                                                       // LINE บันทึกแชท: เวลา⇥ชื่อ⇥ข้อความ
+  var LINE_DAY = /^(?:\d{4}[.\/-]\d{1,2}[.\/-]\d{1,2}\s*(?:\(?[A-Za-z฀-๿.]+\)?)?|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,\s*\d{1,2}\/\d{1,2}\/\d{2,4}|[฀-๿.]+,\s*\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/;
+  var LINE_META = /^(?:\[LINE\]|ประวัติการแชท|บันทึกเมื่อ\s*:|Saved on\s*:|Chat history)/i;
+  // บรรทัดสถานะของแอปแชท (ทั้งบรรทัดเป็นแค่สถานะ + เวลา) เช่น "ส่งเมื่อ 09:15" "อ่านแล้ว" "Seen 9:15 PM"
+  var STATUS = new RegExp("^(?:ส่งเมื่อ|ส่งแล้ว|อ่านแล้ว|เห็นแล้ว|แก้ไขแล้ว|Sent|Seen|Read|Delivered|Edited)(?:\\s*(?:เมื่อ|at|·)?\\s*" + TIME + "(?:\\s?น\\.)?)?\\s*$", "i");
+  // หัวข้อ/เลขข้อหน้าบรรทัด: สัญลักษณ์ใด ๆ ที่ไม่ใช่ตัวอักษร/ตัวเลข/วงเล็บ/# · "1)" "2." "(3)" ที่ตามด้วยช่องว่าง
+  var LEAD = /^[^\p{L}\p{N}\[(#"'“]+/u, NUMBERED = /^\(?[0-9๐-๙]{1,2}[).]\s+/;
+
+  function chars(s) {
+    return s
+      .replace(/[\uFF01-\uFF5E]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); })   // １６：００ → 16:00
+      .replace(/[\u3000\u2000-\u200A\u202F\u205F]/g, " ")
+      .replace(/[\u200E\u200F\u2060\u202A-\u202E\uFE0E]/g, "");
+  }
+  // ทั้งข้อความ: ขึ้นบรรทัดทุกแบบเป็น \n (ทำกับข้อความในช่องด้วย เลขบรรทัดจะได้ตรงกัน)
+  function lines(t) { return String(t == null ? "" : t).replace(/\r\n/g, "\n").replace(/[\r\u2028\u2029\u0085]/g, "\n"); }
+
+  function clean(text) {
+    var L = lines(text).split("\n");
+    // ไฟล์บันทึกแชท LINE: มีแถว เวลา⇥ชื่อ⇥ข้อความ และมีหัวไฟล์/บรรทัดวันที่ของแชท (ตารางจาก Sheets ก็มีแท็บ แต่ไม่มีสองอย่างหลัง)
+    var lineExport = L.some(function (x) { return LINE_ROW.test(x); }) && L.some(function (x) { var t = chars(x).trim(); return LINE_META.test(t) || LINE_DAY.test(t); });
+    var wa = L.some(function (x) { return WA.test(chars(x)); });                 // มีหัวข้อความแบบ WhatsApp อย่างน้อยหนึ่งบรรทัด
+    return L.map(function (raw) {
+      var s = chars(raw);
+      if (lineExport) {
+        if (LINE_META.test(s.trim()) || LINE_DAY.test(s.trim())) return "";
+        s = s.replace(LINE_ROW, "").replace(/^"+/, "").replace(/"+\s*$/, "");
+      }
+      if (TG_HEAD.test(s.trim()) || wa && WA_SYS.test(s.trim()) && !WA.test(s)) return "";
+      s = s.replace(WA, "").replace(TG_INLINE, "");
+      if (STATUS.test(s.trim())) return "";
+      s = s.replace(/\t+/g, "  ");                                             // ตาราง (Sheets/Excel): แท็บ → ช่องว่าง
+      var t = s.replace(LEAD, "");
+      if (t !== s) s = t;
+      s = s.replace(NUMBERED, "");
+      return s;
+    }).join("\n");
+  }
+  window.__cleanPaste = clean;
+
+  var origParse = window.parseSchedule;
+  window.parseSchedule = function (text) {
+    var a = Array.prototype.slice.call(arguments);
+    a[0] = clean(text);
+    return origParse.apply(this, a);
+  };
+  // ข้อความในช่อง: ขึ้นบรรทัดแบบเดียวกับที่อ่าน ("ที่มา: บรรทัด N" ชี้บรรทัดเดียวกัน)
+  if (typeof window.reparseImport === "function") {
+    var origRe = window.reparseImport;
+    window.reparseImport = function () {
+      if (window.PI && typeof PI.text === "string" && /[\r\u2028\u2029\u0085]/.test(PI.text)) PI.text = lines(PI.text);
+      return origRe.apply(this, arguments);
+    };
+  }
+
+  /* ── ชื่อปุ่ม/หัวข้อ: ไม่ผูกกับ LINE แล้ว ── */
+  var LABELS = [
+    ["วางตารางจากไลน์ของโรงเรียน", "วางตารางจากข้อความ"],
+    ["ตอนวางตารางจากไลน์", "ตอนวางตาราง"],
+    ["วางตารางจากไลน์", "วางตารางจากข้อความ"],
+    ["คัดลอกข้อความตารางจากแชทโรงเรียนแล้ววางด้านล่าง", "คัดลอกข้อความตารางจากแอปไหนก็ได้ (LINE · WhatsApp · Messenger · Telegram · อีเมล · โน้ต · Google Sheets) แล้ววางด้านล่าง"]
+  ];
+  function swap(s) { for (var i = 0; i < LABELS.length; i++) if (s.indexOf(LABELS[i][0]) >= 0) s = s.split(LABELS[i][0]).join(LABELS[i][1]); return s; }
+  var HIT = /วางตารางจากไลน์|แชทโรงเรียนแล้ววาง/;
+  function relabel(root) {
+    if (!root || !HIT.test(root.textContent || "") && !root.querySelector("[placeholder*='ไลน์']")) return;
+    var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
+    while ((n = tw.nextNode())) if (HIT.test(n.nodeValue)) { var v = swap(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
+    Array.prototype.forEach.call(root.querySelectorAll("[placeholder*='ไลน์']"), function (el) { el.setAttribute("placeholder", swap(el.getAttribute("placeholder"))); });
+  }
+  window.__relabelPaste = relabel;
+  if (typeof window.showModal === "function") {
+    var origModal = window.showModal;
+    window.showModal = function () { var r = origModal.apply(this, arguments); relabel(document.getElementById("modal-box")); return r; };
+  }
+  if (typeof window.renderAll === "function") {
+    var origRender = window.renderAll;
+    window.renderAll = function () { var r = origRender.apply(this, arguments); relabel(document.getElementById("view-" + (window.S && S.tab))); return r; };
+  }
+  window.__pasteText = "on";
+})();
+</script>
+<!-- layer:56-paste-text.js:end -->
+<!-- layer:57-roster-time.js:start -->
+<script>
+/* ชั้นเว็บแอป: เวลาของตารางประจำตามข้อความที่วาง — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
+
+   ตารางประจำสัปดาห์ใส่เวลาได้แบบไม่บังคับ ถ้าเว้นว่าง แอปลงคาบล่วงหน้าให้ที่ 10:00 ทุกคน → คาบทับกันหมด
+   (เช่น harvey พฤหัส 16:00 · โค้ช 17:00 ตามข้อความโรงเรียน แต่คาบอัตโนมัติขึ้น 10:00 ทั้งคู่)
+   ชั้นนี้:
+     • ตารางประจำที่ไม่มีเวลา (หรือเวลาที่ได้จากข้อความ) ใช้เวลาจาก "คาบที่มาจากการวางตาราง" ล่าสุดของนักเรียนคนนั้น
+       วันเดียวกันในสัปดาห์ ประเภทเดียวกัน (สถานที่เดียวกัน) แล้วจดเวลานั้นไว้ในตารางประจำ (timeFrom = "paste")
+     • คาบล่วงหน้าที่ระบบลงไว้ด้วยเวลาเดาเดิม (ยังไม่ได้ยืนยัน หรือเป็นวันนี้/วันหน้า) เปลี่ยนเวลาตาม
+     • วางตารางครั้งต่อไป: ตารางประจำที่ได้เวลาจากข้อความ ตามเวลาใหม่ในข้อความ · เลิกทำ (undo) ย้อนตารางประจำด้วย
+     • เวลาที่ครูตั้งเองในตารางประจำ หรือเลือก "ทุกสัปดาห์ต่อจากนี้" ไม่ถูกเปลี่ยนเอง
+   ทำตอนเปิดแอปครั้งแรกหลังอัปเดต (แก้ข้อมูลเดิมที่ทับกันอยู่) และทุกครั้งที่วางตาราง */
+(function () {
+  "use strict";
+  var NEED = ["lessonFromRosterEntry", "applyImport", "migrate", "normTime", "todayStr", "save", "startApp"];
+  var miss = NEED.filter(function (n) { return typeof window[n] !== "function"; });
+  if (miss.length) { window.__rosterTime = "missing: " + miss.join(","); return; }
+
+  var PLACEHOLDER = "10:00";                                  // เวลาที่แอปเดาให้ตารางประจำที่ไม่มีเวลา (lessonFromRosterEntry)
+  function hhmm(t) { var v = normTime(t); return /^\d\d:\d\d$/.test(v) ? v : ""; }
+  function lessonsOf(k) { return window.__lessonsOf ? __lessonsOf(k) : S.lessons.filter(function (l) { return l.student === k; }); }
+  function wday(iso) { return new Date(iso + "T00:00:00").getDay(); }
+  function learnable(e) { return !e.time || e.timeFrom === "paste"; }
+
+  // เวลาจากข้อความที่วางล่าสุด สำหรับตารางประจำช่องนี้ (null = ไม่มีหลักฐาน / กำกวม)
+  function pastedTime(e) {
+    var twins = S.schedule.filter(function (x) { return x.student === e.student && x.day === e.day && (x.kind || "school") === (e.kind || "school"); });
+    if (twins.length > 1) return null;                         // คนเดียวเรียน 2 ช่องในวันเดียวกัน — บอกไม่ได้ว่าข้อความหมายถึงช่องไหน
+    var best = null;
+    lessonsOf(e.student).forEach(function (l) {
+      if (!l.importedAt || !l.date || (l.kind || "school") !== (e.kind || "school") || wday(l.date) !== e.day) return;
+      if (e.kind !== "private" && e.placeId != null && l.placeId != null && String(l.placeId) !== String(e.placeId)) return;
+      var t = hhmm(l.time); if (!t) return;
+      if (!best || l.date > best.date || (l.date === best.date && String(l.importedAt) > String(best.importedAt))) best = { date: l.date, importedAt: l.importedAt, time: t };
+    });
+    return best && best.time;
+  }
+
+  var LAST = null;                                             // การเปลี่ยนครั้งล่าสุด (ไว้ย้อนตอนเลิกทำการวางตาราง)
+  function learn() {
+    var t0 = todayStr(), changes = [];
+    (S.schedule || []).forEach(function (e) {
+      if (!learnable(e)) return;
+      var t = pastedTime(e);
+      if (!t || t === e.time) return;
+      var old = e.time ? hhmm(e.time) : PLACEHOLDER, ch = { e: e, time: e.time, timeFrom: e.timeFrom, lessons: [] };
+      e.time = t; e.timeFrom = "paste";
+      S.lessons.forEach(function (l) {
+        if (l.rosterId !== e.id || !l.auto || hhmm(l.time) !== old) return;
+        if (l.attendance !== "planned" && l.date < t0) return;  // คาบที่ผ่านไปแล้วและยืนยันแล้ว = ประวัติ ไม่แก้
+        ch.lessons.push({ l: l, time: l.time });
+        l.time = t; l.updatedAt = nowISO();
+      });
+      changes.push(ch);
+    });
+    return changes;
+  }
+  window.__rosterLearn = learn;
+
+  // ตารางประจำที่ยังไม่มีเวลา: คาบที่ลงใหม่ใช้เวลาจากข้อความเลย (ไม่ใช่ 10:00)
+  var origFromRoster = window.lessonFromRosterEntry;
+  window.lessonFromRosterEntry = function (e) {
+    var l = origFromRoster.apply(this, arguments);
+    if (l && e && !e.time) { var t = pastedTime(e); if (t) l.time = t; }
+    return l;
+  };
+
+  /* ── วางตาราง: คาบที่ถูกเลื่อนเวลานับเป็นข้อมูลจากข้อความด้วย แล้วปรับตารางประจำ ── */
+  var IMP = null;
+  var origApply = window.applyImport;
+  window.applyImport = function () {
+    IMP = { at: nowISO(), until: Date.now() + 60000, times: {} };
+    S.lessons.forEach(function (l) { IMP.times[l.id] = hhmm(l.time); });
+    return origApply.apply(this, arguments);
+  };
+  var origMigrate = window.migrate;
+  window.migrate = function () {
+    var r = origMigrate.apply(this, arguments);
+    if (IMP && Date.now() < IMP.until) {
+      var imp = IMP, marked = []; IMP = null;
+      S.lessons.forEach(function (l) {
+        if (l.id in imp.times && imp.times[l.id] !== hhmm(l.time) && !l.importedAt) { l.importedAt = imp.at; marked.push(l); }   // เลื่อนเวลาตามข้อความ
+      });
+      var ch = learn();
+      LAST = { at: imp.at, changes: ch, marked: marked };
+    }
+    return r;
+  };
+  if (typeof window.undoImport === "function") {
+    var origUndo = window.undoImport;
+    window.undoImport = function () {
+      var last = LAST; LAST = null;
+      if (last) {
+        last.changes.forEach(function (c) {
+          c.e.time = c.time; if (c.timeFrom === undefined) delete c.e.timeFrom; else c.e.timeFrom = c.timeFrom;
+          c.lessons.forEach(function (x) { x.l.time = x.time; });
+        });
+        last.marked.forEach(function (l) { delete l.importedAt; });
+      }
+      return origUndo.apply(this, arguments);
+    };
+  }
+
+  /* ── ครูตั้งเวลาเอง = ไม่ตามข้อความอีก ── */
+  if (typeof window.updateScheduleEntry === "function") {
+    var origUpd = window.updateScheduleEntry;
+    window.updateScheduleEntry = function (id, patch) {
+      var e = (S.schedule || []).find(function (x) { return x.id === id; });
+      if (e && patch && patch.time !== undefined && hhmm(patch.time) !== hhmm(e.time)) { patch = Object.assign({}, patch); delete patch.timeFrom; delete e.timeFrom; }
+      return origUpd.call(this, id, patch);
+    };
+  }
+  if (typeof window.rosterApplyFromNow === "function") {
+    var origFromNow = window.rosterApplyFromNow;
+    window.rosterApplyFromNow = function (lessonId) {
+      var l = S.lessons.find(function (x) { return x.id === lessonId; }), e = l && (S.schedule || []).find(function (x) { return x.id === l.rosterId; });
+      if (e) delete e.timeFrom;
+      return origFromNow.apply(this, arguments);
+    };
+  }
+
+  /* ── เปิดแอป: แก้ตารางประจำที่ยังไม่มีเวลา (คาบล่วงหน้าที่ทับกันอยู่ 10:00) ── */
+  var origStart = window.startApp;
+  window.startApp = function () {
+    var r = origStart.apply(this, arguments);
+    setTimeout(function () {
+      try {
+        var ch = learn();
+        if (!ch.length) return;
+        save(); if (typeof renderAll === "function") renderAll();
+        var n = ch.reduce(function (s, c) { return s + c.lessons.length; }, 0);
+        toast("ตั้งเวลาตารางประจำ " + ch.length + " คนตามข้อความที่วางไว้" + (n ? " · คาบล่วงหน้าเปลี่ยนเวลาตาม " + n + " คาบ" : ""));
+      } catch (e) {}
+    }, 500);
+    return r;
+  };
+  window.__rosterTime = "on";
+})();
+</script>
+<!-- layer:57-roster-time.js:end -->
 <!-- layer:58-nong.js:start -->
 <script>
 /* ชั้นเว็บแอป: เรียก "น้อง" หน้าชื่อนักเรียนในของที่ส่งผู้ปกครอง — tools/update-lesson.py ฝังไฟล์นี้ไว้ท้าย lesson/index.html
@@ -13367,7 +13614,7 @@ function regenRecoveryCode() {
 
   // [ชื่อหมวด, ไอคอน, คำขึ้นต้นของแถวในหมวด (เรียงตามนี้)]
   var GROUPS = [
-    ["การสอน", "🥁", ["ชื่อผู้สอน", "สถานที่สอน", "ตารางประจำสัปดาห์", "วางตารางจากไลน์", "งานสำคัญ", "การ์ดแจ้งวันหยุด"]],
+    ["การสอน", "🥁", ["ชื่อผู้สอน", "สถานที่สอน", "ตารางประจำสัปดาห์", "วางตาราง", "งานสำคัญ", "การ์ดแจ้งวันหยุด"]],
     ["ส่งผู้ปกครองและหน้าตา", "🎨", ["หน้าตาการส่งออก", "ลูกเล่นและความรู้สึก", "โหมดกลางคืน", "ภาษา", "เรียก “น้อง”"]],
     ["เครื่องนี้และการเชื่อมต่อ", "📱", ["ซิงค์", "แจ้งเตือนคาบถัดไป", "วิดเจ็ตหน้าจอโฮม", "ติดตั้งเป็นแอป"]],
     ["ข้อมูลและการสำรอง", "💾", ["สำรอง", "ประวัติย้อนหลัง", "ถังขยะ", "สุขภาพข้อมูล", "ตรวจประเภทคาบ"]],

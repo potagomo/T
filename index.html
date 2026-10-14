@@ -1012,7 +1012,7 @@ body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:con
   <div id="rowLive" class="tprow">
     <button class="btn primary" id="play">เล่น</button>
     <button class="btn" id="stopb">หยุด</button>
-    <button class="btn" id="home">⏮</button>
+    <button class="btn" id="home" aria-label="กลับไปต้นช่วงที่ฟัง" title="กลับไปต้นช่วงที่ฟัง">⏮</button>
     <span class="clock" id="clock">ห้อง 1 · จังหวะ 1 · 0:00.00</span>
     <span class="grpname">ฟัง</span>
     <div class="seg" id="scope">
@@ -4965,6 +4965,9 @@ function showUI(){
   if(S.buf) $("#pDet").classList.remove("hidden");
   rebuildRows(); setTimeout(fitBottom,0);
   $("#drop").style.padding="16px 18px";
+  // เดิมเติมช่องเหล่านี้เฉพาะตอนถอดจากไฟล์เสียง — กริดเปล่า/นำเข้า MIDI/เปิดงานที่บันทึกไว้ ช่องจึงว่าง
+  // ทั้งที่หัวกริดบอก =120 อยู่ (ทุกทางเปิดงานผ่าน showUI จุดนี้จุดเดียว)
+  $("#bpm").value=S.bpm; $("#offset").value=S.offset||0;
 }
 
 /* ============================================================

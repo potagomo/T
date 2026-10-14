@@ -116,6 +116,10 @@ async function suite(label, ctxOpts, exe) {
   say(`เริ่มกริดเปล่าด้วย ${started}`);
   if (!started) { fail.push(`${label}: ไม่เจอปุ่มเริ่มกริดเปล่า`); await browser.close(); return; }
   await page.waitForTimeout(600);
+  // ช่อง BPM ต้องบอกความเร็วจริงของกริด (เคยว่างทุกทางยกเว้นถอดจากไฟล์เสียง)
+  const bpmField = await page.evaluate(() => (document.getElementById("bpm") || {}).value);
+  say(`ช่อง BPM หลังเริ่มกริดเปล่า = ${JSON.stringify(bpmField)}`);
+  if (!(+bpmField > 0)) fail.push(`${label}: ช่อง BPM ว่างหลังเริ่มกริดเปล่า`);
   await page.click('#tool button[data-v="draw"]');
   await page.evaluate(() => document.getElementById("gw").scrollIntoView({ block: "start" }));
   await page.waitForTimeout(400);

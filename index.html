@@ -547,6 +547,8 @@ body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:con
 <link rel="stylesheet" href="./fonts/prompt.css">
 <link rel="stylesheet" href="./theme/klong-theme.css">
 <script src="./theme/klong-theme.js"></script>
+<!-- เสียงกลองจริง: ชุดเสียงที่อัดจากกลองจริง เลือกได้ในแผงตั้งค่า ส่วน "การฟัง" (sounds/) -->
+<script src="./sounds/klong-sounds.js"></script>
 </head>
 <body class="shell">
 <div id="homeScreen">
@@ -3739,6 +3741,8 @@ function playVoice(id, when, vel, art){
   let inst=id, ar=art||"";
   if(PAL[id] && !V[id]){ inst=PAL[id].v; ar=PAL[id].art; }
   if(!dSink || isMuted(pkey(inst,ar))) return;
+  /* เสียงกลองจริง: ถ้าเลือกชุดที่อัดจากกลองจริงและโหลดเสร็จแล้วใช้เสียงนั้น ไม่งั้นเล่นเสียงสังเคราะห์ด้านล่าง (sounds/klong-sounds.js) */
+  if(window.KlongSounds && window.KlongSounds.play(S.ctx, dSink, pkey(inst,ar), when, vel)) return;
   const v=clamp(vel,1,127)/127, br=0.45+0.55*v;
   switch(pkey(inst,ar)){
     case "kick":

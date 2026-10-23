@@ -50,8 +50,17 @@ const PRECACHE = [
   "./fonts/prompt-latin-ext-500.woff2",
   "./fonts/prompt-latin-ext-600.woff2",
   "./theme/klong-theme.css",
-  "./theme/klong-theme.js"
+  "./theme/klong-theme.js",
+  "./sounds/klong-sounds.js",
+  "./sounds/kits.json"
 ];
+
+/* ไฟล์เสียงกลองจริง (.mp3 ใต้ sounds/) เก็บแยกในแคชถาวร ไม่ผูกกับรุ่นของโปรแกรม
+   แคชรุ่นโปรแกรมถูกล้างทุกครั้งที่อัปเดต ถ้าเก็บเสียงไว้ในนั้น ผู้ใช้ต้องโหลดใหม่ 1-4 MB ทุกรอบ
+   ไฟล์เสียงไม่เคยเปลี่ยนเนื้อหา ถ้าวันหนึ่งเปลี่ยนไฟล์เสียง ให้เปลี่ยนชื่อแคชนี้ (v1 → v2)
+   ชื่อต้องไม่ขึ้นต้นด้วย "klong-" ไม่งั้นขั้น activate จะลบทิ้ง
+   sounds/klong-sounds.js ใช้ชื่อเดียวกัน (SAMPLE_CACHE) เก็บเองตอนเปิดครั้งแรกที่ตัวนี้ยังไม่คุมหน้า เปลี่ยนต้องเปลี่ยนคู่ */
+const SOUNDS = "drum-samples-v1";
 
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
@@ -101,6 +110,18 @@ self.addEventListener("fetch", (e) => {
   // (ไม่งั้นการเปิดหน้านั้นครั้งแรกจะถูกเก็บทับเป็นสำเนาของกลอง → MIDI)
   for (const app of ["lesson", "show", "widget"]) {
     if (url.pathname === ROOT + app || url.pathname.startsWith(ROOT + app + "/")) return;
+  }
+
+  if (url.pathname.startsWith(ROOT + "sounds/") && url.pathname.endsWith(".mp3")) {
+    e.respondWith((async () => {
+      const c = await caches.open(SOUNDS);
+      const hit = await c.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res && res.ok && res.type === "basic") c.put(req, res.clone());
+      return res;
+    })());
+    return;
   }
 
   if (isAppDoc(req, url)) {

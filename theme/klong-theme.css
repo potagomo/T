@@ -204,7 +204,8 @@ html[data-kmode] body.shell #topbar{
   padding-left:calc(12px + var(--sal, 0px)); padding-right:calc(12px + var(--sar, 0px))}
 html[data-kmode] body.shell #tp{bottom:calc(-1 * var(--kt-gap, 0px))}
 html[data-kmode] body.shell main.wrap{bottom:calc(-1 * var(--kt-gap, 0px))}
-@media (max-width:900px){ html[data-kmode] body.shell #insp{bottom:calc(-1 * var(--kt-gap, 0px))} }
+/* จอแคบ: แผงตั้งค่าลอยทับกริด ให้จบที่ขอบบนของแถบล่าง (แถบล่างยื่นลงใต้จอ --kt-gap) ไม่งั้นท้ายแผงโดนบัง */
+@media (max-width:900px){ html[data-kmode] body.shell #insp{bottom:calc(var(--kt-tp, 0px) - var(--kt-gap, 0px))} }
 html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio)){background:var(--k-wood-b)}
 
 @media (min-width:600px) and (max-width:1189px){

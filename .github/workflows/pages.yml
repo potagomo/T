@@ -54,6 +54,7 @@ jobs:
                    icons/icon-512.png icons/apple-touch-icon.png \
                    fonts/ibm-plex-sans-thai.css fonts/prompt.css \
                    theme/klong-theme.css theme/klong-theme.js \
+                   sounds/klong-sounds.js sounds/kits.json sounds/LICENSES.txt sounds/05_acoustic/SN_snare/normal_1.mp3 \
                    lesson/index.html lesson/manifest.webmanifest lesson/sw.js lesson/push-worker.js \
                    lesson/icons/icon-512.png lesson/icons/apple-touch-icon.png lesson/icons/badge-96.png lesson/vendor/mediabunny-1.59.1.js lesson/i18n/en.json \
                    show/index.html; do
@@ -101,7 +102,7 @@ jobs:
           set -euo pipefail
           rm -rf _site && mkdir -p _site
           cp index.html 404.html manifest.webmanifest sw.js .nojekyll _site/
-          cp -r fonts icons theme lesson show widget _site/
+          cp -r fonts icons theme sounds lesson show widget _site/
           if [ -s kruta-widget.apk ]; then cp kruta-widget.apk _site/widget/; else echo "::warning::ไม่มีไฟล์ APK รุ่นใหม่ (build แอปวิดเจ็ตไม่ผ่าน)"; fi
           echo "ขนาดที่จะเผยแพร่: $(du -sh _site | cut -f1)"
           find _site -type f | sort

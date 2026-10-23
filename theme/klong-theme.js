@@ -242,6 +242,16 @@ function ready(){
     try{ ro.observe(tb, {box:"border-box"}); }catch(_){ ro.observe(tb); }
   }
 
+  /* ความสูงจริงของแถบล่าง → --kt-tp ให้แผงตั้งค่าบนจอแคบจบเหนือแถบล่าง
+     แผงตั้งค่าอยู่ในพื้นที่ทำงาน ซึ่งวาดใต้แถบล่างเสมอ (แถบล่าง z-index 10)
+     บนมือถือส่วน "การฟัง" ท้ายแผงจึงถูกแถบล่างบังจนแตะไม่ได้ */
+  var tpEl=document.getElementById("tp");
+  if(tpEl && window.ResizeObserver){
+    var fitTp=function(){ root.style.setProperty("--kt-tp", Math.round(tpEl.getBoundingClientRect().height)+"px"); };
+    var ro2=new ResizeObserver(fitTp);
+    try{ ro2.observe(tpEl, {box:"border-box"}); }catch(_){ ro2.observe(tpEl); }
+  }
+
   /* ช่องว่างใต้แถบล่างบน iPad ที่เปิดจากหน้าโฮม
      iPadOS บางรุ่นให้พื้นที่จอของแอปเตี้ยกว่าจอจริงเท่าแถบสถานะ แต่เริ่มที่ขอบบนสุด
      ของที่ติดขอบล่าง (bottom:0) จึงลอยค้างเหนือขอบจอ เหลือแถบสีพื้นว่าง ๆ ด้านล่าง

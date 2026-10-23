@@ -1,0 +1,37 @@
+Sound sources used in this folder
+=================================
+
+01_rock, 06_extra_pieces
+  Big Rusty Drums - Karoryfer Samples
+  Licence: CC0 1.0 Universal (public domain dedication)
+  https://github.com/sfzinstruments/karoryfer.big-rusty-drums
+
+02_pop, 03_hiphop, 06_extra_pieces
+  Unruly Drums - Karoryfer Samples
+  Licence: CC0 1.0 Universal
+  https://github.com/sfzinstruments/karoryfer.unruly-drums
+
+02_pop (crash 2), 06_extra_pieces
+  Swirly Drums - Karoryfer Samples
+  Licence: CC0 1.0 Universal
+  https://github.com/sfzinstruments/karoryfer.swirly-drums
+
+03_hiphop, 04_jazz
+  Virtuosity Drums - Versilian Studios
+  Licence: CC0 1.0 Universal
+  https://github.com/sfzinstruments/virtuosity_drums
+
+03_hiphop toms (T1, T2, FT)
+  Synthesized 808-style toms made for the กลองนำทาง app (no third-party samples).
+
+05_acoustic
+  Salamander Drumkit - Alexander Holm
+  Licence: Creative Commons Attribution-ShareAlike 3.0 (CC BY-SA 3.0)
+  https://creativecommons.org/licenses/by-sa/3.0/
+  Source: https://github.com/endolith/Salamander-Drumkit
+  Credit line: "Salamander Drumkit by Alexander Holm (CC BY-SA 3.0)"
+  Share-alike applies to the samples themselves (modified samples or new sample libraries made from them),
+  not to music or apps that simply play them.
+
+Changes made for the app (all kits): onset trimming, tail fades, mic mixing (mono for kits 01-04 and 06),
+level matching, MP3 encoding; hip-hop kit: lo-fi processing and 808-style layering.

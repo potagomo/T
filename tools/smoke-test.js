@@ -21,7 +21,8 @@ let BASE = "";                 // เติมตอนเซิร์ฟเว�
 const fail = [];
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8", ".webmanifest":"application/manifest+json",
-  ".json":"application/json", ".png":"image/png", ".woff2":"font/woff2", ".svg":"image/svg+xml" };
+  ".json":"application/json", ".png":"image/png", ".woff2":"font/woff2", ".svg":"image/svg+xml",
+  ".mp3":"audio/mpeg" };
 
 /* หา Chromium ที่ติดตั้งไว้แล้วในเครื่อง (sandbox ของ Claude Code มีให้อยู่แล้ว
    ที่ PLAYWRIGHT_BROWSERS_PATH) ถ้าไม่เจอก็คืน undefined ให้ playwright หาเอง */
@@ -262,6 +263,60 @@ async function suite(label, ctxOpts, exe) {
     await page.waitForTimeout(200);
   }
 
+  /* ---- เสียงกลองจริง (sounds/) ----
+     ชุดอะคูสติกต้องโหลดครบ ทุกเสียงของโปรแกรมต้องได้เสียงจริง (ยกเว้นครอสสติ๊กที่ไม่มีไฟล์)
+     เสียงต้องเริ่มตรงเวลาที่ตั้ง (ไฟล์ MP3 มีช่วงเงียบหัวไฟล์ 7-25 ms ตัวเล่นต้องตัดให้)
+     ไฮแฮตเปิดต้องถูกตัดเมื่อเหยียบ และปุ่มทดสอบเสียงของโปรแกรมต้องวิ่งผ่านทางเข้าใน playVoice */
+  const snd = await page.evaluate(async () => {
+    const K = window.KlongSounds; if (!K) return null;
+    await K.setKit("acoustic");
+    const st = K.state();
+    const keys = ["kick","snare","snare:rim","hihat","hihat:open","hhf","tom1","tom2","floor",
+                  "crash","crash2","ride","bell","china","splash","cow"];
+    const bad = [], late = [];
+    const render = async (fn, sec) => {
+      const oc = new OfflineAudioContext(2, Math.round(44100 * sec), 44100);
+      const sink = oc.createGain(); sink.connect(oc.destination);
+      const ok = fn(oc, sink); if (!ok) return null;
+      return oc.startRendering();
+    };
+    for (const k of keys) {
+      const b = await render((oc, sink) => K.play(oc, sink, k, 0.1, 100), 0.6);
+      if (!b) { bad.push(k); continue; }
+      const L = b.getChannelData(0), R = b.getChannelData(1);
+      let pk = 0; for (let i = 0; i < L.length; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
+      if (pk < 0.01) { bad.push(k + "(เงียบ)"); continue; }
+      let on = 0; for (let i = 0; i < L.length; i++) if (Math.max(Math.abs(L[i]), Math.abs(R[i])) >= pk * 0.02) { on = i; break; }
+      const ms = (on / 44100 - 0.1) * 1000; if (ms < -0.5 || ms > 3) late.push(k + " " + ms.toFixed(1) + "ms");
+    }
+    const tail = async (close) => {
+      const b = await render((oc, sink) => { K.play(oc, sink, "hihat:open", 0.1, 100);
+        if (close) K.play(oc, sink, "hhf", 0.4, 1); return true; }, 1.5);
+      const L = b.getChannelData(0); let e = 0; for (let i = Math.round(0.47 * 44100); i < L.length; i++) e += L[i] * L[i]; return e; };
+    const chokeDb = 10 * Math.log10((await tail(true) + 1e-12) / (await tail(false) + 1e-12));
+    const xo = new OfflineAudioContext(1, 441, 44100), xs = xo.createGain();
+    const cross = K.play(xo, xs, "snare:cross", 0, 100);
+    const before = K.stats.played;
+    document.getElementById("testSnd").click();
+    await new Promise((r) => setTimeout(r, 300));
+    const btns = [...document.querySelectorAll("#kKit button")];
+    return { ready: st.ready, loaded: st.loaded, total: st.total, failed: st.failed, bad, late,
+      chokeDb: Math.round(chokeDb), cross, viaApp: K.stats.played - before, btns: btns.length,
+      pressed: (btns.find((b) => b.getAttribute("aria-pressed") === "true") || {}).textContent || "",
+      credit: (document.getElementById("kKitCr") || {}).textContent || "" };
+  });
+  if (!snd) fail.push(`${label}: ตัวเล่นเสียงกลองจริงไม่โหลด`);
+  else {
+    say(`เสียงจริง: ชุด=${snd.pressed} โหลด ${snd.loaded}/${snd.total} พลาด ${snd.failed} · ไม่มีเสียง=${snd.bad.join(",") || "ไม่มี"} · เริ่มช้า=${snd.late.join(",") || "ไม่มี"} · ไฮแฮตถูกตัด ${snd.chokeDb} dB · ผ่าน playVoice ${snd.viaApp} เสียง`);
+    if (!snd.ready || snd.failed) fail.push(`${label}: โหลดชุดเสียงอะคูสติกไม่ครบ (${snd.loaded}/${snd.total} พลาด ${snd.failed})`);
+    if (snd.bad.length) fail.push(`${label}: เสียงเหล่านี้ไม่ได้เสียงจริง ${snd.bad.join(", ")}`);
+    if (snd.late.length) fail.push(`${label}: เสียงจริงเริ่มไม่ตรงเวลา ${snd.late.join(", ")}`);
+    if (!(snd.chokeDb < -20)) fail.push(`${label}: เหยียบไฮแฮตแล้วไฮแฮตเปิดไม่ถูกตัด (${snd.chokeDb} dB)`);
+    if (snd.cross !== false) fail.push(`${label}: ครอสสติ๊กควรเล่นเสียงสังเคราะห์ (ไม่มีไฟล์)`);
+    if (snd.viaApp < 4) fail.push(`${label}: ปุ่มทดสอบเสียงไม่ได้ผ่านเสียงจริง (${snd.viaApp}/4) ทางเข้าใน playVoice หาย?`);
+    if (snd.btns !== 6 || !/Alexander Holm/.test(snd.credit)) fail.push(`${label}: ปุ่มเลือกชุดเสียงหรือเครดิตชุดอะคูสติกไม่ครบ`);
+  }
+
   await ctx.setOffline(true);
   await page.goto(BASE, { waitUntil: "load" })
     .catch((e) => fail.push(`${label}: โหลดตอนออฟไลน์ไม่ได้ ${e.message}`));
@@ -272,6 +327,11 @@ async function suite(label, ctxOpts, exe) {
   say(`ออฟไลน์: เปิดได้=${offOk} ฟอนต์มา=${offFont}`);
   if (!offOk) fail.push(`${label}: ออฟไลน์แล้วโปรแกรมไม่ขึ้น`);
   if (!offFont) fail.push(`${label}: ออฟไลน์แล้วฟอนต์ไม่มา`);
+  const offSnd = await page.waitForFunction(() => window.KlongSounds && window.KlongSounds.state().ready &&
+    window.KlongSounds.state().kit === "acoustic", null, { timeout: 20000 }).then(() => true, () => false);
+  const offSt = await page.evaluate(() => window.KlongSounds ? window.KlongSounds.state() : null);
+  say(`ออฟไลน์: เสียงจริงพร้อม=${offSnd} (${offSt ? offSt.loaded + "/" + offSt.total + " พลาด " + offSt.failed : "-"})`);
+  if (!offSnd || (offSt && offSt.failed)) fail.push(`${label}: ออฟไลน์แล้วเสียงกลองจริงไม่มา`);
   await ctx.setOffline(false);
 
   const real = errs.filter((e) => !/favicon/i.test(e));

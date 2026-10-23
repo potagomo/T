@@ -1,0 +1,1560 @@
+{
+ "about": "Drum samples used in the กลองนำทาง app. One file = one hit. Layers: ghost (soft), normal, accent (hard); several files per layer are round-robin variations.",
+ "strokeLevelDb_app_default": {
+  "ghost": -8,
+  "normal": 0,
+  "accent": 2
+ },
+ "kits": [
+  {
+   "id": "rock",
+   "folder": "01_rock",
+   "name_th": "ร็อก",
+   "source_licence": "Big Rusty Drums — Karoryfer Samples (CC0)",
+   "instruments": [
+    {
+     "code": "BD",
+     "name": "kick",
+     "name_th": "กระเดื่อง",
+     "folder": "01_rock/BD_kick",
+     "playGain": 2.217,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "SN",
+     "name": "snare",
+     "name_th": "สแนร์",
+     "folder": "01_rock/SN_snare",
+     "playGain": 3.915,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HH",
+     "name": "hihat_closed",
+     "name_th": "ไฮแฮทปิด",
+     "folder": "01_rock/HH_hihat_closed",
+     "playGain": 1.288,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HO",
+     "name": "hihat_open",
+     "name_th": "ไฮแฮทเปิด",
+     "folder": "01_rock/HO_hihat_open",
+     "playGain": 0.935,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HF",
+     "name": "hihat_foot",
+     "name_th": "ไฮแฮทเหยียบ",
+     "folder": "01_rock/HF_hihat_foot",
+     "playGain": 0.596,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T1",
+     "name": "tom1",
+     "name_th": "ทอม 1",
+     "folder": "01_rock/T1_tom1",
+     "playGain": 1.407,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T2",
+     "name": "tom2",
+     "name_th": "ทอม 2",
+     "folder": "01_rock/T2_tom2",
+     "playGain": 1.131,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "FT",
+     "name": "floor_tom",
+     "name_th": "ฟลอร์ทอม",
+     "folder": "01_rock/FT_floor_tom",
+     "playGain": 1.492,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CR",
+     "name": "crash1",
+     "name_th": "แครช 1",
+     "folder": "01_rock/CR_crash1",
+     "playGain": 1.411,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C2",
+     "name": "crash2",
+     "name_th": "แครช 2",
+     "folder": "01_rock/C2_crash2",
+     "playGain": 0.77,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD",
+     "name": "ride",
+     "name_th": "ไรด์",
+     "folder": "01_rock/RD_ride",
+     "playGain": 1.704,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    }
+   ],
+   "format": "MP3, 44100 Hz, mono"
+  },
+  {
+   "id": "pop",
+   "folder": "02_pop",
+   "name_th": "ป๊อป",
+   "source_licence": "Unruly Drums + Swirly Drums — Karoryfer Samples (CC0)",
+   "instruments": [
+    {
+     "code": "BD",
+     "name": "kick",
+     "name_th": "กระเดื่อง",
+     "folder": "02_pop/BD_kick",
+     "playGain": 2.615,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "SN",
+     "name": "snare",
+     "name_th": "สแนร์",
+     "folder": "02_pop/SN_snare",
+     "playGain": 3.761,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HH",
+     "name": "hihat_closed",
+     "name_th": "ไฮแฮทปิด",
+     "folder": "02_pop/HH_hihat_closed",
+     "playGain": 0.811,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HO",
+     "name": "hihat_open",
+     "name_th": "ไฮแฮทเปิด",
+     "folder": "02_pop/HO_hihat_open",
+     "playGain": 1.086,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HF",
+     "name": "hihat_foot",
+     "name_th": "ไฮแฮทเหยียบ",
+     "folder": "02_pop/HF_hihat_foot",
+     "playGain": 0.416,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T1",
+     "name": "tom1",
+     "name_th": "ทอม 1",
+     "folder": "02_pop/T1_tom1",
+     "playGain": 0.923,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T2",
+     "name": "tom2",
+     "name_th": "ทอม 2",
+     "folder": "02_pop/T2_tom2",
+     "playGain": 1.11,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "FT",
+     "name": "floor_tom",
+     "name_th": "ฟลอร์ทอม",
+     "folder": "02_pop/FT_floor_tom",
+     "playGain": 1.799,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CR",
+     "name": "crash1",
+     "name_th": "แครช 1",
+     "folder": "02_pop/CR_crash1",
+     "playGain": 0.663,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C2",
+     "name": "crash2",
+     "name_th": "แครช 2",
+     "folder": "02_pop/C2_crash2",
+     "playGain": 1.129,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD",
+     "name": "ride",
+     "name_th": "ไรด์",
+     "folder": "02_pop/RD_ride",
+     "playGain": 2.898,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    }
+   ],
+   "format": "MP3, 44100 Hz, mono"
+  },
+  {
+   "id": "hiphop",
+   "folder": "03_hiphop",
+   "name_th": "ฮิปฮอป",
+   "source_licence": "Unruly Drums + Virtuosity Drums (CC0) + 808-style synthesis",
+   "instruments": [
+    {
+     "code": "BD",
+     "name": "kick",
+     "name_th": "กระเดื่อง",
+     "folder": "03_hiphop/BD_kick",
+     "playGain": 0.343,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "SN",
+     "name": "snare",
+     "name_th": "สแนร์",
+     "folder": "03_hiphop/SN_snare",
+     "playGain": 1.197,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HH",
+     "name": "hihat_closed",
+     "name_th": "ไฮแฮทปิด",
+     "folder": "03_hiphop/HH_hihat_closed",
+     "playGain": 0.432,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HO",
+     "name": "hihat_open",
+     "name_th": "ไฮแฮทเปิด",
+     "folder": "03_hiphop/HO_hihat_open",
+     "playGain": 0.473,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HF",
+     "name": "hihat_foot",
+     "name_th": "ไฮแฮทเหยียบ",
+     "folder": "03_hiphop/HF_hihat_foot",
+     "playGain": 0.311,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T1",
+     "name": "tom1",
+     "name_th": "ทอม 1",
+     "folder": "03_hiphop/T1_tom1",
+     "playGain": 0.407,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T2",
+     "name": "tom2",
+     "name_th": "ทอม 2",
+     "folder": "03_hiphop/T2_tom2",
+     "playGain": 0.407,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "FT",
+     "name": "floor_tom",
+     "name_th": "ฟลอร์ทอม",
+     "folder": "03_hiphop/FT_floor_tom",
+     "playGain": 0.417,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CR",
+     "name": "crash1",
+     "name_th": "แครช 1",
+     "folder": "03_hiphop/CR_crash1",
+     "playGain": 0.617,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C2",
+     "name": "crash2",
+     "name_th": "แครช 2",
+     "folder": "03_hiphop/C2_crash2",
+     "playGain": 0.695,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD",
+     "name": "ride",
+     "name_th": "ไรด์",
+     "folder": "03_hiphop/RD_ride",
+     "playGain": 0.539,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    }
+   ],
+   "format": "MP3, 44100 Hz, mono"
+  },
+  {
+   "id": "jazz",
+   "folder": "04_jazz",
+   "name_th": "แจ๊ส",
+   "source_licence": "Virtuosity Drums — Versilian Studios / Karoryfer (CC0)",
+   "instruments": [
+    {
+     "code": "BD",
+     "name": "kick",
+     "name_th": "กระเดื่อง",
+     "folder": "04_jazz/BD_kick",
+     "playGain": 1.41,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "SN",
+     "name": "snare",
+     "name_th": "สแนร์",
+     "folder": "04_jazz/SN_snare",
+     "playGain": 3.782,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3",
+       "ghost_3.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HH",
+     "name": "hihat_closed",
+     "name_th": "ไฮแฮทปิด",
+     "folder": "04_jazz/HH_hihat_closed",
+     "playGain": 1.56,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HO",
+     "name": "hihat_open",
+     "name_th": "ไฮแฮทเปิด",
+     "folder": "04_jazz/HO_hihat_open",
+     "playGain": 1.462,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HF",
+     "name": "hihat_foot",
+     "name_th": "ไฮแฮทเหยียบ",
+     "folder": "04_jazz/HF_hihat_foot",
+     "playGain": 0.383,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T1",
+     "name": "tom1",
+     "name_th": "ทอม 1",
+     "folder": "04_jazz/T1_tom1",
+     "playGain": 1.289,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T2",
+     "name": "tom2",
+     "name_th": "ทอม 2",
+     "folder": "04_jazz/T2_tom2",
+     "playGain": 1.198,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "FT",
+     "name": "floor_tom",
+     "name_th": "ฟลอร์ทอม",
+     "folder": "04_jazz/FT_floor_tom",
+     "playGain": 1.103,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CR",
+     "name": "crash1",
+     "name_th": "แครช 1",
+     "folder": "04_jazz/CR_crash1",
+     "playGain": 0.942,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C2",
+     "name": "crash2",
+     "name_th": "แครช 2",
+     "folder": "04_jazz/C2_crash2",
+     "playGain": 1.275,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD",
+     "name": "ride",
+     "name_th": "ไรด์",
+     "folder": "04_jazz/RD_ride",
+     "playGain": 1.999,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    }
+   ],
+   "format": "MP3, 44100 Hz, mono"
+  },
+  {
+   "id": "acoustic",
+   "folder": "05_acoustic",
+   "name_th": "อะคูสติก",
+   "source_licence": "Salamander Drumkit — Alexander Holm (CC BY-SA 3.0)",
+   "instruments": [
+    {
+     "code": "BD",
+     "name": "kick",
+     "name_th": "กระเดื่อง",
+     "folder": "05_acoustic/BD_kick",
+     "playGain": 1.247,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3",
+       "ghost_3.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3",
+       "normal_4.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3",
+       "accent_3.mp3"
+      ]
+     }
+    },
+    {
+     "code": "SN",
+     "name": "snare",
+     "name_th": "สแนร์",
+     "folder": "05_acoustic/SN_snare",
+     "playGain": 2.042,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3",
+       "ghost_3.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3",
+       "normal_4.mp3",
+       "normal_5.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3",
+       "accent_3.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HH",
+     "name": "hihat_closed",
+     "name_th": "ไฮแฮทปิด",
+     "folder": "05_acoustic/HH_hihat_closed",
+     "playGain": 0.716,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3",
+       "ghost_3.mp3",
+       "ghost_4.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3",
+       "normal_4.mp3",
+       "normal_5.mp3",
+       "normal_6.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3",
+       "accent_3.mp3",
+       "accent_4.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HO",
+     "name": "hihat_open",
+     "name_th": "ไฮแฮทเปิด",
+     "folder": "05_acoustic/HO_hihat_open",
+     "playGain": 0.645,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "HF",
+     "name": "hihat_foot",
+     "name_th": "ไฮแฮทเหยียบ",
+     "folder": "05_acoustic/HF_hihat_foot",
+     "playGain": 0.524,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T1",
+     "name": "tom1",
+     "name_th": "ทอม 1",
+     "folder": "05_acoustic/T1_tom1",
+     "playGain": 0.685,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T2",
+     "name": "tom2",
+     "name_th": "ทอม 2",
+     "folder": "05_acoustic/T2_tom2",
+     "playGain": 0.646,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "FT",
+     "name": "floor_tom",
+     "name_th": "ฟลอร์ทอม",
+     "folder": "05_acoustic/FT_floor_tom",
+     "playGain": 1.169,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CR",
+     "name": "crash1",
+     "name_th": "แครช 1",
+     "folder": "05_acoustic/CR_crash1",
+     "playGain": 0.925,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C2",
+     "name": "crash2",
+     "name_th": "แครช 2",
+     "folder": "05_acoustic/C2_crash2",
+     "playGain": 0.692,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD",
+     "name": "ride",
+     "name_th": "ไรด์",
+     "folder": "05_acoustic/RD_ride",
+     "playGain": 1.351,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3",
+       "normal_4.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    }
+   ],
+   "format": "MP3, 48000 Hz, stereo"
+  },
+  {
+   "id": "addons",
+   "folder": "06_extra_pieces",
+   "name_th": "ชิ้นเสริม",
+   "source_licence": "Big Rusty / Unruly / Swirly Drums — Karoryfer Samples (CC0)",
+   "instruments": [
+    {
+     "code": "SN2_13",
+     "name": "snare2_13in",
+     "name_th": "สแนร์ 2 ขนาด 13\"",
+     "folder": "06_extra_pieces/SN2_13_snare2_13in",
+     "playGain": 1.244,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3",
+       "ghost_2.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3",
+       "normal_3.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3",
+       "accent_2.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T_8",
+     "name": "tom_8in",
+     "name_th": "ทอม 8\"",
+     "folder": "06_extra_pieces/T_8_tom_8in",
+     "playGain": 2.385,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T_10",
+     "name": "tom_10in",
+     "name_th": "ทอม 10\"",
+     "folder": "06_extra_pieces/T_10_tom_10in",
+     "playGain": 1.894,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T_12",
+     "name": "tom_12in",
+     "name_th": "ทอม 12\"",
+     "folder": "06_extra_pieces/T_12_tom_12in",
+     "playGain": 2.364,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T_13",
+     "name": "tom_13in",
+     "name_th": "ทอม 13\"",
+     "folder": "06_extra_pieces/T_13_tom_13in",
+     "playGain": 1.695,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "T_14",
+     "name": "tom_14in",
+     "name_th": "ทอม 14\"",
+     "folder": "06_extra_pieces/T_14_tom_14in",
+     "playGain": 1.879,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "F_16",
+     "name": "floor_tom_16in",
+     "name_th": "ฟลอร์ทอม 16\"",
+     "folder": "06_extra_pieces/F_16_floor_tom_16in",
+     "playGain": 2.006,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "F_18",
+     "name": "floor_tom_18in",
+     "name_th": "ฟลอร์ทอม 18\"",
+     "folder": "06_extra_pieces/F_18_floor_tom_18in",
+     "playGain": 1.492,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "SP_10",
+     "name": "splash_10in",
+     "name_th": "สแปลช 10\"",
+     "folder": "06_extra_pieces/SP_10_splash_10in",
+     "playGain": 0.983,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C_16",
+     "name": "crash_16in",
+     "name_th": "แครช 16\"",
+     "folder": "06_extra_pieces/C_16_crash_16in",
+     "playGain": 0.623,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C_17",
+     "name": "crash_17in",
+     "name_th": "แครช 17\"",
+     "folder": "06_extra_pieces/C_17_crash_17in",
+     "playGain": 1.18,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "C_19",
+     "name": "crash_19in",
+     "name_th": "แครช 19\"",
+     "folder": "06_extra_pieces/C_19_crash_19in",
+     "playGain": 0.618,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CH_18",
+     "name": "china_18in",
+     "name_th": "ไชน่า 18\"",
+     "folder": "06_extra_pieces/CH_18_china_18in",
+     "playGain": 0.909,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "ST",
+     "name": "stack",
+     "name_th": "สแต็ก",
+     "folder": "06_extra_pieces/ST_stack",
+     "playGain": 0.864,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "XH_14",
+     "name": "x_hihat_14in",
+     "name_th": "เอ็กซ์ไฮแฮท 14\"",
+     "folder": "06_extra_pieces/XH_14_x_hihat_14in",
+     "playGain": 1.191,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RB_20",
+     "name": "ride_bell_20in",
+     "name_th": "ไรด์ เบลล์ 20\"",
+     "folder": "06_extra_pieces/RB_20_ride_bell_20in",
+     "playGain": 1.731,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD_20",
+     "name": "ride_20in",
+     "name_th": "ไรด์ 20\"",
+     "folder": "06_extra_pieces/RD_20_ride_20in",
+     "playGain": 2.525,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "RD_22",
+     "name": "ride_22in",
+     "name_th": "ไรด์ 22\"",
+     "folder": "06_extra_pieces/RD_22_ride_22in",
+     "playGain": 1.87,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    },
+    {
+     "code": "CB",
+     "name": "cowbell",
+     "name_th": "คาวเบล",
+     "folder": "06_extra_pieces/CB_cowbell",
+     "playGain": 1.767,
+     "layers": {
+      "ghost": [
+       "ghost_1.mp3"
+      ],
+      "normal": [
+       "normal_1.mp3",
+       "normal_2.mp3"
+      ],
+      "accent": [
+       "accent_1.mp3"
+      ]
+     }
+    }
+   ],
+   "format": "MP3, 44100 Hz, mono"
+  }
+ ]
+}

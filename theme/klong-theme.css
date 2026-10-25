@@ -250,3 +250,10 @@ html[data-kmode] #npal .np-time select{
   background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-key-ink);
   border:1px solid var(--k-key-border); border-radius:10px; opacity:1;
   box-shadow:0 2px 0 var(--k-key-edge), inset 0 1px 0 var(--k-key-hi)}
+
+/* ---------- เป้าแตะ 44px บนจอสัมผัส: ปุ่มแถบบน (เดิม 38–40px) · ป้ายมาตรวัดเสียง 12px ---------- */
+@media (pointer:coarse){
+  html[data-kmode] #topbar .seg button,
+  html[data-kmode] #topbar .btn{min-height:44px}
+}
+html[data-kmode] #kVu > span{font-size:12px}

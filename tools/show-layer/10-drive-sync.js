@@ -640,6 +640,7 @@
       <label class="chk"><input type="checkbox" id="drvVideo"> ส่งวิดีโอด้วย (ปิด = ส่งแค่รายชื่อเพลงและมาร์ก)</label>
       <label class="chk"><input type="checkbox" id="drvWifi"> ไม่ส่งวิดีโอผ่านเน็ตมือถือ รอต่อ Wi-Fi</label>
       <label class="chk"><input type="checkbox" id="drvSet"> ซิงค์เซ็ตลิสต์ระหว่างเครื่อง</label>
+      <label class="chk"><input type="checkbox" id="drvFree"> พื้นที่ในเครื่องใกล้เต็ม (อัดได้ไม่ถึง 1 ชม.) ลบโชว์เก่าที่อยู่บน Drive ครบแล้วออกจากเครื่องให้เอง</label>
       <p id="drvRate"></p>
       <button class="btn" id="drvOld" style="width:100%;margin-bottom:8px" hidden></button>
       <button class="btn danger" id="drvOff" style="width:100%">หยุดเก็บขึ้น Drive บนเครื่องนี้</button>
@@ -655,7 +656,7 @@
     $('drvIdBox').hidden = !!(D.on && D.clientId && D.email);
     $('drvGo').textContent = D.on && tokenOk(20) ? 'เชื่อมต่ออยู่ ' + (D.email || '') : D.on ? 'เชื่อมต่ออีกครั้ง' : 'เชื่อมต่อ Google Drive';
     $('drvOpts').hidden = !D.on;
-    $('drvVideo').checked = !!D.video; $('drvWifi').checked = !!D.wifiOnly; $('drvSet').checked = !!D.setSync;
+    $('drvVideo').checked = !!D.video; $('drvWifi').checked = !!D.wifiOnly; $('drvSet').checked = !!D.setSync; $('drvFree').checked = !!D.autoFree;
     const bps = typeof bytesPerSec === 'function' ? bytesPerSec() : 1.3e6;
     $('drvRate').textContent = 'ค่าภาพตอนนี้ใช้เน็ตขาขึ้นราว ' + (bps * 8 / 1e6).toFixed(1) + ' Mbps และราว ' + (bps * 3600 / 1e9).toFixed(1) +
       ' GB ต่อชั่วโมง เน็ตช้ากว่านี้ก็อัดได้ปกติ แค่ส่งตามไม่ทัน แล้วส่งต่อหลังจบโชว์';
@@ -691,6 +692,7 @@
   $('drvVideo').onchange = () => { D.video = $('drvVideo').checked; saveD(); nudge(); };
   $('drvWifi').onchange = () => { D.wifiOnly = $('drvWifi').checked; saveD(); nudge(); };
   $('drvSet').onchange = () => { D.setSync = $('drvSet').checked; if (D.setSync) D.setFile = null; saveD(); nudge(); };
+  $('drvFree').onchange = () => { D.autoFree = $('drvFree').checked; saveD(); freeAt = 0; autoFree(); };
   $('drvOff').onclick = () => {
     if (!confirm('หยุดเก็บขึ้น Drive บนเครื่องนี้?\nไฟล์บน Drive ไม่หาย วิดีโอในแอปก็ยังอยู่')) return;
     signOut(); D.on = false; D.files = {}; D.since = 0; saveD();
@@ -722,7 +724,32 @@
   window.addEventListener('offline', () => paint());
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { setPullAt = 0; nudge(); paint(); } });
   try { navigator.connection && navigator.connection.addEventListener('change', () => nudge()); } catch(e){}
-  setInterval(() => { if (ready()) { nudge(); if (!$('detail').hidden || !$('home').hidden) paint(); } }, 3000);
+  setInterval(() => { if (ready()) { nudge(); autoFree(); if (!$('detail').hidden || !$('home').hidden) paint(); } }, 3000);
+
+  /* พื้นที่ใกล้เต็ม (เลือกเปิดเอง): ลบโชว์ที่เก่าที่สุดซึ่งวิดีโออยู่บน Drive ครบแล้วออกจากเครื่อง ทีละโชว์
+     ไม่แตะโชว์ที่กำลังอัด โชว์ที่เปิดดูอยู่ และโชว์ที่ยังส่งไม่ครบ */
+  let freeAt = 0, freeing = false;
+  async function autoFree(){
+    if (!D.autoFree || !D.video || freeing || Date.now() - freeAt < 15000) return;
+    freeAt = Date.now();
+    if (typeof estimate !== 'function' || typeof bytesPerSec !== 'function') return;
+    freeing = true;
+    try {
+      await estimate();
+      if (freeBytes == null || freeBytes / bytesPerSec() >= 3600) return;
+      const live = (typeof ses !== 'undefined' && ses) ? ses.id : 0, open = !$('detail').hidden && cur ? cur.id : 0;
+      const old = ((await getSessions()) || [])
+        .filter(s => s.done && s.id !== live && s.id !== open && D.files[s.id] && D.files[s.id].done && D.files[s.id].vid)
+        .sort((a, b) => a.id - b.id)[0];
+      if (!old) return;
+      const name = sesName(old).name;
+      await delSession(old.id);
+      log('auto free: ' + name);
+      toast('พื้นที่ใกล้เต็ม ลบ "' + name + '" ออกจากเครื่องแล้ว ยังอยู่บน Drive', 5000);
+      if (!$('home').hidden) renderLib();
+    } catch (e) { log('auto free: ' + (e && e.message)); }
+    finally { freeing = false; }
+  }
 
   if (D.clientId && navigator.onLine) loadGis().catch(() => {});
   if (D.files) for (const k in D.files) { if (D.files[k].uri && !D.files[k].done) D.files[k].check = true; }

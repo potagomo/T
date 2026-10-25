@@ -5,8 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>อัดโชว์</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- ชั้นเว็บแอป: ติดตั้งลงหน้าโฮม (tools/update-show.py) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="อัดโชว์">
+<meta name="robots" content="noindex">
+<link href="fonts/chakra-petch.css" rel="stylesheet">
 <style>
 :root{
   --black:#000; --umber:#231c16; --umber2:#33291f; --ink:#1d1711;
@@ -402,7 +410,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <h4>อื่นๆ</h4>
           <label class="chk"><input type="checkbox" id="gTorch"> กะพริบไฟแฟลชเมื่อรับคำสั่ง (กล้องหลัง)</label>
           <label class="chk"><input type="checkbox" id="gDbgOn"> แสดงค่าตรวจสอบบนจอ (ไว้ส่งภาพมาปรับจูน)</label>
-          <p>กล่องด้านขวาของจอกล้องบอกตลอดว่าเห็นกี่นิ้ว ใช้ลองระยะก่อนเล่นจริง เปิดใช้ครั้งแรกต้องมีเน็ต</p>
+          <p>กล่องด้านขวาของจอกล้องบอกตลอดว่าเห็นกี่นิ้ว ใช้ลองระยะก่อนเล่นจริง เปิดใช้ครั้งแรกต้องมีเน็ต ครั้งต่อไปใช้ได้แม้ไม่มีเน็ต</p>
         </div>
       </div>
     </div>
@@ -1498,9 +1506,9 @@ function gSee(n, text){
 }
 async function loadPose(){
   if (pose || poseLoading) return;
-  poseLoading = true; gStat('กำลังโหลดตัวอ่านนิ้ว ต้องมีเน็ต'); gSee(0, 'กำลังโหลด');
-  const model = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
-  const bases = ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14', 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest'];
+  poseLoading = true; gStat('กำลังโหลดตัวอ่านนิ้ว (ครั้งแรกต้องมีเน็ต)'); gSee(0, 'กำลังโหลด');
+  const model = new URL('vendor/mediapipe/hand_landmarker.task', location.href).href;
+  const bases = [new URL('vendor/mediapipe/tasks-vision-0.10.14', location.href).href, 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14'];
   let why = '';
   for (const base of bases) {
     try {
@@ -2429,6 +2437,7 @@ boot();
       <label class="chk"><input type="checkbox" id="drvVideo"> ส่งวิดีโอด้วย (ปิด = ส่งแค่รายชื่อเพลงและมาร์ก)</label>
       <label class="chk"><input type="checkbox" id="drvWifi"> ไม่ส่งวิดีโอผ่านเน็ตมือถือ รอต่อ Wi-Fi</label>
       <label class="chk"><input type="checkbox" id="drvSet"> ซิงค์เซ็ตลิสต์ระหว่างเครื่อง</label>
+      <label class="chk"><input type="checkbox" id="drvFree"> พื้นที่ในเครื่องใกล้เต็ม (อัดได้ไม่ถึง 1 ชม.) ลบโชว์เก่าที่อยู่บน Drive ครบแล้วออกจากเครื่องให้เอง</label>
       <p id="drvRate"></p>
       <button class="btn" id="drvOld" style="width:100%;margin-bottom:8px" hidden></button>
       <button class="btn danger" id="drvOff" style="width:100%">หยุดเก็บขึ้น Drive บนเครื่องนี้</button>
@@ -2444,7 +2453,7 @@ boot();
     $('drvIdBox').hidden = !!(D.on && D.clientId && D.email);
     $('drvGo').textContent = D.on && tokenOk(20) ? 'เชื่อมต่ออยู่ ' + (D.email || '') : D.on ? 'เชื่อมต่ออีกครั้ง' : 'เชื่อมต่อ Google Drive';
     $('drvOpts').hidden = !D.on;
-    $('drvVideo').checked = !!D.video; $('drvWifi').checked = !!D.wifiOnly; $('drvSet').checked = !!D.setSync;
+    $('drvVideo').checked = !!D.video; $('drvWifi').checked = !!D.wifiOnly; $('drvSet').checked = !!D.setSync; $('drvFree').checked = !!D.autoFree;
     const bps = typeof bytesPerSec === 'function' ? bytesPerSec() : 1.3e6;
     $('drvRate').textContent = 'ค่าภาพตอนนี้ใช้เน็ตขาขึ้นราว ' + (bps * 8 / 1e6).toFixed(1) + ' Mbps และราว ' + (bps * 3600 / 1e9).toFixed(1) +
       ' GB ต่อชั่วโมง เน็ตช้ากว่านี้ก็อัดได้ปกติ แค่ส่งตามไม่ทัน แล้วส่งต่อหลังจบโชว์';
@@ -2480,6 +2489,7 @@ boot();
   $('drvVideo').onchange = () => { D.video = $('drvVideo').checked; saveD(); nudge(); };
   $('drvWifi').onchange = () => { D.wifiOnly = $('drvWifi').checked; saveD(); nudge(); };
   $('drvSet').onchange = () => { D.setSync = $('drvSet').checked; if (D.setSync) D.setFile = null; saveD(); nudge(); };
+  $('drvFree').onchange = () => { D.autoFree = $('drvFree').checked; saveD(); freeAt = 0; autoFree(); };
   $('drvOff').onclick = () => {
     if (!confirm('หยุดเก็บขึ้น Drive บนเครื่องนี้?\nไฟล์บน Drive ไม่หาย วิดีโอในแอปก็ยังอยู่')) return;
     signOut(); D.on = false; D.files = {}; D.since = 0; saveD();
@@ -2511,7 +2521,32 @@ boot();
   window.addEventListener('offline', () => paint());
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { setPullAt = 0; nudge(); paint(); } });
   try { navigator.connection && navigator.connection.addEventListener('change', () => nudge()); } catch(e){}
-  setInterval(() => { if (ready()) { nudge(); if (!$('detail').hidden || !$('home').hidden) paint(); } }, 3000);
+  setInterval(() => { if (ready()) { nudge(); autoFree(); if (!$('detail').hidden || !$('home').hidden) paint(); } }, 3000);
+
+  /* พื้นที่ใกล้เต็ม (เลือกเปิดเอง): ลบโชว์ที่เก่าที่สุดซึ่งวิดีโออยู่บน Drive ครบแล้วออกจากเครื่อง ทีละโชว์
+     ไม่แตะโชว์ที่กำลังอัด โชว์ที่เปิดดูอยู่ และโชว์ที่ยังส่งไม่ครบ */
+  let freeAt = 0, freeing = false;
+  async function autoFree(){
+    if (!D.autoFree || !D.video || freeing || Date.now() - freeAt < 15000) return;
+    freeAt = Date.now();
+    if (typeof estimate !== 'function' || typeof bytesPerSec !== 'function') return;
+    freeing = true;
+    try {
+      await estimate();
+      if (freeBytes == null || freeBytes / bytesPerSec() >= 3600) return;
+      const live = (typeof ses !== 'undefined' && ses) ? ses.id : 0, open = !$('detail').hidden && cur ? cur.id : 0;
+      const old = ((await getSessions()) || [])
+        .filter(s => s.done && s.id !== live && s.id !== open && D.files[s.id] && D.files[s.id].done && D.files[s.id].vid)
+        .sort((a, b) => a.id - b.id)[0];
+      if (!old) return;
+      const name = sesName(old).name;
+      await delSession(old.id);
+      log('auto free: ' + name);
+      toast('พื้นที่ใกล้เต็ม ลบ "' + name + '" ออกจากเครื่องแล้ว ยังอยู่บน Drive', 5000);
+      if (!$('home').hidden) renderLib();
+    } catch (e) { log('auto free: ' + (e && e.message)); }
+    finally { freeing = false; }
+  }
 
   if (D.clientId && navigator.onLine) loadGis().catch(() => {});
   if (D.files) for (const k in D.files) { if (D.files[k].uri && !D.files[k].done) D.files[k].check = true; }
@@ -2834,5 +2869,109 @@ boot();
 })();
 </script>
 <!-- layer:30-relay.js:end -->
+<!-- layer:40-pwa.js:start -->
+<script>
+/* ชั้นเว็บแอป: ติดตั้งเป็นแอป + อัปเดต + ขอพื้นที่ถาวร — tools/update-show.py ฝังไฟล์นี้ไว้ท้าย show/index.html
+
+   • ลงทะเบียน show/sw.js → เปิดแอปได้ตอนไม่มีเน็ต
+   • มีรุ่นใหม่: ขึ้นแถบให้กดอัปเดตเอง และไม่ยอมรีโหลดระหว่างอัดเด็ดขาด
+   • การ์ด "ติดตั้งเป็นแอป" บนหน้าแรก (ซ่อนเมื่อเปิดจากไอคอนแล้ว)
+       Chrome: ปุ่มติดตั้ง · iPhone/iPad: วิธีเพิ่มไปยังหน้าจอโฮม
+       Samsung Internet: แนะนำเปิดด้วย Chrome (เครื่องที่ตรวจแล้ว Samsung Internet อัดจากกล้องตรง ๆ ไม่ส่งข้อมูล
+       ต้องอัดผ่านตัวช่วย ส่วน Chrome อัดได้ปกติ)
+   • ขอพื้นที่ถาวร (navigator.storage.persist) ทุกครั้งที่เปิด เบราว์เซอร์จะไม่ลบวิดีโอทิ้งเองตอนเครื่องใกล้เต็ม */
+(function () {
+  'use strict';
+  try { void [$, log, toast, LS]; } catch (e) { window.__pwa = 'missing: ' + e.message; return; }
+
+  const UA = navigator.userAgent;
+  const samsung = /SamsungBrowser/i.test(UA);
+  const ios = /iPhone|iPad|iPod/i.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+  const standalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  const busy = () => (typeof rec !== 'undefined' && !!rec) || (typeof resuming !== 'undefined' && !!resuming);
+
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch(e){}
+
+  /* ---------- Service Worker และการอัปเดต ---------- */
+  let waiting = null, wantReload = false;
+  function offerUpdate(w){
+    waiting = w;
+    let bar = $('pwaUpd');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'pwaUpd'; bar.className = 'drv';
+      bar.innerHTML = '<div class="drv-h"><b>มีเวอร์ชันใหม่ของแอป</b></div><p>อัปเดตแล้ววิดีโอและการตั้งค่ายังอยู่ครบ</p>' +
+        '<div class="row"><button class="btn solid" id="pwaUpdGo">อัปเดตตอนนี้</button></div>';
+      $('home').insertBefore(bar, $('home').querySelector('.go').nextSibling);
+      $('pwaUpdGo').onclick = () => {
+        if (busy()) { toast('กำลังอัดอยู่ หยุดอัดก่อนค่อยอัปเดต'); return; }
+        if (!waiting) { location.reload(); return; }
+        wantReload = true;
+        waiting.postMessage('skipWaiting');
+        setTimeout(() => { if (wantReload && !busy()) location.reload(); }, 4000);
+      };
+    }
+  }
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (wantReload && !busy()) location.reload(); });
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+      reg.addEventListener('updatefound', () => {
+        const w = reg.installing;
+        if (!w) return;
+        w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w); });
+      });
+      // เปิดค้างไว้นาน ๆ ก็ยังรู้ว่ามีรุ่นใหม่ (เช็กเฉพาะตอนไม่ได้อัด)
+      setInterval(() => { if (!busy() && navigator.onLine) reg.update().catch(() => {}); }, 30 * 60000);
+    }).catch(e => log('sw: ' + (e && e.message)));
+  }
+
+  /* ---------- การ์ดติดตั้งเป็นแอป ---------- */
+  let prompt = null;
+  const card = document.createElement('section');
+  card.className = 'drv'; card.id = 'pwaCard'; card.hidden = true; card.setAttribute('aria-label', 'ติดตั้งเป็นแอป');
+  const before = $('drvCard') || $('ready').nextSibling;
+  $('home').insertBefore(card, before);
+  const chromeLink = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;end';
+  function paint(){
+    const later = LS.get('as_pwa_later', 0);
+    const inst = standalone();
+    if (inst && !samsung) { card.hidden = true; return; }
+    if (!samsung && Date.now() < later) { card.hidden = true; return; }
+    let body;
+    if (samsung) {
+      body = '<div class="drv-h"><b>แนะนำเปิดด้วย Chrome</b><span class="drv-tag warn">Samsung Internet</span></div>' +
+        '<p>' + (inst ? 'แอปนี้ติดตั้งจาก Samsung Internet ' : '') + 'Samsung Internet บางเครื่องอัดจากกล้องตรง ๆ ไม่ได้ แอปต้องอัดผ่านตัวช่วยแทน ' +
+        'เปิดด้วย Chrome แล้วติดตั้งจาก Chrome จะอัดได้เสถียรที่สุด' + (inst ? ' (ลบไอคอนเดิมได้)' : '') + '</p>' +
+        '<div class="row"><a class="btn solid" href="' + chromeLink + '">เปิดใน Chrome</a></div>';
+    } else if (prompt) {
+      body = '<div class="drv-h"><b>ติดตั้งเป็นแอป</b></div><p>มีไอคอนบนหน้าจอ เปิดเต็มจอ ใช้ได้แม้ไม่มีเน็ต และเครื่องจะไม่ลบวิดีโอทิ้งเอง</p>' +
+        '<div class="row"><button class="btn solid" data-p="install">ติดตั้งแอป</button><button class="btn ghost" data-p="later">ไว้ทีหลัง</button></div>';
+    } else if (ios) {
+      body = '<div class="drv-h"><b>ติดตั้งเป็นแอป</b></div><p>เปิดด้วย Safari → ปุ่มแชร์ → <b>เพิ่มไปยังหน้าจอโฮม</b></p>' +
+        '<div class="row"><button class="btn ghost" data-p="later">ไว้ทีหลัง</button></div>';
+    } else {
+      body = '<div class="drv-h"><b>ติดตั้งเป็นแอป</b></div><p>เมนู ⋮ ของ Chrome → <b>ติดตั้งแอป</b> หรือ <b>เพิ่มลงในหน้าจอหลัก</b></p>' +
+        '<div class="row"><button class="btn ghost" data-p="later">ไว้ทีหลัง</button></div>';
+    }
+    card.innerHTML = body; card.hidden = false;
+  }
+  card.addEventListener('click', async e => {
+    const b = e.target.closest('[data-p]');
+    if (!b) return;
+    if (b.dataset.p === 'later') { LS.set('as_pwa_later', Date.now() + 14 * 86400000); paint(); return; }
+    if (b.dataset.p === 'install' && prompt) {
+      const p = prompt; prompt = null;
+      try { p.prompt(); const r = await p.userChoice; log('pwa install: ' + (r && r.outcome)); } catch(err){}
+      paint();
+    }
+  });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); prompt = e; paint(); });
+  window.addEventListener('appinstalled', () => { prompt = null; card.hidden = true; toast('ติดตั้งแล้ว เปิดจากไอคอน "อัดโชว์" บนหน้าจอได้เลย', 5000); });
+  paint();
+  window.__pwa = 'ok';
+})();
+</script>
+<!-- layer:40-pwa.js:end -->
 </body>
 </html>

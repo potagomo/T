@@ -205,6 +205,51 @@ async function suite(label, ctxOpts, exe) {
   if (!(tRun >= tHead - 0.05 && tRun < tHead + 2.5))
     fail.push(`${label}: กดเล่นแล้วไม่ได้เริ่มจากหัวอ่าน (หัวอ่าน ${tHead}s แต่เล่นอยู่ที่ ${tRun}s)`);
 
+
+  /* ---- ช่วงวนซ้ำ: ลากบนแถบไม้บรรทัด (ใต้แถบเลขห้อง y 46–74) แล้วเล่นต้องวนอยู่ในช่วงนั้น
+     ผู้ใช้ขอให้ตั้งวนซ้ำด้วยการลากคลุมบนไทม์ไลน์แทนการกดปุ่ม ---- */
+  await page.evaluate(() => { const g = document.getElementById("gs"); if (g) g.scrollLeft = 0; });
+  await page.waitForTimeout(200);
+  const gb2 = await page.locator("#grid").boundingBox();
+  const ly = gb2.y + 46 + 14, lx0 = gb2.x + 150, lx1 = gb2.x + Math.min(gb2.width - 80, 420);
+  await page.mouse.move(lx0, ly); await page.mouse.down();
+  await page.mouse.move(lx1, ly, { steps: 10 }); await page.mouse.up();
+  await page.waitForTimeout(250);
+  const loopMsg = await page.evaluate(() => document.querySelector("#status").textContent);
+  const loopN = +((/·\s*([\d.]+)\s*จังหวะ/.exec(loopMsg) || [])[1]);
+  const bpmNow = +(await page.evaluate(() => document.getElementById("bpm").value)) || 120;
+  const loopA = secs(await readClock()), loopB = loopA + loopN * 60 / bpmNow;
+  say(`ลากตั้งวนซ้ำ → ${loopMsg.split(" — ")[0]} (${loopA.toFixed(2)}–${loopB.toFixed(2)} วิ)`);
+  if (!(loopN > 0)) fail.push(`${label}: ลากบนไม้บรรทัดแล้วไม่ได้ตั้งช่วงวนซ้ำ (${loopMsg})`);
+  else {
+    await page.click("#play").catch(() => {});
+    const seen = [];
+    for (let k = 0; k < 10; k++) { await page.waitForTimeout(250); seen.push(secs(await readClock())); }
+    await clickFirst(page, ["#stopb", "#stop"]);
+    const out = seen.filter((t) => !(t >= loopA - 0.06 && t <= loopB + 0.06));
+    say(`เล่นในช่วงวนซ้ำ: ${seen.map((t) => t.toFixed(2)).join(" ")}`);
+    if (out.length) fail.push(`${label}: เล่นหลุดออกนอกช่วงวนซ้ำ (${out.join(", ")})`);
+    await page.mouse.click((lx0 + lx1) / 2, ly); await page.waitForTimeout(200);
+    const clr = await page.evaluate(() => document.querySelector("#status").textContent);
+    if (!/ยกเลิกช่วงวนซ้ำ/.test(clr)) fail.push(`${label}: แตะในช่วงแล้วไม่ยกเลิกวนซ้ำ (${clr})`);
+  }
+
+  /* ---- ย่อแถบล่าง: ต้องเตี้ยลงจริง (เคยกดแล้วไม่มีอะไรยุบ) และแผงเขียนโน้ตลอยต้องเลือกค่าโน้ตได้ ---- */
+  const tpH0 = (await page.locator("#tp").boundingBox()).height;
+  await page.click("#tpToggle"); await page.waitForTimeout(300);
+  const tpH1 = (await page.locator("#tp").boundingBox()).height;
+  const palOn = await page.isVisible("#npal");
+  say(`ย่อแถบล่าง: ${Math.round(tpH0)}px → ${Math.round(tpH1)}px · แผงเขียนโน้ต${palOn ? "ขึ้น" : "ไม่ขึ้น"}`);
+  if (!(tpH1 < 80 && tpH1 < tpH0 - 100)) fail.push(`${label}: กดย่อแถบล่างแล้วไม่เตี้ยลง (${Math.round(tpH0)} → ${Math.round(tpH1)}px)`);
+  if (!palOn) fail.push(`${label}: ย่อแถบล่างแล้วแผงเขียนโน้ตไม่ขึ้น`);
+  else {
+    await page.locator("#npal .np-vals button").nth(3).click();
+    await page.waitForTimeout(150);
+    const pressed = await page.evaluate(() => document.querySelectorAll("#vals button")[3].getAttribute("aria-pressed"));
+    if (pressed !== "true") fail.push(`${label}: กดค่าโน้ตในแผงลอยแล้วปุ่มเดิมไม่ถูกเลือก`);
+  }
+  await page.click("#tpToggle"); await page.waitForTimeout(300);     // กลับเป็นแถบเต็มให้ขั้นต่อไปหาปุ่มเจอ
+  if (await page.isVisible("#npal")) fail.push(`${label}: ขยายแถบล่างแล้วแผงลอยยังค้างอยู่`);
   /* ---- ธีมมิดเซนจูรี่ ---- */
   const th = await page.evaluate(() => {
     const kt = window.KlongTheme; if (!kt) return null;

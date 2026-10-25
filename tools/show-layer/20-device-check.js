@@ -91,7 +91,8 @@
       const o = { mimeType: t.mime, videoBitsPerSecond: bitrate() };
       if (!src || src.audio) o.audioBitsPerSecond = AUDIO_BPS;
       if (t.kf) o.videoKeyFrameIntervalDuration = t.kf;
-      const r = new MediaRecorder(src ? src.stream : stream, o), got = [], blobs = [];
+      const MR = window.__NativeMediaRecorder || MediaRecorder;        // ตัวจริง ไม่ผ่านโหมดอัดผ่านตัวช่วย
+      const r = new MR(src ? src.stream : stream, o), got = [], blobs = [];
       const t0 = performance.now();
       r.ondataavailable = e => { if (e.data && e.data.size) { got.push([performance.now() - t0, e.data.size]); blobs.push(e.data); } };
       const stopped = new Promise(res => { r.onstop = res; });
@@ -161,6 +162,7 @@
     lines.push(ua + ' · ' + br + ' · ' + st.width + '×' + st.height + ' ' + Math.round(st.frameRate || 0) + 'fps · ' + (bitrate() / 1e6).toFixed(1) + ' Mbps' +
                ' · ตั้งไว้ ' + cfg.res + 'p ' + cfg.fps + 'fps' + (cfg.gest ? ' · เปิดอ่านนิ้ว' : '') + ' · ซีพียู ' + (navigator.hardwareConcurrency || '?'));
     const out = $('chkOut'); out.hidden = false; out.textContent = lines.join('\n');
+    const R = {};
     try {
       for (let i = 0; i < list.length; i++) {
         const t = list[i];
@@ -168,11 +170,18 @@
         let line;
         try {
           const r = t.wc ? await wcTrial(t) : await mrTrial(t);
+          R[t.k] = r;
           const flow = !r.n ? 'ไม่ส่งจนปิดไฟล์' : r.gap <= 8 ? 'ต่อเนื่อง' : 'ส่งเป็นช่วง ๆ';
           line = t.k + ' ' + t.name + ': ' + flow + ' · ก้อนแรก ' + (r.first == null ? '-' : r.first + ' วิ') + ' · ห่างสุด ' + r.gap + ' วิ · ระหว่างอัด ' + r.n + ' ก้อน ' + mb(r.sent) +
                  ' · รวม ' + mb(r.total) + (r.frags != null ? ' · ท่อน ' + r.frags : '') + (r.extra ? ' · ' + r.extra : '');
         } catch (e) { line = t.k + ' ' + t.name + ': ใช้ไม่ได้ (' + ((e && (e.message || e.name)) || e) + ')'; }
         lines.push(line); log('check ' + line);
+        out.textContent = lines.join('\n');
+      }
+      // อัดจากกล้องตรง ๆ ไม่ได้ แต่ผ่าน canvas ได้ → เปิดโหมดอัดผ่านตัวช่วยให้เลย
+      if (R.A && !R.A.n && R.H && R.H.n && window.__relaySet) {
+        window.__relaySet(true, 'device check');
+        lines.push('→ เปิด "อัดผ่านตัวช่วย" ให้แล้ว');
         out.textContent = lines.join('\n');
       }
       $('chkStat').textContent = 'ตรวจเสร็จแล้ว กดคัดลอกแล้วส่งผลให้คนดูแลแอป';

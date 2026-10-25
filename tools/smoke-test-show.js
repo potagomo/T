@@ -261,6 +261,22 @@ async function until(fn, ms, what) {
   const report = await page.textContent("#chkOut");
   console.log("    " + report.split("\n").join("\n    "));
   ok(/^A MP4 H\.264 แบบที่แอปใช้: ต่อเนื่อง/m.test(report), "เบราว์เซอร์ทดสอบส่งข้อมูล MP4 ต่อเนื่อง (เทียบกับมือถือที่ไม่ส่ง)");
+  // อัดผ่านตัวช่วย: จำลองเครื่องที่กล้องไม่ส่งข้อมูล → แอปเปิดโหมดเอง แล้วส่วนถัดไปอัดต่อเนื่องและยังตัดเพลงได้
+  ok(await page.evaluate(() => window.__relay) === "ok", "ชั้นอัดผ่านตัวช่วยโหลดครบ");
+  ok(!(await page.evaluate(() => LS.get("as_relay", false))), "เครื่องที่อัดต่อเนื่องอยู่แล้ว ตรวจเสร็จไม่เปิดโหมดตัวช่วย");
+  await page.click("#bCloseSet");
+  await page.click("#bRec");
+  ok(await page.evaluate(() => { if (seq !== 0) return false; kick("no data for 25s (จำลอง)"); return true; }), "จำลองกล้องไม่ส่งข้อมูลก่อนก้อนแรก");
+  ok(await until(() => page.evaluate(() => !!(rec && rec.__relay && ses && ses.part === 2 && seq >= 3)), 20000, "อัดผ่านตัวช่วย"),
+     "แอปเปิดโหมดตัวช่วยเอง และส่วนถัดไปส่งข้อมูลต่อเนื่อง");
+  ok(/อัดผ่านตัวช่วย/.test(await page.textContent("#stats")), "จอกล้องบอกว่ากำลังอัดผ่านตัวช่วย");
+  await page.click("#bNext"); await sleep(3000); await page.click("#bNext"); await sleep(3000);
+  await page.click("#bStop"); await page.click("#bStop");
+  await page.waitForSelector("#detail:not([hidden])", { timeout: 15000 });
+  const frags = await page.evaluate(async () => (await getIndex()).fr.length);
+  ok(frags >= 3, "วิดีโอที่อัดผ่านตัวช่วยแบ่งเป็นท่อน (" + frags + " ท่อน)");
+  const clipBytes = await page.evaluate(async () => (await clipOf(segments(cur).filter((g) => g.m)[0])).size);
+  ok(clipBytes > 1000, "ตัดคลิปเพลงจากวิดีโอที่อัดผ่านตัวช่วยได้ (" + clipBytes + " ไบต์)");
   ok(!errs.length, "ไม่มี error ในหน้า" + (errs.length ? ": " + errs.join(" | ") : ""));
 
   await browser.close(); server.close();

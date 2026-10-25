@@ -148,7 +148,7 @@ async function until(fn, ms, what) {
   const browser = await chromium.launch({ executablePath: chromiumPath(),
     args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
   const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, permissions: ["camera", "microphone"] });
-  await ctx.addInitScript(() => { window.__drivePiece = 256 * 1024; });
+  await ctx.addInitScript(() => { window.__drivePiece = 256 * 1024; window.__checkDur = 7000; });
   await ctx.route("https://www.googleapis.com/**", drive);
   await ctx.route("https://accounts.google.com/gsi/client", (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: GIS }));
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: "text/css", body: "" }));
@@ -250,6 +250,17 @@ async function until(fn, ms, what) {
   await page.waitForSelector("#home:not([hidden])");
   ok(files.has(vid1.id) && files.size >= 6, "ลบโชว์ออกจากแอปแล้ว ไฟล์บน Drive ยังอยู่");
   ok(await until(async () => /อยู่บน Drive แล้ว/.test(await page.textContent("#lib")), 6000, "ป้ายในคลัง"), "คลังวิดีโอขึ้นป้าย \"อยู่บน Drive แล้ว\"");
+  // ตรวจเครื่อง: ลองอัดทุกชนิดไฟล์ที่เครื่องรองรับ แล้วบอกว่าแบบไหนส่งข้อมูลระหว่างอัด
+  ok(await page.evaluate(() => window.__devcheck) === "ok", "ชั้นตรวจเครื่องโหลดครบ");
+  await page.click("#openCam");
+  await page.waitForSelector("#cam:not([hidden])");
+  await sleep(1000);
+  await page.click("#bSet");
+  await page.click("#chkGo");
+  ok(await until(() => page.isVisible("#chkCopy"), 60000, "ตรวจเครื่อง"), "ปุ่มตรวจเครื่องลองครบทุกชนิดไฟล์");
+  const report = await page.textContent("#chkOut");
+  console.log("    " + report.split("\n").join("\n    "));
+  ok(/^A MP4 H\.264 แบบที่แอปใช้: ต่อเนื่อง/m.test(report), "เบราว์เซอร์ทดสอบส่งข้อมูล MP4 ต่อเนื่อง (เทียบกับมือถือที่ไม่ส่ง)");
   ok(!errs.length, "ไม่มี error ในหน้า" + (errs.length ? ": " + errs.join(" | ") : ""));
 
   await browser.close(); server.close();

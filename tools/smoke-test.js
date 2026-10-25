@@ -247,6 +247,43 @@ async function suite(label, ctxOpts, exe) {
     if (!/ยกเลิกช่วงวนซ้ำ/.test(clr)) fail.push(`${label}: แตะในช่วงแล้วไม่ยกเลิกวนซ้ำ (${clr})`);
   }
 
+  /* ---- นิ้วบนไม้บรรทัด ด้วยเครื่องมือ "เลื่อน" ที่เป็นค่าเริ่มต้น
+     ผู้ใช้เจอบน iPad: ลากแล้วขาดกลางทาง จอเลื่อนแทน และขึ้นแว่นเลือกข้อความ
+     เพราะเครื่องมือเลื่อนตั้ง touch-action เป็น pan-x pan-y เบราว์เซอร์จึงยึดนิ้วไปเลื่อนจอ
+     เคสเมาส์ด้านบนจับไม่ได้ จึงลากด้วยนิ้วจริง (CDP) ไม้บรรทัดต้องตั้งวนซ้ำได้โดยจอไม่เลื่อน
+     แถบบนสุดต้องลากหัวอ่านได้ ส่วนตัวกริดยังต้องปัดเลื่อนจอได้ตามเดิม ---- */
+  await page.click('#tool button[data-v="pan"]');
+  await page.evaluate(() => { document.getElementById("gs").scrollLeft = 0;
+    window.__pcancel = 0; document.getElementById("grid").addEventListener("pointercancel", () => window.__pcancel++); });
+  await page.waitForTimeout(200);
+  const cdp = await ctx.newCDPSession(page);
+  const finger = async (xa, xb, y) => {
+    const tp = (x) => [{ x, y, id: 1, radiusX: 5, radiusY: 5, force: 1 }];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: tp(xa) }); await page.waitForTimeout(60);
+    for (let i = 1; i <= 14; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: tp(xa + (xb - xa) * i / 14) }); await page.waitForTimeout(25); }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await page.waitForTimeout(300);
+    return page.evaluate(() => ({ sl: document.getElementById("gs").scrollLeft, pc: window.__pcancel,
+      st: document.querySelector("#status").textContent, clock: document.getElementById("clock").textContent }));
+  };
+  const gb3 = await page.locator("#grid").boundingBox();
+  const lw3 = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--labelw")) || 132);
+  const fx0 = gb3.x + lw3 + 50, fx1 = Math.min(gb3.x + gb3.width - 40, fx0 + 220);
+  const fr = await finger(fx1, fx0, gb3.y + 46 + 14);                   // ไม้บรรทัด ลากจากขวาไปซ้าย
+  say(`นิ้วบนไม้บรรทัด (เครื่องมือเลื่อน): ${fr.st.split(" — ")[0]} · จอเลื่อน ${Math.round(fr.sl)}px · ลากขาด ${fr.pc} ครั้ง`);
+  if (!/วนซ้ำ/.test(fr.st) || fr.pc || fr.sl > 2)
+    fail.push(`${label}: ลากไม้บรรทัดด้วยนิ้วไม่ได้ (จอเลื่อน ${Math.round(fr.sl)}px · ลากขาด ${fr.pc} · ${fr.st})`);
+  else { await page.mouse.click((fx0 + fx1) / 2, gb3.y + 46 + 14); await page.waitForTimeout(200); }   // แตะในช่วง = ยกเลิก
+  const clk0 = await readClock();
+  const fh = await finger(fx0, fx1, gb3.y + 12);                        // แถบบนสุด = ลากหัวอ่าน
+  if (fh.clock === clk0 || fh.pc > fr.pc || Math.abs(fh.sl - fr.sl) > 2)
+    fail.push(`${label}: ลากหัวอ่านด้วยนิ้วไม่ได้ (จอเลื่อน ${Math.round(fh.sl - fr.sl)}px · ลากขาด ${fh.pc - fr.pc})`);
+  const rowY = await page.evaluate(() => { const r = document.querySelector("#labels .r").getBoundingClientRect(); return r.top + r.height / 2; });
+  const fg = await finger(fx1, fx0, rowY);                              // ตัวกริด = ปัดเลื่อนจอ
+  say(`นิ้วลากหัวอ่าน: ${clk0} → ${fh.clock} · นิ้วปัดตัวกริด: จอเลื่อน ${Math.round(fg.sl - fh.sl)}px`);
+  if (!(fg.sl - fh.sl > 50)) fail.push(`${label}: เครื่องมือเลื่อนปัดเลื่อนกริดด้วยนิ้วไม่ได้แล้ว (${Math.round(fg.sl - fh.sl)}px)`);
+  await page.evaluate(() => { document.getElementById("gs").scrollLeft = 0; });
+  await page.click('#tool button[data-v="draw"]');
+
   /* ---- ย่อแถบล่าง: ต้องเตี้ยลงจริง (เคยกดแล้วไม่มีอะไรยุบ) และแผงเขียนโน้ตลอยต้องเลือกค่าโน้ตได้ ---- */
   const tpH0 = (await page.locator("#tp").boundingBox()).height;
   await page.click("#tpToggle"); await page.waitForTimeout(300);

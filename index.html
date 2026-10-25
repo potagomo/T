@@ -3668,6 +3668,17 @@ cv.addEventListener("pointerdown", e=>{
   }
   afterEdit();
 });
+/* นิ้วบนแถบลากหัวอ่าน (บนสุด) และแถบไม้บรรทัดวนซ้ำ ต้องเป็นของเราทั้งท่า
+   เครื่องมือเลื่อนตั้ง touch-action ของทั้งผืนเป็น pan-x pan-y (syncToolTouch) Safari จึงเอานิ้วที่ลาก
+   บนสองแถบนี้ไปเลื่อนจอเอง ส่ง pointercancel มากลางทาง การลากขาด และค้างนิ้วแล้วขึ้นแว่นเลือกข้อความ
+   touch-action แยกตามพื้นที่ในผืนเดียวกันไม่ได้ จึงกัน touchstart เฉพาะนิ้วเดียวที่เริ่มในสองแถบนี้
+   แถบเลขห้องตรงกลางกับตัวกริดยังปัดเลื่อนได้ตามเดิม · สองนิ้ว (ซูม) ไม่แตะ */
+cv.addEventListener("touchstart", e=>{
+  if(e.touches.length!==1) return;
+  const y=e.touches[0].clientY-cv.getBoundingClientRect().top;
+  if(y<26 || (y>=RULER_Y && y<HEAD)) e.preventDefault();
+}, {passive:false});
+
 cv.addEventListener("pointermove", e=>{
   if(activePid!==null && e.pointerId!==activePid) return;
   if(velDrag){

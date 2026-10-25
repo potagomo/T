@@ -206,6 +206,18 @@ async function suite(label, ctxOpts, exe) {
     fail.push(`${label}: กดเล่นแล้วไม่ได้เริ่มจากหัวอ่าน (หัวอ่าน ${tHead}s แต่เล่นอยู่ที่ ${tRun}s)`);
 
 
+  /* ---- ชื่อแถวต้องไม่ถูกตัด (เคยเหลือ "ไฮแฮ…" ทั้งเปิด/ปิด/เท้า แยกไม่ออก)
+     และวงล้อซูมต้องอยู่ในช่องชื่อ ไม่ทับพื้นที่โน้ต ---- */
+  const lab = await page.evaluate(() => {
+    const cut = [...document.querySelectorAll("#labels .r .nm")].filter((n) => n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent);
+    const lw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--labelw")) || 132;
+    const g = document.querySelector("#grid").getBoundingClientRect(), z = document.querySelector("#zwheel").getBoundingClientRect();
+    return { cut, over: z.width > 0 && z.right > g.left + lw + 1, lw };
+  });
+  say(`ชื่อแถว: ช่องกว้าง ${lab.lw}px · ถูกตัด ${lab.cut.length ? lab.cut.join(", ") : "ไม่มี"} · วงล้อซูม${lab.over ? "ทับโน้ต" : "ไม่ทับโน้ต"}`);
+  if (lab.cut.length) fail.push(`${label}: ชื่อแถวถูกตัด ${lab.cut.join(", ")}`);
+  if (lab.over) fail.push(`${label}: วงล้อซูมทับพื้นที่โน้ต`);
+
   /* ---- ช่วงวนซ้ำ: ลากบนแถบไม้บรรทัด (ใต้แถบเลขห้อง y 46–74) แล้วเล่นต้องวนอยู่ในช่วงนั้น
      ผู้ใช้ขอให้ตั้งวนซ้ำด้วยการลากคลุมบนไทม์ไลน์แทนการกดปุ่ม ---- */
   await page.evaluate(() => { const g = document.getElementById("gs"); if (g) g.scrollLeft = 0; });

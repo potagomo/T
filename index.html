@@ -600,6 +600,42 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
 #labels .h{position:relative}
 #labels .h::after{content:"ลากตั้งวนซ้ำ ⇆"; position:absolute; left:10px; top:52px;
   font-size:12px; line-height:18px; color:var(--dim); white-space:nowrap}
+
+/* ชื่อแถว: ช่องกว้างขึ้นบนจอ iPad ให้ชื่อเต็มพอดี · ปุ่ม M/S สูงเต็มแถว กว้าง 30px (เดิม 23×26 / 20×26)
+   ความสูงแถวคงเดิม (--rowh) เพราะเป็นความหนาแน่นของกริดที่จูนไว้แล้ว */
+@media (min-width:701px){ :root{--labelw:172px} }
+@media (max-width:700px){ :root{--labelw:128px} }
+#labels .r{gap:5px}
+#labels .r .so, #labels .r .mm{box-sizing:border-box; min-width:30px; height:calc(var(--rowh) - 3px);
+  padding:0 4px; margin-right:2px; font-size:12px; display:inline-flex; align-items:center; justify-content:center}
+@media (max-width:700px){
+  #labels .r{gap:3px; padding-left:5px}
+  #labels .r .so, #labels .r .mm{min-width:26px}
+  #labels .r .nm[data-sh]{font-size:0}
+  #labels .r .nm[data-sh]::after{content:attr(data-sh); font-size:12.5px}
+}
+
+/* วงล้อซูมย้ายเข้ามาอยู่ในช่องชื่อ ตรงแถบบรรทัด 5 เส้น (ที่ว่างอยู่) — เดิมกว้าง 62px ลอยทับขอบขวา
+   ของกริด บังโน้ตและแตะโน้ตใต้มันไม่ได้ · ใช้รูปแบบวงล้อแคบที่มีอยู่แล้ว สูงตามแถบบรรทัด */
+#zwheel, #zwheel.slim{left:calc(var(--labelw) - 38px); right:auto; top:calc(var(--head) + 5px);
+  transform:none; width:32px; opacity:.8}
+#zwheel .zslot, #zwheel.slim .zslot{width:32px; height:calc(var(--staffh, 124px) - 10px); padding:5px 4px; border-radius:10px}
+#zwheel .zknob{border-radius:7px}
+#zwheel .zcap, #zwheel .zval{display:none}
+#labels .st{padding-right:44px}
+
+/* แถบล่างแบบย่อบนมือถือ: เดิมยาวเกินจอ 59px นาฬิกาจมใต้ปุ่มขยาย — ซ่อนไฟจังหวะ ย่อนาฬิกาเล็กน้อย
+   ปุ่มเล่น/หยุด/กลับต้นอยู่ครบ */
+@media (max-width:480px){
+  #tp.min #rowLive{gap:4px; padding-right:50px}
+  #tp.min #kLamp{display:none !important}
+  #tp.min .clock{font-size:12.5px; padding:0 8px}
+  #tp.min #play, #tp.min #stopb{padding-left:10px; padding-right:10px}
+}
+
+/* ตัวหนังสือที่เล็กกว่า 12px ขึ้นเป็น 12px (ชื่อค่าโน้ต ชื่อกลุ่มในแถบล่าง ป้ายบรรทัด 5 เส้น) */
+.valwrap .vn, .grpname{font-size:12px}
+#labels .st, #labels .st span{font-size:12px}
 </style>
 <!-- ==================== ธีมมิดเซนจูรี่ ====================
      ไฟล์ทั้งหมดอยู่ใน theme/ — สคริปต์ต้องโหลดตรงนี้แบบปกติ (ไม่ defer)
@@ -832,7 +868,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
   <button class="btn" id="focusExit">ออกจากโฟกัส</button>
 </div>
 <div id="gw" class="hidden">
-    <div id="zwheel" class="hidden" title="ปัดขึ้นซูมเข้า · ปัดลงซูมออก · แตะสองครั้งเพื่อย่อเก็บ">
+    <div id="zwheel" class="hidden" title="ปัดขึ้นซูมเข้า · ปัดลงซูมออก">
       <div class="zslot"><div class="zknob"><span class="zval">220</span></div></div>
       <div class="zcap">ซูม</div>
     </div>
@@ -2486,12 +2522,16 @@ function isMuted(id){
   return !!S.mute[id];
 }
 const labels=$("#labels");
+// ชื่อย่อของแถว ใช้เฉพาะจอแคบ (มือถือ) ที่ช่องชื่อกว้างไม่พอ — ชื่อเต็มยังเป็นข้อความจริงของแถว
+// ไฮแฮตเปิด/ปิด/เท้า เดิมถูกตัดเหลือ "ไฮแฮ…" เหมือนกันทั้งสามแถว แยกไม่ออก
+const ROW_SHORT={"bell":"เบล", "hihat:open":"แฮตเปิด", "hihat":"แฮตปิด", "hhf":"แฮตเท้า",
+  "snare:rim":"ริม", "snare:cross":"ครอส", "floor":"ฟลอร์", "crash2":"แครช2", "kick":"กระเดื่อง"};
 function buildLabels(){
   labels.querySelectorAll(".r").forEach(d=>d.remove());
   ROWS.forEach(v=>{
     const d=document.createElement("div"); d.className="r"; d.dataset.v=v.id;
     d.innerHTML='<span class="sw" style="background:'+v.color+'"></span>'+
-      '<span class="nm">'+v.th+'</span>'+
+      '<span class="nm"'+(ROW_SHORT[v.id] ? ' data-sh="'+ROW_SHORT[v.id]+'"' : '')+'>'+v.th+'</span>'+
       '<button class="mm" data-a="m" title="ปิดเสียงแถวนี้">M</button>'+
       '<button class="so" data-a="s" title="ฟังเฉพาะแถวนี้">S</button>';
     // แตะชื่อแถวเฉย ๆ ไม่ทำอะไร กันนิ้วโดนตอนเลื่อนจอแล้วเสียงหายโดยไม่รู้ตัว
@@ -5630,6 +5670,8 @@ $("#attackSafe").onchange=e=>{
     if(pid!==e.pointerId) return;
     pid=null; w.classList.remove("act");
     if(moved < 6){                            // แตะเฉย ๆ ไม่ได้ปัด
+      // วงล้ออยู่ในช่องชื่อแล้ว (ไม่ทับโน้ต) ไม่ต้องย่อ/กางอีก — แตะสองครั้งจึงไม่ทำอะไร
+      if(w.closest("#gw")) return;
       const now=Date.now();
       if(now-lastTap < 320){                  // แตะสองครั้ง = ย่อเก็บ / กางคืน
         w.classList.toggle("slim");

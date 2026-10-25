@@ -148,7 +148,7 @@ async function until(fn, ms, what) {
   const browser = await chromium.launch({ executablePath: chromiumPath(),
     args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
   const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, permissions: ["camera", "microphone"] });
-  await ctx.addInitScript(() => { window.__drivePiece = 256 * 1024; window.__checkDur = 6000; });
+  await ctx.addInitScript(() => { window.__drivePiece = 256 * 1024; window.__checkDur = 6000; window.__checkFast = true; });
   await ctx.route("https://www.googleapis.com/**", drive);
   await ctx.route("https://accounts.google.com/gsi/client", (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: GIS }));
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: "text/css", body: "" }));

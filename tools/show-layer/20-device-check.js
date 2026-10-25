@@ -36,13 +36,16 @@
     const vp8 = pick(['video/webm;codecs=vp8,opus', 'video/webm']);
     const wh264 = pick(['video/webm;codecs=h264,opus', 'video/x-matroska;codecs=avc1,opus']);
     const out = [];
+    const fast = window.__checkFast || (vTrack.getSettings().frameRate || 30) > 40;
+    if (h264) out.push({ k: 'A', name: 'MP4 H.264 แบบที่แอปใช้', mime: h264, kf: 2000 });
+    if (vp9) out.push({ k: 'E', name: 'WebM VP9', mime: vp9, kf: 2000 });
+    if (fast && h264) out.push({ k: 'A30', name: 'MP4 H.264 ลดเหลือ 30 เฟรม', mime: h264, kf: 2000, fps: 30 });
+    if (fast && vp8) out.push({ k: 'E30', name: 'WebM VP8 ลดเหลือ 30 เฟรม', mime: vp8, kf: 2000, fps: 30 });
     if (h264) {
-      out.push({ k: 'A', name: 'MP4 H.264 แบบที่แอปใช้', mime: h264, kf: 2000 });
       out.push({ k: 'A0', name: 'MP4 H.264 ไม่ขอคีย์เฟรม', mime: h264 });
       out.push({ k: 'B', name: 'MP4 H.264 + ขอข้อมูลทุก 2 วิ', mime: h264, kf: 2000, req: true });
     }
     if (hevc) out.push({ k: 'D', name: 'MP4 HEVC', mime: hevc, kf: 2000 });
-    if (vp9) out.push({ k: 'E', name: 'WebM VP9', mime: vp9, kf: 2000 });
     if (vp8) out.push({ k: 'E0', name: 'WebM VP8 ไม่ขอคีย์เฟรม', mime: vp8 });
     if (wh264) out.push({ k: 'F', name: 'WebM/MKV H.264', mime: wh264, kf: 2000 });
     if (h264) out.push({ k: 'H', name: 'MP4 H.264 ผ่าน canvas เต็มขนาด', mime: h264, kf: 2000, canvas: 1 });
@@ -75,11 +78,18 @@
     return { first: before.length ? Math.round(before[0][0] / 100) / 10 : null, n: before.length, gap: Math.round(gap / 100) / 10,
              sent: before.reduce((a, g) => a + g[1], 0), total: got.reduce((a, g) => a + g[1], 0) };
   }
+  // สำเนาภาพจากกล้องที่ลดเฟรมเรตลง (ไม่แตะกล้องที่เปิดอยู่)
+  async function slowSource(fps){
+    const v = vTrack.clone();
+    try { await v.applyConstraints({ frameRate: { max: fps } }); } catch(e){}
+    const s = new MediaStream(aTrack ? [v, aTrack] : [v]);
+    return { stream: s, audio: true, size: Math.round(v.getSettings().frameRate || 0) + 'fps', stop(){ v.stop(); } };
+  }
   async function mrTrial(t){
-    const src = t.canvas ? canvasSource(t.canvas) : null;
+    const src = t.canvas ? canvasSource(t.canvas) : t.fps ? await slowSource(t.fps) : null;
     try {
       const o = { mimeType: t.mime, videoBitsPerSecond: bitrate() };
-      if (!src) o.audioBitsPerSecond = AUDIO_BPS;
+      if (!src || src.audio) o.audioBitsPerSecond = AUDIO_BPS;
       if (t.kf) o.videoKeyFrameIntervalDuration = t.kf;
       const r = new MediaRecorder(src ? src.stream : stream, o), got = [], blobs = [];
       const t0 = performance.now();

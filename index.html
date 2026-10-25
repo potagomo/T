@@ -540,6 +540,66 @@ body.locked main.wrap{padding-top:calc(8px + var(--sat))}
    ================================================================================== */
 body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
   scrollbar-width:thin; -webkit-overflow-scrolling:touch}
+
+/* ==================== แถบล่างแบบย่อ + แผงเขียนโน้ตลอย (งาน UI ของ repo นี้) ====================
+   ปุ่มย่อเดิมซ่อนแค่ #rowMore ซึ่งไม่มีแล้วตั้งแต่รุ่น 11 กดแล้วจึงไม่มีอะไรยุบเลย
+   ย่อแล้วแถบเหลือแถวเดียว: เล่น · หยุด · กลับต้น · นาฬิกา (ฟังตอนเขียนต้องกดได้ตลอด)
+   ของสำหรับเขียน (ค่าโน้ต น้ำหนัก ลูกเล่น การวางโน้ต) ไปอยู่ในแผงลอย #npal
+   ================================================================================== */
+#tp.min #rowVals, #tp.min #rowArt, #tp.min #rowMain, #tp.min #barHint{display:none !important}
+#tp.min #rowLive{border-top:0; padding:2px 56px 2px 0; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
+#tp.min #rowLive::-webkit-scrollbar{display:none}
+#tp.min #rowLive > :not(#play):not(#stopb):not(#home):not(#clock):not(#kLamp){display:none}
+#tp.min #rowLive > *{flex:none}
+/* ธีมให้ปุ่มนี้ position:relative (ปุ่มนูน) มันเลยกินแถวของตัวเองเหนือแถวเล่น — ตอนย่อให้ลอยชิดขวาแทน */
+#tp.min #tpToggle{position:absolute; left:auto; right:calc(10px + var(--sar)); top:50%; margin-top:-22px; width:44px; height:40px}
+
+#npal{position:fixed; left:12px; top:80px; z-index:40; box-sizing:border-box;
+  width:min(380px, calc(100vw - 16px)); max-height:min(76vh, 680px); overflow-y:auto; overscroll-behavior:contain;
+  background:var(--panel2); color:var(--ink); border:1px solid var(--line2); border-radius:14px;
+  padding:0 10px 10px; box-shadow:0 14px 34px rgba(0,0,0,.42), 0 2px 6px rgba(0,0,0,.25)}
+#npal[hidden], #npPin[hidden]{display:none !important}
+body.athome #npal, body.atexport #npal, body.ataudio #npal,
+body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !important}
+#npal .np-head{position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:6px;
+  min-height:48px; margin:0 -10px 8px; padding:4px 6px 4px 8px; background:inherit;
+  border-bottom:1px solid var(--line); border-radius:14px 14px 0 0; cursor:grab; touch-action:none;
+  -webkit-user-select:none; user-select:none}
+#npal .np-head:active{cursor:grabbing}
+#npal .np-grip{font-size:20px; line-height:1; color:var(--dim); padding:0 2px}
+#npal .np-head b{flex:1; min-width:0; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#npal .np-ic{min-width:44px; min-height:40px; padding:0 8px; font-size:16px}
+#npal .np-time{display:flex; align-items:center; gap:3px; font-size:14px; color:var(--dim)}
+#npal .np-time select{min-height:40px; max-width:96px; padding:0 6px; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:8px}
+#npal .np-tabs{display:flex; width:100%; margin:0 0 8px}
+#npal .np-tabs button{flex:1 1 0; min-height:42px; padding:4px 2px; font-size:13.5px}
+#npal.all .np-tabs{display:none}
+#npal .np-sec h4{margin:6px 0 6px; font-size:12.5px; font-weight:600; color:var(--dim)}
+#npal .np-sec h4:first-child{margin-top:0}
+#npal:not(.all) .np-sec > h4:first-child{display:none}
+#npal.all .np-sec + .np-sec{margin-top:10px; padding-top:8px; border-top:1px solid var(--line)}
+#npal .np-m .seg{flex-wrap:wrap; width:100%; box-sizing:border-box}
+#npal .np-m .seg button{flex:1 1 auto; min-height:44px; padding:6px 10px}
+#npal .np-m .valwrap{display:grid; grid-template-columns:repeat(auto-fill, minmax(66px, 1fr)); gap:6px; overflow:visible}
+#npal .np-m .valwrap button{min-height:56px; width:auto; padding:4px 2px}
+#npal .np-m .valwrap .vn{font-size:12px; white-space:nowrap}
+#npal .np-row{display:flex; gap:6px; margin-top:8px}
+#npal .np-row .btn{min-height:44px; padding:0 14px}
+#npPin{position:fixed; left:12px; top:80px; z-index:40; width:52px; height:52px; padding:0; border-radius:50%;
+  display:grid; place-items:center; background:var(--panel2); color:var(--ok); border:2px solid var(--ok);
+  box-shadow:0 6px 16px rgba(0,0,0,.4); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none}
+#npPin svg{width:30px; height:22px; display:block}
+#npPin .np-pg{font-size:22px; line-height:1}
+#npPin.pulse{animation:npPulse .9s ease-out 2}
+@keyframes npPulse{0%{box-shadow:0 0 0 0 rgba(79,199,212,.65), 0 6px 16px rgba(0,0,0,.4)}
+  100%{box-shadow:0 0 0 20px rgba(79,199,212,0), 0 6px 16px rgba(0,0,0,.4)}}
+@media (prefers-reduced-motion: reduce){ #npPin.pulse{animation:none} }
+
+/* หัวกริดสูงขึ้นหนึ่งแถบ: ไม้บรรทัดสำหรับลากตั้งช่วงวนซ้ำ (RULER_Y/RULER_H ในโค้ด) */
+:root{--head:74px}
+#labels .h{position:relative}
+#labels .h::after{content:"ลากตั้งวนซ้ำ ⇆"; position:absolute; left:10px; top:52px;
+  font-size:12px; line-height:18px; color:var(--dim); white-space:nowrap}
 </style>
 <!-- ==================== ธีมมิดเซนจูรี่ ====================
      ไฟล์ทั้งหมดอยู่ใน theme/ — สคริปต์ต้องโหลดตรงนี้แบบปกติ (ไม่ defer)
@@ -1014,7 +1074,7 @@ body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:con
   <div id="rowLive" class="tprow">
     <button class="btn primary" id="play">เล่น</button>
     <button class="btn" id="stopb">หยุด</button>
-    <button class="btn" id="home">⏮</button>
+    <button class="btn" id="home" aria-label="กลับไปต้นช่วงที่ฟัง" title="กลับไปต้นช่วงที่ฟัง">⏮</button>
     <span class="clock" id="clock">ห้อง 1 · จังหวะ 1 · 0:00.00</span>
     <span class="grpname">ฟัง</span>
     <div class="seg" id="scope">
@@ -1044,6 +1104,35 @@ body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:con
   
   
 </div>
+
+<!-- แผงเขียนโน้ตลอย: ขึ้นเมื่อย่อแถบล่าง (ปุ่ม ▾) ลากย้ายได้ทั้งจอ ซ่อนเองได้ตามเวลาที่ตั้ง
+     ปุ่มข้างในเป็นสำเนาของปุ่มเดิมในแถบล่าง/แผงตั้งค่า แตะแล้วไปกดปุ่มเดิมให้ (ดูข้อ 35 ในโค้ด) -->
+<section id="npal" hidden aria-label="แผงเขียนโน้ต">
+  <div class="np-head" title="ลากตรงนี้เพื่อย้ายแผง">
+    <span class="np-grip" aria-hidden="true">⠿</span>
+    <b>แผงเขียนโน้ต</b>
+    <button class="btn sm np-ic" id="npAll" aria-pressed="false" title="แสดงทุกหมวดพร้อมกัน" aria-label="แสดงทุกหมวดพร้อมกัน">▤</button>
+    <label class="np-time" title="ซ่อนแผงเองเมื่อไม่ได้แตะเท่านี้"><span aria-hidden="true">⏱</span>
+      <select id="npTime" aria-label="ซ่อนแผงเองเมื่อไม่ได้ใช้">
+        <option value="0">ไม่ซ่อน</option><option value="3">3 วิ</option><option value="5">5 วิ</option>
+        <option value="10">10 วิ</option><option value="20">20 วิ</option><option value="30">30 วิ</option>
+      </select></label>
+    <button class="btn sm np-ic" id="npHide" title="ซ่อนแผง (แผงจะรออยู่ตรงนี้)" aria-label="ซ่อนแผง">–</button>
+  </div>
+  <div class="np-tabs seg" role="tablist" aria-label="หมวด">
+    <button data-cat="val" role="tab" aria-pressed="true">ค่าโน้ต</button>
+    <button data-cat="dyn" role="tab" aria-pressed="false">น้ำหนัก</button>
+    <button data-cat="art" role="tab" aria-pressed="false">ลูกเล่น</button>
+    <button data-cat="line" role="tab" aria-pressed="false">การวาง</button>
+  </div>
+  <div class="np-sec" data-cat="val"><h4>ค่าโน้ต</h4><div class="np-m np-vals" data-src="#vals"></div>
+    <div class="np-row"><button class="btn sm" id="npDot" aria-pressed="false">ประจุด ( . )</button></div></div>
+  <div class="np-sec" data-cat="dyn"><h4>น้ำหนัก</h4><div class="np-m" data-src="#dynSeg"></div></div>
+  <div class="np-sec" data-cat="art"><h4>ประดับ</h4><div class="np-m" data-src="#ornSeg2"></div>
+    <h4>รัว</h4><div class="np-m" data-src="#tremSeg"></div></div>
+  <div class="np-sec" data-cat="line"><h4>การวางโน้ต (แนวก้าน)</h4><div class="np-m" data-src="#lineSeg"></div></div>
+</section>
+<button id="npPin" hidden aria-label="แสดงแผงเขียนโน้ต" title="แผงเขียนโน้ต — แตะเพื่อแสดง ลากเพื่อย้าย"><span class="np-pg" aria-hidden="true">♪</span></button>
 
 
 <div id="gate">
@@ -2096,7 +2185,10 @@ const GRID_SUBS = [[2,"rgba(104,89,82,.62)"], [4,"rgba(88,75,69,.46)"],
 const GRID_MINPX = 4.5;
 // ROWH เปลี่ยนได้: โหมดโฟกัสห้องขยายแถวให้แตะง่ายขึ้น (ทุกจุดวาดและจุดแตะอ่านค่านี้สด ๆ)
 let ROWH=27;
-const HEAD=46;
+// แถบไม้บรรทัดจังหวะใต้แถบเลขห้อง: ลากตรงนี้เพื่อตั้งช่วงวนซ้ำ (ข้อ 36)
+// แถบเดิม 0–26 ลากหัวอ่าน · 26–46 เลือกห้อง ยังอยู่ที่เดิมทุกพิกเซล
+const RULER_Y=46, RULER_H=28;
+const HEAD=RULER_Y+RULER_H;
 // STAFFH/ROWTOP เปลี่ยนได้: โหมดโฟกัสขยายบรรทัด 5 เส้นด้วยสเกลเท่ากันทุกทิศ (STAFFS) หัวโน้ตจึงไม่บิดเบี้ยว
 let STAFFH=124, ROWTOP=HEAD+STAFFH, STAFFS=1, FOCUS_ON=false, PAD_ON=false;
 function cssVar(k, v){ const r=document.documentElement; if(r && r.style && r.style.setProperty) r.style.setProperty(k, v); }
@@ -2258,6 +2350,7 @@ function draw(){
       }
     }
   }
+  drawLoopLane(sx, vw, b0, b1, h);
   cx.strokeStyle="#453B37"; cx.lineWidth=1;
   cx.beginPath(); cx.moveTo(0,HEAD+.5); cx.lineTo(vw,HEAD+.5); cx.stroke();
   cx.beginPath(); cx.moveTo(0,ROWTOP+.5); cx.lineTo(vw,ROWTOP+.5); cx.stroke();
@@ -2316,6 +2409,7 @@ function draw(){
   });
 
   cx.fillStyle="rgba(255,255,255,.028)"; cx.fillRect(0,0,vw,26);
+  drawLoopBubble(vw);                        // ป้ายช่วงวนซ้ำตอนลาก — วาดท้ายสุดให้อยู่บนบรรทัด 5 เส้น
   ovW=vw; ovH=h;
   { const tp=$("#tbProj"); if(tp){ const nm=S.projName||"งานไม่มีชื่อ"; if(tp.textContent!==nm) tp.textContent=nm; } }
   if(FOCUS_ON) drawFilmstrip();
@@ -3484,6 +3578,7 @@ cv.addEventListener("pointerdown", e=>{
   const p=hit(e);
 
   if(p.head){
+    if(p.y>=RULER_Y){ loopDown(e, p); return; }  // แถบไม้บรรทัด = ลากตั้งช่วงวนซ้ำ (นิ้ว/ปากกา ทุกเครื่องมือ)
     if(p.y<26){                                   // แถบบนสุด = ลากหัวอ่าน
       e.preventDefault(); dragMode="scrub"; activePid=e.pointerId;
       cv.setPointerCapture(e.pointerId); setHead(p.t); return;
@@ -3541,6 +3636,7 @@ cv.addEventListener("pointermove", e=>{
     draw(); return;
   }
   if(!dragMode) return;
+  if(dragMode==="loop"){ e.preventDefault(); loopMove(e); return; }
   const p=hit(e);
   if(dragMode==="scrub"){ setHead(p.t); return; }
   if(dragMode==="sel"){ const bi=barAt(p.t); if(bi>=0){ S.sel.b=bi; syncSel(); draw(); } return; }
@@ -3561,6 +3657,7 @@ cv.addEventListener("pointermove", e=>{
   activePid=null; dragRow=-1;
   if(velDrag){ velDrag=null; afterEdit(); }
   if(dragMode==="scrub" && S.playing) play();     // ลากเสร็จแล้วเล่นต่อจากจุดใหม่
+  if(dragMode==="loop") loopUp(e);
   dragMode=null;
 }));
 // ตั้งตำแหน่งหัวอ่าน — ดึงเข้ากริดถ้าเปิดไว้ ไม่งั้นวางได้ละเอียดตามจริง
@@ -3697,6 +3794,7 @@ function newSinks(){
   [dSink,cSink].forEach(g=>{ if(g){ try{ g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0,t); }catch(e){}
     setTimeout(()=>{ try{g.disconnect();}catch(e){} }, 60); } });
   dSink=S.ctx.createGain(); dSink.connect(drumGain);
+  KIT.route(S.ctx, dSink, drumGain);           // ส่งเข้าห้องด้วย ตัดบัสเมื่อไรเสียงห้องก็หยุดตาม
   cSink=S.ctx.createGain(); cSink.connect(clickGain);
 }
 function noise(){
@@ -3734,17 +3832,364 @@ function tone(when, dur, type, f0, f1, peak, tau){
   o.start(when); o.stop(when+dur+0.06);
   return {o,g};
 }
+/* ============================================================
+   16b. ชุดกลองสังเคราะห์ (KIT)
+   สร้างเสียงแต่ละใบไว้ครั้งเดียว แล้วเล่นซ้ำด้วย BufferSource
+   ไม่ใช้ไฟล์ตัวอย่างจากที่ไหน (CSP ล็อก 'self' และไม่ติดลิขสิทธิ์ใคร)
+   · กลอง: โหมดของหนังกลองกลม (1 · 1.59 · 2.14 …) + เสียงไม้ตี + เสียงสายสแนร์
+   · ฉาบ: ผลรวมคลื่นไม่ลงตัวหลายสิบเส้น เส้นสูงจางเร็วกว่า + ลมฉาบสองย่าน
+   · ตีเบา/แรงได้คนละเสียง 4 ระดับ × สลับ 2 แบบ ไม่ซ้ำเหมือนเครื่องจักร
+   · ไฮแฮตปิด/เหยียบตัดเสียงไฮแฮตเปิดที่ค้างอยู่ · วางซ้ายขวาแบบมุมมองคนตี · ห้องเล็ก
+
+   สร้างด้วย OfflineAudioContext — เบราว์เซอร์เรนเดอร์ในเธรดเสียงของมันเอง
+   หน้าจอไม่ต้องหยุดรอ (รุ่นแรกคำนวณทีละตัวอย่างบนเธรดหลัก บนเครื่องช้า
+   กินเวลาหลายวินาทีจนกริดกระตุกตอนกดเล่น) ใบไหนยังไม่เสร็จ play() คืน false
+   ให้ playVoice ใช้เสียงแบบเดิมไปก่อน ไม่มีโน้ตไหนเงียบ
+   ============================================================ */
+const KIT = (function(){
+  const LAYERS = [0.3, 0.55, 0.8, 1.0], RR = 2;
+  const TRIM = 0.42;      // ระดับรวม: ตั้งให้ทั้งชุดดังใกล้ของเดิม ไม่ดันคอมเพรสเซอร์จนเสียงแตก
+  const OAC = window.OfflineAudioContext;
+  let sr = 0, cache = {}, want = [], busy = false, broken = !OAC;
+  let ctxOf = null, room = null, openHH = null;
+
+  // ระดับยอดคลื่นที่แรงสุด · ซ้าย(-)ขวา(+) จากมุมคนตี
+  const SPEC = {
+    "kick":        {lvl:0.95, pan: 0.00},
+    "snare":       {lvl:0.80, pan:-0.05},
+    "snare:rim":   {lvl:0.85, pan:-0.05},
+    "snare:cross": {lvl:0.50, pan:-0.05},
+    "hihat":       {lvl:0.40, pan:-0.35},
+    "hihat:open":  {lvl:0.38, pan:-0.35},
+    "hhf":         {lvl:0.50, pan:-0.35},
+    "tom1":        {lvl:0.75, pan:-0.15},
+    "tom2":        {lvl:0.75, pan: 0.10},
+    "floor":       {lvl:0.80, pan: 0.35},
+    "ride":        {lvl:0.32, pan: 0.40},
+    "bell":        {lvl:0.34, pan: 0.40},
+    "crash":       {lvl:0.55, pan:-0.30},
+    "crash2":      {lvl:0.52, pan: 0.30},
+    "china":       {lvl:0.42, pan: 0.50},
+    "splash":      {lvl:0.36, pan:-0.45},
+    "cow":         {lvl:0.34, pan: 0.20},
+  };
+
+  let WN = null;
+  function whiteNoise(){
+    if(WN && WN.length >= 4*sr) return WN;
+    WN = new Float32Array(Math.ceil(4*sr));
+    const r = rng(12345); for(let i=0;i<WN.length;i++) WN[i] = r();
+    return WN;
+  }
+  function rng(seed){
+    let s = (seed>>>0) || 1;
+    return function(){ s ^= s<<13; s>>>=0; s ^= s>>>17; s ^= s<<5; s>>>=0; return s/4294967296*2-1; };
+  }
+
+  /* ---------- ตัวต่อกราฟเสียงหนึ่งใบ ---------- */
+  function graph(len, r){
+    const c = new OAC(1, Math.ceil(len*sr), sr), bus = c.createGain();
+    const FT = {lp:"lowpass", hp:"highpass", bp:"bandpass"};
+    let atk = 0.0003, drive = 0, bp = null;
+    const B = {
+      c, len,
+      // โหมดสั่นความถี่คงที่ จางแบบเอกซ์โพเนนเชียล
+      // เฟสสุ่มด้วยการเริ่มช้าไม่เกินหนึ่งรอบคลื่น (createPeriodicWave ทำได้ตรงกว่า
+      // แต่กินเวลาเธรดหลักราว 60 ms ต่อเส้น — ฉาบใบเดียวค้างหน้าจอหลายวินาที)
+      mode(f, amp, tau, t0){
+        if(f >= sr*0.45 || !amp) return;
+        t0 = t0 || 0;
+        const o = c.createOscillator();
+        o.frequency.value = f;
+        const g = c.createGain();
+        g.gain.setValueAtTime(amp, t0); g.gain.setTargetAtTime(0, t0, tau);
+        o.connect(g); g.connect(bus);
+        o.start(t0 + Math.abs(r())/f); o.stop(Math.min(len, t0 + tau*Math.log(Math.abs(amp)/1e-4 + 1)));
+      },
+      // โหมดที่เสียงตกลงหลังตี (หนังกลองตึงขึ้นตอนโดนตีแรง): f·(1+drop) → f
+      glide(f, drop, tauP, amp, tau, mul){
+        (mul || [1]).forEach((m, k) => {
+          const o = c.createOscillator();
+          o.frequency.setValueAtTime(f*m*(1 + drop), 0); o.frequency.setTargetAtTime(f*m, 0, tauP);
+          const g = c.createGain(), a = k ? amp[k] : (Array.isArray(amp) ? amp[0] : amp), tk = Array.isArray(tau) ? tau[k] : tau;
+          g.gain.setValueAtTime(a, 0); g.gain.setTargetAtTime(0, 0, tk);
+          o.connect(g); g.connect(bus);
+          o.start(0); o.stop(Math.min(len, tk*Math.log(Math.abs(a)/1e-4 + 1)));
+        });
+      },
+      // เสียงซ่า: กรองตามลำดับ แล้วขึ้น atk วินาที จาง tau
+      noise(dur, filters, amp, tau, at, t0){
+        t0 = t0 || 0; dur = Math.min(dur, len - t0);
+        if(dur <= 0) return;
+        // ตัดท่อนจากเสียงซ่าก้อนเดียวที่สร้างไว้ครั้งเดียว (สุ่มทีละตัวอย่างทุกใบกินเวลาเธรดหลัก)
+        const nb = c.createBuffer(1, Math.ceil(dur*sr), sr), w = whiteNoise(), n0 = nb.length;
+        const off = Math.floor(Math.abs(r())*(w.length - n0));
+        nb.copyToChannel(w.subarray(off, off + n0), 0);
+        const s = c.createBufferSource(); s.buffer = nb;
+        let n = s;
+        filters.forEach(([t, f, q]) => {
+          const bq = c.createBiquadFilter(); bq.type = FT[t];
+          bq.frequency.value = Math.min(f, sr*0.45);
+          bq.Q.value = t === "bp" ? (q || 0.707) : -3;      // lp/hp ใช้ dB: −3 ≈ บัตเตอร์เวิร์ธ
+          n.connect(bq); n = bq;
+        });
+        const g = c.createGain(), a = Math.max(0.0002, at || 0);
+        g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(amp, t0 + a); g.gain.setTargetAtTime(0, t0 + a, tau);
+        n.connect(g); g.connect(bus);
+        s.start(t0); s.stop(t0 + dur);
+      },
+      stick(amp, f, tau){ B.noise(tau*8, [["hp", f]], amp, tau, 0.0002); },
+      out(a, dr, band){ atk = a; drive = dr || 0; bp = band || null; },
+      render(){
+        let n = bus;
+        if(bp){ const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = bp[0]; f.Q.value = bp[1]; n.connect(f); n = f; }
+        if(drive){
+          // tanh(x·drive)/tanh(drive) ครอบช่วง ±4 (ลดก่อน 1/4 แล้วโค้งขยายคืน)
+          const pre = c.createGain(); pre.gain.value = 0.25; n.connect(pre);
+          const ws = c.createWaveShaper(), N = 2049, cv = new Float32Array(N), td = Math.tanh(drive);
+          for(let i=0;i<N;i++){ const x = (i/(N-1)*2 - 1)*4; cv[i] = Math.tanh(x*drive)/td; }
+          ws.curve = cv; pre.connect(ws); n = ws;
+        }
+        const m = c.createGain();
+        m.gain.setValueAtTime(0, 0); m.gain.linearRampToValueAtTime(1, atk);
+        m.gain.setValueAtTime(1, Math.max(atk, len - 0.02)); m.gain.linearRampToValueAtTime(0, len);
+        n.connect(m); m.connect(c.destination);
+        return c.startRendering();
+      },
+    };
+    return B;
+  }
+  // ฉาบ: คลื่นไม่ลงตัว n เส้นกระจายแบบล็อกระหว่าง fLo–fHi ตัวสูงจางเร็วกว่า
+  function metal(B, r, n, fLo, fHi, tau1k, tMin, tMax, amp, tilt){
+    for(let k=0; k<n; k++){
+      const f = fLo*Math.pow(fHi/fLo, (k + 0.5 + 0.45*r())/n);
+      const tau = Math.min(tMax, Math.max(tMin, tau1k*Math.pow(1000/f, 0.5)*(1 + 0.3*r())));
+      B.mode(f, amp*Math.pow(1000/f, tilt)*(0.55 + 0.45*Math.abs(r()))/Math.sqrt(n), tau);
+    }
+  }
+  function drum(B, r, v, f, tau, drop){
+    const R = [1, 1.59, 2.14, 2.65, 2.92], A = [1, .38, .22, .12, .08], T = [1, .5, .34, .24, .2];
+    f *= 1 + 0.006*r();
+    B.glide(f, drop*v, 0.06, 1, tau*(0.85 + 0.25*v));
+    for(let k=1;k<R.length;k++) B.mode(f*R[k], A[k]*(0.6 + 0.6*v), tau*T[k]);
+    B.noise(0.03, [["lp", 2500 + 4000*v]], 0.35*v, 0.005, 0.0003);
+    B.out(0.0003, 1.15);
+  }
+
+  /* ---------- เสียงแต่ละใบ: (B = กราฟ, r = สุ่มแบบกำหนดเมล็ด, v = ความแรง 0–1) ---------- */
+  const MAKE = {
+    "kick": [0.75, function(B, r, v){
+      const f1 = 50 + 1.5*r(), f0 = f1*(2.2 + 1.1*v);
+      B.glide(f1, f0/f1 - 1, 0.032, [1, 0.22], [0.17 + 0.08*v, 0.05], [1, 1.52]);
+      B.noise(0.02, [["lp", 3000 + 5000*v]], 0.55*v, 0.004, 0.0002);
+      B.mode(1450 + 80*r(), 0.25*v, 0.003);
+      B.out(0.0004, 1 + 0.8*v);
+    }],
+    "snare": [0.6, function(B, r, v){
+      const f = 188 + 3*r();
+      const R = [1, 1.59, 2.14, 2.30, 2.65, 2.92, 3.16], A = [1, .6, .45, .35, .3, .22, .18], T = [.15, .09, .07, .06, .05, .045, .04];
+      B.glide(f, 0.05*v, 0.02, 0.55, T[0]*(0.8 + 0.4*v));
+      for(let k=1;k<R.length;k++) B.mode(f*R[k], 0.55*A[k], T[k]*(0.8 + 0.4*v));
+      B.noise(0.6, [["hp", 1100], ["lp", 4500 + 6000*v]], 1.1*v + 0.15, 0.07 + 0.09*v, 0.0015, 0.0015);
+      B.stick(0.5*v, 2800, 0.003);
+      B.out(0.0003, 1.3);
+    }],
+    "snare:rim": [0.6, function(B, r, v){
+      MAKE.snare[1](B, r, v);
+      [1680, 2930, 4310, 5600].forEach((f, k) => B.mode(f*(1 + 0.01*r()), [0.7, .5, .35, .2][k]*v, [.05, .04, .03, .02][k]));
+      B.mode(880, 0.12*v, 0.12);
+      B.stick(0.9*v, 1800, 0.004);
+      B.out(0.0002, 1.6);
+    }],
+    "snare:cross": [0.25, function(B, r, v){
+      [480, 1180, 1720, 2650, 3900].forEach((f, k) => B.mode(f*(1 + 0.02*r()), [1, .7, .5, .35, .2][k]*(0.5 + 0.5*v), [.045, .03, .022, .015, .01][k]));
+      B.mode(190, 0.35, 0.05);
+      B.stick(0.6*v, 2000, 0.002);
+      B.out(0.0002);
+    }],
+    "tom1":  [1.0, (B, r, v) => drum(B, r, v, 205, 0.42, 0.07)],
+    "tom2":  [1.2, (B, r, v) => drum(B, r, v, 158, 0.52, 0.07)],
+    "floor": [1.6, (B, r, v) => drum(B, r, v, 98, 0.78, 0.06)],
+    "hihat": [0.25, function(B, r, v){
+      metal(B, r, 34, 3200, 15000, 0.05, 0.015, 0.06, 1.0, 0.6 - 0.35*v);
+      B.noise(0.25, [["hp", 7000], ["lp", 9000 + 8000*v]], 0.55, 0.03 + 0.03*v, 0.0004);
+      B.stick(0.3*v, 5000, 0.002);
+      B.out(0.0003);
+    }],
+    "hihat:open": [1.4, function(B, r, v){
+      metal(B, r, 46, 2800, 15000, 0.7, 0.18, 0.9, 1.0, 0.55 - 0.35*v);
+      B.noise(1.4, [["hp", 6000], ["lp", 9000 + 8000*v]], 0.5, 0.45 + 0.2*v, 0.001);
+      B.stick(0.25*v, 5000, 0.002);
+      B.out(0.0006);
+    }],
+    "hhf": [0.2, function(B, r, v){
+      metal(B, r, 24, 2500, 12000, 0.03, 0.012, 0.04, 0.8, 0.5);
+      B.noise(0.1, [["bp", 1800, 0.9]], 1.0, 0.018, 0.001);
+      B.mode(130, 0.25, 0.02);
+      B.out(0.001);
+    }],
+    "ride": [3.0, function(B, r, v){
+      metal(B, r, 44, 380, 12000, 2.2, 0.35, 2.8, 1.0, 0.75 - 0.3*v);
+      [2480, 3310, 4560].forEach((f, k) => B.mode(f*(1 + 0.004*r()), [0.14, .1, .06][k]*(0.6 + 0.4*v), 0.55));
+      B.noise(1.6, [["hp", 5500]], 0.12 + 0.1*v, 1.2, 0.002);
+      B.stick(0.35*v, 4000, 0.002);
+      B.out(0.0004);
+    }],
+    "bell": [2.4, function(B, r, v){
+      const f0 = 830*(1 + 0.004*r());
+      [1, 1.5, 2.0, 2.74, 3.76, 5.1].forEach((m, k) => B.mode(f0*m, [0.5, .3, .32, .2, .14, .1][k]*(0.7 + 0.3*v), [1.6, 1.2, 1.0, 0.7, 0.5, 0.35][k]));
+      metal(B, r, 30, 500, 10000, 1.6, 0.3, 2.0, 0.5, 0.7);
+      B.stick(0.4*v, 3500, 0.002);
+      B.out(0.0003);
+    }],
+    "crash": [3.2, function(B, r, v){
+      metal(B, r, 64, 300, 15000, 1.9, 0.35, 2.6, 1.0, 0.45 - 0.35*v);
+      B.noise(2.4, [["hp", 3000]], 0.35 + 0.25*v, 1.1, 0.005);
+      B.noise(1.2, [["hp", 8500]], 0.3*v + 0.1, 0.45, 0.002);
+      B.out(0.003);
+    }],
+    "crash2": [3.0, function(B, r, v){
+      metal(B, r, 60, 260, 13000, 1.7, 0.3, 2.4, 1.0, 0.5 - 0.35*v);
+      B.noise(2.2, [["hp", 2600]], 0.35 + 0.25*v, 1.0, 0.005);
+      B.noise(1.0, [["hp", 8000]], 0.28*v + 0.1, 0.4, 0.002);
+      B.out(0.003);
+    }],
+    "china": [2.2, function(B, r, v){
+      metal(B, r, 52, 400, 9000, 1.2, 0.25, 1.6, 1.3, 0.25 - 0.2*v);
+      B.noise(1.6, [["bp", 3200, 0.5]], 0.9, 0.7, 0.002);
+      B.out(0.001, 2.2);
+    }],
+    "splash": [1.3, function(B, r, v){
+      metal(B, r, 62, 800, 15000, 0.5, 0.12, 0.7, 1.0, 0.35 - 0.3*v);
+      B.noise(0.9, [["hp", 5200]], 0.45, 0.32, 0.002);
+      B.out(0.0015);
+    }],
+    "cow": [0.6, function(B, r, v){
+      [[562, 1], [845, 0.75]].forEach(([f, a]) => { B.mode(f, a, 0.22); B.mode(f*3, a*0.3, 0.08); B.mode(f*5, a*0.12, 0.05); });
+      B.stick(0.4*v, 2500, 0.002);
+      B.out(0.0004, 0, [900, 0.8]);
+    }],
+  };
+
+  /* ---------- คิวสร้างเสียง: ทีละใบ ไม่ค้างหน้าจอ ---------- */
+  function seedOf(key, li, rr){ let h = 2166136261; for(const ch of key+"|"+li+"|"+rr){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h>>>0; }
+  function request(key, li, rr, urgent){
+    const id = key+"|"+li+"|"+rr;
+    if(broken || (cache[key] && cache[key][li*RR+rr])) return;
+    const at = want.findIndex(w => w[3] === id);
+    if(at >= 0){ if(!urgent || at === 0) return; want.splice(at, 1); }
+    const job = [key, li, rr, id];
+    if(urgent) want.unshift(job); else want.push(job);
+    pump();
+  }
+  function pump(){
+    if(busy || broken || !want.length) return;
+    const [key, li, rr] = want.shift();
+    busy = true;
+    let p;
+    try{
+      const r = rng(seedOf(key, li, rr)), B = graph(MAKE[key][0], r);
+      MAKE[key][1](B, r, LAYERS[li]);
+      p = B.render();
+    }catch(e){ broken = true; busy = false; console.warn("สร้างชุดกลองไม่ได้ ใช้เสียงแบบเดิม", e); return; }
+    Promise.resolve(p).then(b => {
+      // ปรับยอดคลื่นให้เท่ากับ lvl × ความแรงของระดับ ตีเบาจึงเบาจริงและทุ้มกว่า
+      const d = b.getChannelData(0);
+      let pk = 1e-9; for(let i=0;i<d.length;i++){ const a = d[i] < 0 ? -d[i] : d[i]; if(a > pk) pk = a; }
+      const g = TRIM*SPEC[key].lvl*LAYERS[li]/pk;
+      for(let i=0;i<d.length;i++) d[i] *= g;
+      (cache[key] || (cache[key] = []))[li*RR + rr] = b;
+    }).catch(e => console.warn("สร้างเสียง " + key + " ไม่สำเร็จ", e))
+      .then(() => { busy = false; setTimeout(pump, 0); });
+  }
+  function warm(){
+    // ระดับที่ใช้บ่อยก่อน (ความแรง 90–110 ตกระดับ 0.8)
+    for(const li of [2, 3, 1, 0]) for(let rr=0; rr<RR; rr++) for(const key in MAKE) request(key, li, rr);
+  }
+  function reset(ctx){
+    if(ctxOf === ctx) return;
+    ctxOf = ctx; room = null; openHH = null;
+    // AudioBuffer ใช้ข้ามบริบทเสียงได้ สร้างใหม่เฉพาะเมื่ออัตราสุ่มเปลี่ยน
+    if(sr !== ctx.sampleRate){ sr = ctx.sampleRate; cache = {}; want = []; }
+    warm();
+  }
+  // ห้องเล็ก ๆ ให้เสียงไม่แห้ง (IR สร้างเอง ยาวราว 0.9 วิ)
+  function makeRoom(dst){
+    const ctx = ctxOf, len = Math.floor(0.9*sr), ir = ctx.createBuffer(2, len, sr), r = rng(7);
+    for(let ch=0; ch<2; ch++){
+      const d = ir.getChannelData(ch); let lp = 0;
+      for(let i=0;i<len;i++){
+        const t = i/sr, a = t < 0.008 ? 0 : Math.exp(-t/0.17);
+        lp += (r() - lp)*(0.55 - 0.4*Math.min(1, t/0.6));
+        d[i] = lp*a;
+      }
+    }
+    const conv = ctx.createConvolver(); conv.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = 0.22;
+    conv.connect(wet); wet.connect(dst);
+    return conv;
+  }
+
+  return {
+    has: key => !!MAKE[key],
+    ready: () => { let n = 0; for(const k in cache) n += cache[k].filter(Boolean).length; return {done:n, total:Object.keys(MAKE).length*LAYERS.length*RR, broken}; },
+    // ต่อบัสกลองชุดใหม่เข้าห้อง (เรียกทุกครั้งที่สร้าง dSink ใหม่)
+    route: function(ctx, sink, dst){
+      reset(ctx);
+      try{ if(!room) room = makeRoom(dst); sink.connect(room); }catch(e){}
+    },
+    // คืน false เมื่อเสียงใบนี้ยังไม่พร้อม ให้ผู้เรียกใช้เสียงแบบเดิมแทน
+    play: function(ctx, sink, key, when, vel){
+      if(broken) return false;
+      reset(ctx);
+      const v = Math.max(1, Math.min(127, vel||100))/127;
+      let li = 0; while(li < LAYERS.length-1 && LAYERS[li] < v - 0.02) li++;
+      const rr = Math.random() < 0.5 ? 0 : 1, c = cache[key] || [];
+      let b = c[li*RR + rr] || c[li*RR + (1-rr)], bl = li;
+      if(!b){
+        request(key, li, rr, true);
+        // ระดับใกล้เคียงที่เสร็จแล้วยังดีกว่าเสียงคนละแบบ
+        for(let d=1; d<LAYERS.length && !b; d++) for(const j of [li-d, li+d]){
+          if(j >= 0 && j < LAYERS.length && (c[j*RR] || c[j*RR+1])){ b = c[j*RR] || c[j*RR+1]; bl = j; break; }
+        }
+        if(!b) return false;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = b;
+      src.playbackRate.value = 1 + (Math.random() - 0.5)*0.008;   // ต่างกันนิดเดียวเหมือนตีจริง
+      const g = ctx.createGain(); g.gain.value = Math.min(1.25, v/LAYERS[bl]);
+      src.connect(g);
+      let out = g;
+      if(ctx.createStereoPanner){ const p = ctx.createStereoPanner(); p.pan.value = SPEC[key].pan; g.connect(p); out = p; }
+      out.connect(sink);
+      // ไฮแฮตปิดหรือเหยียบ ตัดเสียงไฮแฮตเปิดที่ยังดังอยู่
+      if((key === "hihat" || key === "hhf") && openHH && openHH.end > when && openHH.sink === sink){
+        try{ openHH.g.gain.setTargetAtTime(0, Math.max(when, openHH.t), 0.012); }catch(e){}
+        openHH = null;
+      }
+      if(key === "hihat:open") openHH = {g, t: when, end: when + b.duration, sink};
+      src.start(when);
+      return true;
+    },
+  };
+})();
 // เสียงกลองแต่ละใบ ทำให้แยกออกจากกันชัดตอนฟังทับไฟล์จริง
 function playVoice(id, when, vel, art){
   if(!dSink) ensureCtx();          // กันกรณีถูกเรียกก่อนระบบเสียงพร้อม
   // รับได้ทั้ง instrument ล้วนและคีย์แถว แล้วแตกกลับเป็นสองชั้น
   let inst=id, ar=art||"";
   if(PAL[id] && !V[id]){ inst=PAL[id].v; ar=PAL[id].art; }
-  if(!dSink || isMuted(pkey(inst,ar))) return;
-  /* เสียงกลองจริง: ถ้าเลือกชุดที่อัดจากกลองจริงและโหลดเสร็จแล้วใช้เสียงนั้น ไม่งั้นเล่นเสียงสังเคราะห์ด้านล่าง (sounds/klong-sounds.js) */
+  // ลูกเล่นที่ไม่มีเสียงแยกของตัวเอง ใช้เสียงตัวกลองนั้น
+  const key = KIT.has(pkey(inst,ar)) ? pkey(inst,ar) : inst;
+  if(!dSink || isMuted(key)) return;
+  /* เสียงกลองจริง: ถ้าเลือกชุดที่อัดจากกลองจริงและโหลดเสร็จแล้วใช้เสียงนั้น (sounds/klong-sounds.js)
+     ไม่งั้น (เลือก "สังเคราะห์" · ยังโหลดไม่เสร็จ · ครอสสติ๊กที่ไม่มีไฟล์) ใช้ชุดสังเคราะห์ KIT ด้านล่าง */
   if(window.KlongSounds && window.KlongSounds.play(S.ctx, dSink, pkey(inst,ar), when, vel)) return;
+  try{ if(KIT.play(S.ctx, dSink, key, when, vel)) return; }
+  catch(e){ console.warn("ชุดกลองใหม่เล่นไม่ได้ ใช้เสียงแบบเดิมแทน", e); }
+  // เสียงแบบเดิม — ใช้ระหว่างชุดใหม่ยังสร้างใบนั้นไม่เสร็จ และในเบราว์เซอร์ที่ชุดใหม่ใช้ไม่ได้
   const v=clamp(vel,1,127)/127, br=0.45+0.55*v;
-  switch(pkey(inst,ar)){
+  switch(key){
     case "kick":
       tone(when,0.26,"sine",118,46,0.95*v,0.045);
       nz(when,0.022,"highpass",2600,0.7,0.22*v);
@@ -4012,12 +4457,164 @@ function audioPlan(a, b, playFrom, rate, sr, bufDur, looping){
    18. ขอบเขตการฟัง — ทั้งเพลง / ห้อง / จังหวะ / ช่องย่อย
    ============================================================ */
 let scope="all", cur={bi:0,bj:0,k:0};
+
+/* ============================================================
+   36. ช่วงวนซ้ำแบบลากบนไม้บรรทัด (scope "range")
+   แถบไม้บรรทัดอยู่ใต้แถบเลขห้อง: ขีดยาว = ต้นห้อง · กลาง = จังหวะ · สั้น = ช่องย่อย
+   ลากคลุมตรงไหนก็วนตรงนั้น (ดึงเข้าช่องย่อยของค่าโน้ตที่เลือก ละเอียดสุดเขบ็ต 2 ชั้น
+   ถ้าเลือกค่าที่ยาวกว่าเขบ็ต 1 ชั้น) · ลากขอบช่วงเพื่อปรับ · แตะในช่วงเพื่อยกเลิก
+   ช่วงเก็บเป็น tick จึงไม่เพี้ยนเมื่อเปลี่ยนความเร็ว
+   ============================================================ */
+let loopRange=null, loopDrag=null;
+function loopStepTk(){ const s=snapTicks(); return s<=PPQ/2 ? s : PPQ/4; }
+function loopSnapTk(t){
+  const end=barStartTk[S.bars.length];
+  const tk=Math.max(0, secTk(Math.max(S.offset, t)));
+  if(tk>=end) return end;
+  const bi=barAtTk(tk), b0=barStartTk[bi], len=barTicks(S.bars[bi]), st=loopStepTk();
+  return Math.min(b0+Math.round((tk-b0)/st)*st, b0+len);
+}
+function loopPosText(tk){
+  const end=barStartTk[S.bars.length];
+  if(tk>=end) return "ท้ายเพลง";
+  const bi=barAtTk(tk), per=tpb(S.bars[bi].den), be=(tk-barStartTk[bi])/per+1;
+  return "ห้อง "+(bi+1)+" จังหวะ "+(+be.toFixed(2));
+}
+function loopLabel(a, b){
+  const per=tpb(S.bars[barAtTk(a)].den), n=+((b-a)/per).toFixed(2);
+  return loopPosText(a)+" → "+loopPosText(b)+" · "+n+" จังหวะ";
+}
+// ช่วงที่จะแสดงบนไม้บรรทัด: กำลังลาก > ช่วงที่ลากไว้ > ขอบเขตการฟังแบบอื่น (จางกว่า ไม่มีที่จับ)
+function laneRegion(){
+  if(loopDrag && loopDrag.moved) return {a:tkSec(loopDrag.a), b:tkSec(loopDrag.b), strong:true};
+  if(scope==="range" && loopRange){ const [a,b]=region(); return {a, b, strong:true}; }
+  if(scope!=="all" && S.bars.length){ const [a,b]=region(); return {a, b, strong:false}; }
+  return null;
+}
+function drawLoopLane(sx, vw, b0, b1, h){
+  const lw=LABELW(), y0=RULER_Y, hh=RULER_H, yb=y0+hh;
+  const X=t=>lw+(t-S.offset)*S.zoom-sx;
+  cx.save();
+  cx.fillStyle="rgba(255,255,255,.028)"; cx.fillRect(0, y0, vw, hh);
+  const R=laneRegion();
+  if(R){
+    const xa=X(R.a), xb=X(R.b);
+    cx.fillStyle = R.strong ? "rgba(79,199,212,.32)" : "rgba(120,190,200,.34)";
+    cx.fillRect(xa, y0+2, xb-xa, hh-4);
+    if(R.strong){
+      cx.fillStyle="#4FC7D4";
+      cx.fillRect(xa-2, y0+1, 4, hh-2); cx.fillRect(xb-2, y0+1, 4, hh-2);   // ที่จับสองข้าง
+      cx.strokeStyle="#4FC7D4"; cx.lineWidth=1; cx.setLineDash([4,4]);       // ขอบช่วงลากลงทั้งกริดบาง ๆ
+      cx.beginPath(); cx.moveTo(xa+.5, yb); cx.lineTo(xa+.5, h); cx.moveTo(xb-.5, yb); cx.lineTo(xb-.5, h); cx.stroke();
+      cx.setLineDash([]);
+    }
+  }
+  // ขีดจังหวะ: ยาวตามความสำคัญ วาดช่องย่อยเฉพาะเมื่อห่างกันพอให้ตาแยกออก
+  const st=loopStepTk();
+  cx.font="500 11px 'IBM Plex Sans Thai', sans-serif";
+  for(let i=b0; i<=b1 && i<S.bars.length; i++){
+    const bar=S.bars[i], bt=barStartTk[i], len=barTicks(bar), per=tpb(bar.den);
+    const beatPx=(tkSec(bt+per)-tkSec(bt))*S.zoom, subPx=beatPx*st/per;
+    for(let at=0; at<len; at+=st){
+      const isBeat = at%per===0;
+      if(!isBeat && subPx<5) continue;
+      const x=Math.round(X(tkSec(bt+at)))+.5;
+      if(x<lw-2 || x>vw+2) continue;
+      const th = at===0 ? hh : isBeat ? hh*0.55 : hh*0.32;
+      cx.strokeStyle = at===0 ? "#B9A79D" : isBeat ? "#7A665D" : "#6E5C53";
+      cx.lineWidth = at===0 ? 1.5 : 1;
+      cx.beginPath(); cx.moveTo(x, yb); cx.lineTo(x, yb-th); cx.stroke();
+      if(isBeat && at>0 && beatPx>=24){ cx.fillStyle="#9C8B82"; cx.fillText(String(at/per+1), x+3, y0+12); }
+    }
+  }
+  cx.restore();
+}
+function drawLoopBubble(vw){
+  if(!(loopDrag && loopDrag.moved)) return;
+  const lw=LABELW(), txt="วนซ้ำ "+loopLabel(loopDrag.a, loopDrag.b);
+  cx.save();
+  cx.font="600 13px 'IBM Plex Sans Thai', sans-serif";
+  const tw=cx.measureText(txt).width+18, bx=clamp(loopDrag.px-tw/2, lw+4, Math.max(lw+4, vw-tw-4)), by=RULER_Y+RULER_H+6;
+  cx.fillStyle="#2E2722"; cx.fillRect(bx, by, tw, 26);
+  cx.strokeStyle="#4FC7D4"; cx.lineWidth=1; cx.strokeRect(bx+.5, by+.5, tw-1, 25);
+  cx.fillStyle="#F1E9DF"; cx.fillText(txt, bx+9, by+18);
+  cx.restore();
+}
+function loopRedraw(){ if(S.playing) scrollDirty=true; else requestDraw(); }
+function loopDown(e, p){
+  if(!S.bars.length) return;
+  e.preventDefault();
+  activePid=e.pointerId; dragMode="loop"; cv.setPointerCapture(e.pointerId);
+  const tk=loopSnapTk(p.t), tol=16;
+  let mode="new", anchor=tk;
+  if(scope==="range" && loopRange){
+    const xa=X0(tkSec(loopRange.a)), xb=X0(tkSec(loopRange.b));
+    if(Math.abs(p.x-xb)<=tol){ mode="end"; anchor=loopRange.a; }
+    else if(Math.abs(p.x-xa)<=tol){ mode="end"; anchor=loopRange.b; }
+  }
+  const inside = scope==="range" && loopRange && p.x>X0(tkSec(loopRange.a)) && p.x<X0(tkSec(loopRange.b));
+  loopDrag={mode, anchor, a:Math.min(anchor,tk), b:Math.max(anchor,tk), x0:e.clientX, px:p.x-scroller.scrollLeft, cx:e.clientX, moved:false, inside, raf:0};
+  loopEdge();
+}
+function loopSet(clientX){
+  const r=cv.getBoundingClientRect(), x=clientX-r.left+scroller.scrollLeft;
+  const tk=loopSnapTk(T0(x)), st=loopStepTk(), end=barStartTk[S.bars.length];
+  let a=Math.min(loopDrag.anchor, tk), b=Math.max(loopDrag.anchor, tk);
+  if(b-a<st){ if(tk>=loopDrag.anchor) b=Math.min(end, a+st); else a=Math.max(0, b-st); }
+  loopDrag.a=a; loopDrag.b=b; loopDrag.px=x-scroller.scrollLeft;
+}
+function loopMove(e){
+  if(!loopDrag) return;
+  loopDrag.cx=e.clientX;
+  if(!loopDrag.moved && Math.abs(e.clientX-loopDrag.x0)<6) return;
+  loopDrag.moved=true;
+  loopSet(e.clientX); loopRedraw();
+}
+// ค้างนิ้วไว้ใกล้ขอบจอ = เลื่อนกริดต่อให้เอง ลากช่วงยาวกว่าจอได้
+function loopEdge(){
+  if(!loopDrag) return;
+  const r=scroller.getBoundingClientRect(), x=loopDrag.cx, lw=LABELW(), zone=40;
+  let d=0;
+  if(x>r.right-zone) d=Math.min(18, (x-(r.right-zone))/2+4);
+  else if(x<r.left+lw+zone) d=-Math.min(18, ((r.left+lw+zone)-x)/2+4);
+  if(d && loopDrag.moved){ scroller.scrollLeft=Math.max(0, scroller.scrollLeft+d); loopSet(x); loopRedraw(); }
+  loopDrag.raf=requestAnimationFrame(loopEdge);
+}
+function loopClear(msg){
+  loopRange=null; setScopeTo("all");
+  setStatus(msg || "ยกเลิกช่วงวนซ้ำแล้ว — กลับไปฟังทั้งเพลง");
+  if(S.playing) restartIfPlaying(); else draw();
+}
+function loopUp(e){
+  const d=loopDrag; loopDrag=null;
+  if(!d) return;
+  cancelAnimationFrame(d.raf);
+  if(e && e.type==="pointercancel"){ loopRedraw(); return; }
+  if(!d.moved){
+    if(d.inside) loopClear();
+    else { setStatus("ลากในแถบไม้บรรทัดคลุมห้อง/จังหวะที่ต้องการฟังวนซ้ำ"); loopRedraw(); }
+    return;
+  }
+  loopRange={a:d.a, b:d.b};
+  setScopeTo("range");                                 // ปุ่ม ทั้งเพลง/ทีละห้อง/… จะไม่ถูกกดสักอัน
+  const lp=$("#loop"); if(lp) lp.checked=true;
+  const [s0]=region();
+  S.pos=s0; playAbs=X0(s0);
+  const p=barBeatOf(s0); $("#clock").textContent="ห้อง "+p.b+" · จังหวะ "+p.be+" · "+fmt(s0);
+  setStatus("วนซ้ำ "+loopLabel(d.a, d.b)+" — แตะในช่วงเพื่อยกเลิก · ลากขอบเพื่อปรับ");
+  if(S.playing) restartIfPlaying(); else draw();
+}
 // จำนวนช่องย่อยในหนึ่งห้อง ตามค่าโน้ตที่เลือกอยู่ (นับจากต้นห้อง)
 function subCount(bi){
   const bar=S.bars[bi]||{num:4,den:4};
   return Math.max(1, Math.ceil(barTicks(bar)/Math.max(1,snapTicks())));
 }
 function region(){
+  if(scope==="range" && loopRange){
+    const end=barStartTk[S.bars.length];
+    return [tkSec(Math.min(loopRange.a, end)), tkSec(Math.min(loopRange.b, end))];
+  }
+  if(scope==="range") scope="all";
   if(scope==="all") return [S.offset, Math.min(S.dur||totalEnd(), totalEnd())];
   cur.bi=clamp(cur.bi,0,S.bars.length-1);
   const bar=S.bars[cur.bi];
@@ -4034,6 +4631,16 @@ function region(){
 }
 function step(dir){
   if(scope==="all") return;
+  if(scope==="range" && loopRange){                 // ย้อน/ถัดไป = เลื่อนช่วงวนซ้ำไปทีละช่วง
+    const L=loopRange.b-loopRange.a, end=barStartTk[S.bars.length];
+    const a=clamp(loopRange.a+dir*L, 0, Math.max(0, end-L));
+    loopRange={a, b:a+L};
+    const [s0]=region(); S.pos=s0; playAbs=X0(s0);
+    scroller.scrollLeft=Math.max(0, X0(s0)-scroller.clientWidth*0.35);
+    setStatus("วนซ้ำ " + loopLabel(loopRange.a, loopRange.b));
+    if(S.playing) restartIfPlaying(); else draw();
+    return;
+  }
   if(scope==="bar"){ cur.bi=clamp(cur.bi+dir,0,S.bars.length-1); cur.bj=0; cur.k=0; }
   else if(scope==="beat"){
     cur.bj+=dir;
@@ -4622,6 +5229,9 @@ function showUI(){
   if(S.buf) $("#pDet").classList.remove("hidden");
   rebuildRows(); setTimeout(fitBottom,0);
   $("#drop").style.padding="16px 18px";
+  // เดิมเติมช่องเหล่านี้เฉพาะตอนถอดจากไฟล์เสียง — กริดเปล่า/นำเข้า MIDI/เปิดงานที่บันทึกไว้ ช่องจึงว่าง
+  // ทั้งที่หัวกริดบอก =120 อยู่ (ทุกทางเปิดงานผ่าน showUI จุดนี้จุดเดียว)
+  $("#bpm").value=S.bpm; $("#offset").value=S.offset||0;
 }
 
 /* ============================================================
@@ -5164,7 +5774,161 @@ $("#home").onclick=()=>{ const [a]=region(); S.pos=a; playAbs=X0(a);
 $("#snapOn").onchange=e=>{ S.snapHead=e.target.checked; };
 $("#muteWarn").onclick=()=>{ S.mute={}; S.solo={}; syncLabels(); draw(); };
 $("#hideEmpty").onchange=e=>{ S.hideEmpty=e.target.checked; rebuildRows(); draw(); };
-$("#tpToggle").onclick=()=>{ $("#tp").classList.toggle("min"); fitBottom(); };
+/* ============================================================
+   35. แถบล่างแบบย่อ + แผงเขียนโน้ตลอย (คล้าย Keypad ของ Sibelius)
+   ย่อแถบแล้วเหลือแถวเดียว (เล่น หยุด กลับต้น นาฬิกา) คืนพื้นที่ให้กริด
+   ของที่ต้องใช้ตอนเขียน — ค่าโน้ต น้ำหนัก ลูกเล่น การวางโน้ต — อยู่ในแผงลอย
+   ลากย้ายได้ทั้งจอ · ซ่อนเองเมื่อไม่ได้แตะตามเวลาที่ตั้ง แล้วเหลือปุ่มกลม
+   ณ ตำแหน่งเดิม (โชว์ค่าโน้ตที่เลือกอยู่) แตะเพื่อเรียกกลับ ลากเพื่อย้าย
+
+   ปุ่มในแผงเป็น "สำเนา" ของปุ่มเดิม แตะแล้วไปกดปุ่มเดิมให้ และสำเนาสร้างใหม่
+   ทุกครั้งที่ปุ่มเดิมเปลี่ยน — สถานะจึงมีที่เดียว ไม่ต้องแก้ตรรกะเดิมสักบรรทัด
+   ============================================================ */
+const NP=(function(){
+  const KEY="klongpro.npal", MINKEY="klongpro.tpmin";
+  const tp=$("#tp"), pal=$("#npal"), pin=$("#npPin");
+  const st={fx:-1, fy:-1, open:true, t:10, all:false, tab:"val"};
+  try{ Object.assign(st, JSON.parse(localStorage.getItem(KEY))||{}); }catch(e){}
+  const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} };
+  let timer=null, holding=false;
+
+  const dotBtn=$("#npDot"), dotChk=$("#dotted");
+  function syncDot(){ dotBtn.setAttribute("aria-pressed", String(!!dotChk.checked)); }
+  dotBtn.onclick=()=>{ dotChk.checked=!dotChk.checked; dotChk.dispatchEvent(new Event("change")); syncDot(); };
+  function syncPin(){
+    const b=$("#vals").querySelector('button[aria-pressed="true"] svg');
+    pin.replaceChildren(b ? b.cloneNode(true) : Object.assign(document.createElement("span"), {className:"np-pg", textContent:"♪"}));
+    const on=$("#vals").querySelector('button[aria-pressed="true"]');
+    pin.setAttribute("aria-label", "แสดงแผงเขียนโน้ต" + (on ? " (ค่าโน้ตตอนนี้: " + on.title + ")" : ""));
+  }
+
+  // สำเนาของกลุ่มปุ่มเดิม
+  pal.querySelectorAll(".np-m").forEach(host=>{
+    const src=$(host.dataset.src); if(!src) return;
+    const build=()=>{
+      const c=src.cloneNode(true);
+      c.removeAttribute("id"); c.querySelectorAll("[id]").forEach(x=>x.removeAttribute("id"));
+      c.classList.remove("hidden");
+      host.replaceChildren(c);
+      if(src.id==="vals"){ syncDot(); syncPin(); }
+    };
+    host.addEventListener("click", e=>{
+      const b=e.target.closest("button"); if(!b) return;
+      const i=[...host.querySelectorAll("button")].indexOf(b), o=src.querySelectorAll("button")[i];
+      if(o && !o.disabled) o.click();
+    });
+    new MutationObserver(build).observe(src, {subtree:true, childList:true, characterData:true,
+      attributes:true, attributeFilter:["aria-pressed","disabled"]});
+    build();
+  });
+
+  function active(){
+    return tp.classList.contains("min") && !tp.classList.contains("hidden")
+      && !/\b(athome|atexport|ataudio)\b/.test(document.body.className);
+  }
+  // ตำแหน่งเก็บเป็นสัดส่วนของจอ หมุนจอแล้วยังอยู่มุมเดิม
+  function place(el){
+    const vw=innerWidth, vh=innerHeight, r=el.getBoundingClientRect();
+    if(st.fx<0){                                  // ครั้งแรก: มุมขวาล่าง เหนือแถบล่าง
+      const tb=tp.getBoundingClientRect();
+      st.fx=(vw-r.width-16)/vw; st.fy=(Math.min(tb.top, vh)-r.height-12)/vh;
+    }
+    const x=clamp(st.fx*vw, 4, Math.max(4, vw-r.width-4)), y=clamp(st.fy*vh, 4, Math.max(4, vh-r.height-4));
+    el.style.left=x+"px"; el.style.top=y+"px";
+  }
+  function syncTabs(){
+    pal.classList.toggle("all", !!st.all);
+    $("#npAll").setAttribute("aria-pressed", String(!!st.all));
+    pal.querySelectorAll(".np-tabs button").forEach(b=>{
+      const on=b.dataset.cat===st.tab;
+      b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-selected", String(on)); });
+    pal.querySelectorAll(".np-sec").forEach(sec=>{ sec.hidden = !st.all && sec.dataset.cat!==st.tab; });
+  }
+  function render(){
+    const on=active();
+    pal.hidden=!(on && st.open);
+    pin.hidden=!(on && !st.open);
+    syncTabs();
+    if(on) place(st.open ? pal : pin);
+    arm();
+  }
+  function arm(){
+    clearTimeout(timer);
+    if(!active() || !st.open || holding || !(st.t>0)) return;
+    timer=setTimeout(()=>{
+      if(holding || !active()) return;
+      st.open=false; save(); render();
+      pin.classList.remove("pulse"); void pin.offsetWidth; pin.classList.add("pulse");
+    }, st.t*1000);
+  }
+  function show(open){ st.open=open; save(); render(); }
+
+  // ลากแผง (ที่หัวแผง) หรือปุ่มกลม · แตะปุ่มกลมเฉย ๆ = เรียกแผงกลับ
+  function draggable(handle, el, onTap){
+    handle.addEventListener("pointerdown", e=>{
+      if(handle!==el && e.target.closest("button,select,label")) return;   // ปุ่มในหัวแผงกดได้ตามปกติ
+      if(e.button>0) return;
+      e.preventDefault();
+      const r=el.getBoundingClientRect(), dx=e.clientX-r.left, dy=e.clientY-r.top, x0=e.clientX, y0=e.clientY;
+      let moved=false; holding=true; clearTimeout(timer);
+      try{ handle.setPointerCapture(e.pointerId); }catch(_){}
+      const mv=ev=>{
+        if(!moved && Math.hypot(ev.clientX-x0, ev.clientY-y0)<6) return;
+        moved=true;
+        st.fx=(ev.clientX-dx)/innerWidth; st.fy=(ev.clientY-dy)/innerHeight; place(el);
+      };
+      const up=()=>{
+        handle.removeEventListener("pointermove", mv); handle.removeEventListener("pointerup", up);
+        handle.removeEventListener("pointercancel", up);
+        holding=false;
+        if(moved){ const r2=el.getBoundingClientRect(); st.fx=r2.left/innerWidth; st.fy=r2.top/innerHeight; save(); }
+        else if(onTap) onTap();
+        arm();
+      };
+      handle.addEventListener("pointermove", mv); handle.addEventListener("pointerup", up);
+      handle.addEventListener("pointercancel", up);
+    });
+  }
+  draggable(pal.querySelector(".np-head"), pal, null);
+  draggable(pin, pin, ()=>show(true));
+
+  // แตะอะไรในแผงก็นับว่ายังใช้อยู่ เริ่มนับเวลาซ่อนใหม่
+  pal.addEventListener("pointerdown", ()=>{ holding=true; clearTimeout(timer); }, true);
+  ["pointerup","pointercancel"].forEach(ev=>pal.addEventListener(ev, ()=>{ holding=false; arm(); }, true));
+  pal.addEventListener("change", arm);
+  pal.addEventListener("keydown", e=>{ if(e.key==="Escape") show(false); });
+  pal.querySelector(".np-tabs").addEventListener("click", e=>{
+    const b=e.target.closest("button[data-cat]"); if(!b) return;
+    st.tab=b.dataset.cat; save(); syncTabs(); place(pal); });
+  $("#npAll").onclick=()=>{ st.all=!st.all; save(); syncTabs(); place(pal); };
+  $("#npHide").onclick=()=>show(false);
+  const sel=$("#npTime"); sel.value=String(st.t);
+  if(sel.value!==String(st.t)){ st.t=10; sel.value="10"; }
+  sel.onchange=()=>{ st.t=+sel.value; save(); arm();
+    setStatus(st.t ? "แผงเขียนโน้ตจะซ่อนเองเมื่อไม่ได้แตะ "+st.t+" วินาที — แตะปุ่มกลมเพื่อเรียกกลับ" : "แผงเขียนโน้ตจะไม่ซ่อนเอง"); };
+
+  // ย่อ/ขยายแถบล่าง · จำไว้ข้ามการเปิดแอป
+  function setMin(on){
+    tp.classList.toggle("min", on);
+    $("#tpToggle").setAttribute("aria-expanded", String(!on));
+    try{ localStorage.setItem(MINKEY, on ? "1" : "0"); }catch(e){}
+    if(on) st.open=true;
+    render(); fitBottom();
+  }
+  $("#tpToggle").onclick=()=>setMin(!tp.classList.contains("min"));
+  try{ if(localStorage.getItem(MINKEY)==="1") tp.classList.add("min"); }catch(e){}
+  $("#tpToggle").setAttribute("aria-expanded", String(!tp.classList.contains("min")));
+
+  // คลาสของ body/แถบล่างเปลี่ยนบ่อย (โหมดต่าง ๆ) วาดใหม่เฉพาะเมื่อแผงควรขึ้น/หายจริง
+  // ไม่งั้นนาฬิกาซ่อนเองจะถูกเริ่มนับใหม่ตลอด
+  let lastOn=null;
+  const refresh=()=>{ const on=active(); if(on!==lastOn){ lastOn=on; render(); } };
+  new MutationObserver(refresh).observe(tp, {attributes:true, attributeFilter:["class"]});
+  new MutationObserver(refresh).observe(document.body, {attributes:true, attributeFilter:["class"]});
+  window.addEventListener("resize", ()=>{ if(active()) place(st.open ? pal : pin); });
+  refresh();
+  return {show, setMin, state:()=>Object.assign({}, st, {active:active()})};
+})();
 $("#moreBtn").onclick=()=>setInsp($("#insp").classList.contains("hidden"));
 // เว้นที่ให้กริดพอดีกับความสูงจริงของแถบล่าง ไม่ให้บังกัน
 function fitBottom(){
@@ -8120,10 +8884,65 @@ function metaRead(){
   catch(e){ return {items:[], autoIdx:0}; }
 }
 function metaWrite(m){ localStorage.setItem(K+"meta", JSON.stringify(m)); }
+
+/* ตัวจุดบันทึกเก็บใน IndexedDB — localStorage ทั้งเว็บได้ราว 5 MB
+   เพลงยาว 300 ห้องจุดละราว 0.9 MB บันทึกได้ 5 ครั้งก็เต็ม แล้วร่างกันงานหาย
+   ก็เขียนไม่ลงไปเงียบ ๆ ด้วย ส่วนรายการ (meta) ยังอยู่ localStorage เพราะเล็กและต้องอ่านทันที
+   ถ้า IndexedDB ใช้ไม่ได้ (โหมดส่วนตัวบางรุ่น) ถอยกลับไปเก็บ localStorage แบบเดิม */
+const SNAPDB = "klongpro-snaps";
+let snapDbP = null;
+function snapDb(){
+  if(!snapDbP) snapDbP = new Promise((res, rej) => {
+    if(!window.indexedDB) return rej(new Error("no indexedDB"));
+    const rq = indexedDB.open(SNAPDB, 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore("blob");
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+    rq.onblocked = () => rej(new Error("blocked"));
+  }).catch(e => { snapDbP = null; throw e; });
+  return snapDbP;
+}
+async function snapIdb(mode, fn){
+  const db = await snapDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("blob", mode), st = tx.objectStore("blob");
+    let out; const rq = fn(st);
+    if(rq) rq.onsuccess = () => { out = rq.result; };
+    tx.oncomplete = () => res(out);
+    tx.onerror = tx.onabort = () => rej(tx.error || new Error("idb"));
+  });
+}
+const idbGet = id => snapIdb("readonly", st => st.get(id));
+const idbPut = (id, raw) => snapIdb("readwrite", st => st.put(raw, id));
+const idbDel = id => snapIdb("readwrite", st => st.delete(id));
+async function rawGet(id){
+  try { const r = await idbGet(id); if(r != null) return r; } catch(e){}
+  return localStorage.getItem(K+"blob."+id);
+}
+async function rawPut(id, raw){
+  try {
+    await idbPut(id, raw);
+    localStorage.removeItem(K+"blob."+id);      // ช่องวนของเซฟอัตโนมัติอาจมีสำเนาเก่าค้างอยู่
+    return;
+  } catch(e){}
+  localStorage.setItem(K+"blob."+id, raw);
+}
+/* ย้ายจุดบันทึกที่ค้างใน localStorage ไป IndexedDB ทีละจุด (ย้ายเสร็จค่อยลบต้นทาง) */
+async function migrateBlobs(){
+  for(const it of metaRead().items){
+    const raw = localStorage.getItem(K+"blob."+it.id);
+    if(raw == null) continue;
+    try { await idbPut(it.id, raw); if((await idbGet(it.id)) === raw) localStorage.removeItem(K+"blob."+it.id); }
+    catch(e){ return; }
+  }
+}
+setTimeout(() => { migrateBlobs().catch(() => {}); }, 1500);
+
 /* ยังมีงานเก่าที่เข้ารหัสค้างอยู่ไหม ใช้ตัดสินว่าจะโชว์ปุ่มแปลงหรือเปล่า */
 function legacyCount(){
   let n = 0;
   for(const it of metaRead().items){
+    if(it.enc && !KEY){ n++; continue; }         // เก็บใน IndexedDB แล้ว ดูจากธงในรายการแทน
     try { if(isBox(JSON.parse(localStorage.getItem(K+"blob."+it.id)))) n++; } catch(e){}
   }
   return n;
@@ -8146,17 +8965,17 @@ const KP = {
       id = "man" + Date.now().toString(36);
     }
     const body = KEY ? await seal(KEY, snap) : snap;
-    try { localStorage.setItem(K+"blob."+id, JSON.stringify(body)); }
+    try { await rawPut(id, JSON.stringify(body)); }
     catch(e){ throw new Error("ที่เก็บในเครื่องเต็ม — ลบจุดบันทึกเก่าหรือดาวน์โหลดไฟล์สำรองก่อน"); }
     m.items = m.items.filter(x => x.id !== id);
-    m.items.push({id, kind, name, at:nowISO(), notes:(snap.notes||[]).length, bars:(snap.bars||[]).length});
+    m.items.push({id, kind, name, at:nowISO(), notes:(snap.notes||[]).length, bars:(snap.bars||[]).length, enc:!!KEY});
     m.items.sort((a,b) => b.at.localeCompare(a.at));
     metaWrite(m);
     return id;
   },
   list(){ return metaRead().items; },
   async get(id){
-    const raw = localStorage.getItem(K+"blob."+id);
+    const raw = await rawGet(id);
     if(!raw) throw new Error("ไม่พบจุดบันทึกนี้");
     const o = JSON.parse(raw);
     if(!isBox(o)) return o;                       // ข้อความธรรมดา อ่านได้เลย
@@ -8169,6 +8988,7 @@ const KP = {
   },
   del(id){
     localStorage.removeItem(K+"blob."+id);
+    idbDel(id).catch(() => {});
     const m = metaRead(); m.items = m.items.filter(x => x.id !== id); metaWrite(m);
   },
 
@@ -8200,13 +9020,14 @@ const KP = {
     const items = metaRead().items;
     const done = [];
     for(const it of items){
-      const raw = localStorage.getItem(K+"blob."+it.id);
+      const raw = await rawGet(it.id);
       if(!raw) continue;
       const o = JSON.parse(raw);
       if(!isBox(o)) continue;
       done.push([it.id, await open_(k, o)]);      // ถอดไม่ผ่านจะโยน error ออกไปเอง
     }
-    for(const [id, snap] of done) localStorage.setItem(K+"blob."+id, JSON.stringify(snap));
+    for(const [id, snap] of done) await rawPut(id, JSON.stringify(snap));
+    const m = metaRead(); m.items.forEach(x => { if(done.some(d => d[0] === x.id)) delete x.enc; }); metaWrite(m);
     localStorage.removeItem(K+"verify");
     localStorage.removeItem(K+"fail");
     return done.length;

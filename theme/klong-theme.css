@@ -227,3 +227,26 @@ html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio)){bac
   html[data-kmode] .seg,
   html[data-kmode] .valwrap{gap:3px; padding:3px 3px calc(3px + var(--k-depth))}
 }
+
+/* ---------- แผงเขียนโน้ตลอย (#npal) กับปุ่มกลมเรียกแผง (#npPin) ----------
+   ไม้เดียวกับแถบล่าง ขอบทองเหลือง ปุ่มข้างในเป็นปุ่มนูนชุดเดียวกับแถบล่างอยู่แล้ว
+   (กฎ .seg button / .valwrap button ด้านบนไม่ได้ผูกกับ #tp) */
+html[data-kmode] #npal{
+  background:var(--k-wood); color:var(--k-wood-ink); border:2px solid var(--k-brass);
+  box-shadow:inset 0 2px 0 -1px var(--k-brass-hi), 0 16px 36px rgba(30,15,5,.45), 0 2px 6px rgba(0,0,0,.25)}
+html[data-kmode] #npal .np-head{background:var(--k-wood); border-bottom-color:rgba(0,0,0,.28)}
+html[data-kmode] #npal .np-grip,
+html[data-kmode] #npal .np-sec h4,
+html[data-kmode] #npal .np-time{color:var(--k-wood-dim)}
+html[data-kmode] #npal .np-head b{color:var(--k-wood-ink); font-family:var(--k-display); font-weight:600}
+html[data-kmode] #npal .seg,
+html[data-kmode] #npal .valwrap{background:var(--k-tray)}
+html[data-kmode] #npal.all .np-sec + .np-sec{border-top-color:rgba(0,0,0,.25)}
+html[data-kmode] #npPin{
+  background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-on-ink);
+  border:2px solid var(--k-brass);
+  box-shadow:0 var(--k-depth) 0 var(--k-key-edge), 0 10px 20px rgba(0,0,0,.35), inset 0 1px 0 var(--k-key-hi)}
+html[data-kmode] #npal .np-time select{
+  background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-key-ink);
+  border:1px solid var(--k-key-border); border-radius:10px; opacity:1;
+  box-shadow:0 2px 0 var(--k-key-edge), inset 0 1px 0 var(--k-key-hi)}

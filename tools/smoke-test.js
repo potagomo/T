@@ -22,7 +22,7 @@ const fail = [];
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8", ".webmanifest":"application/manifest+json",
   ".json":"application/json", ".png":"image/png", ".woff2":"font/woff2", ".svg":"image/svg+xml",
-  ".mp3":"audio/mpeg" };
+  ".mp3":"audio/mpeg", ".jpg":"image/jpeg" };
 
 /* หา Chromium ที่ติดตั้งไว้แล้วในเครื่อง (sandbox ของ Claude Code มีให้อยู่แล้ว
    ที่ PLAYWRIGHT_BROWSERS_PATH) ถ้าไม่เจอก็คืน undefined ให้ playwright หาเอง */
@@ -548,6 +548,23 @@ async function phoneSuite(label, exe) {
   const P = await open({ width: 384, height: 784 }, { width: 384, height: 832 },
     () => { window.__buzz = 0; navigator.vibrate = () => { window.__buzz++; return true; }; });
   let page = P.page;
+  /* ติดตั้งลงมือถือ: Chrome ต้องบอกว่าติดตั้งได้ (ไม่มีข้อผิดพลาด) · การ์ดบนหน้าแรกบอกวิธี (ยังไม่มีคำเชิญ)
+     มีคำเชิญจากเบราว์เซอร์แล้วต้องเป็นปุ่มเดียว กดแล้วเรียกหน้าติดตั้งของเบราว์เซอร์ */
+  const cdp0 = await P.ctx.newCDPSession(page);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  const inst = await cdp0.send("Page.getInstallabilityErrors");
+  // บริบทของ Playwright เป็นแบบไม่ระบุตัวตน Chrome จึงตอบ in-incognito เสมอ — ไม่ใช่ปัญหาของเว็บ
+  inst.installabilityErrors = inst.installabilityErrors.filter((e) => e.errorId !== "in-incognito");
+  const man = JSON.parse((await cdp0.send("Page.getAppManifest")).data || "{}");
+  const ic0 = await page.evaluate(() => { const c = document.getElementById("kInstall");
+    return c && !c.hidden && document.getElementById("kInstBtn").hidden && /ติดตั้งแอป/.test(c.querySelector(".kinst-how").textContent); });
+  const ic1 = await page.evaluate(async () => { window.__pr = 0; const e = new Event("beforeinstallprompt");
+    e.prompt = () => { window.__pr++; }; e.userChoice = Promise.resolve({ outcome: "dismissed" }); dispatchEvent(e);
+    const b = document.getElementById("kInstBtn"); const shown = !b.hidden; b.click(); await new Promise((r) => setTimeout(r, 50));
+    return shown && window.__pr === 1; });
+  say(`ติดตั้งลงมือถือ: ข้อผิดพลาดของ Chrome ${inst.installabilityErrors.length ? JSON.stringify(inst.installabilityErrors) : "ไม่มี"} · ชื่อแอป ${man.short_name} · ภาพหน้าติดตั้ง ${(man.screenshots || []).length} · การ์ดบอกวิธี ${ic0} · ปุ่มติดตั้ง ${ic1}`);
+  if (inst.installabilityErrors.length) fail.push(`${label}: Chrome บอกว่าติดตั้งเป็นแอปไม่ได้ ${JSON.stringify(inst.installabilityErrors)}`);
+  if (!ic0 || !ic1) fail.push(`${label}: การ์ดติดตั้งลงมือถือบนหน้าแรกไม่ทำงาน`);
   await page.click("#homeBlank"); await page.waitForTimeout(600);
   const pt = await page.evaluate(() => { const tb = document.getElementById("topbar");
     return { kp: document.documentElement.getAttribute("data-kphone"), h: tb.getBoundingClientRect().height, over: tb.scrollWidth - tb.clientWidth,

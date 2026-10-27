@@ -390,3 +390,10 @@ html[data-kphone="land"] body.np-docked #tp.min #tpToggle{top:calc(5px + var(--s
 html[data-kphone] body.inspOn #npal.docked{display:none !important}
 html[data-kphone="land"] body.np-docked.inspOn main.wrap{right:0}
 html[data-kmode][data-kphone="land"] body.np-docked #insp{bottom:0}   /* แถบล่างอยู่บนแถบบนแล้ว แผงตั้งค่ายาวถึงขอบจอได้ */
+
+/* ---------- การ์ด "ติดตั้งลงมือถือ" บนหน้าแรก (klong-theme.js สร้าง) ---------- */
+#kInstall[hidden], #kInstall [hidden]{display:none !important}   /* .hcard ตั้ง display:block ไว้ ชนะ hidden */
+#kInstall{border-color:var(--ok)}
+#kInstall > b{color:var(--ok)}
+#kInstall .kinst-how{color:var(--ink); margin-top:-4px}
+#kInstall p b{display:inline; font-size:inherit; margin:0}

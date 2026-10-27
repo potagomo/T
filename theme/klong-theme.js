@@ -44,6 +44,19 @@ phoneMode();
 window.addEventListener("resize", phoneMode);
 window.addEventListener("orientationchange", function(){ setTimeout(phoneMode, 120); });
 
+/* ---------- ติดตั้งลงมือถือ: เก็บคำเชิญติดตั้งของเบราว์เซอร์ไว้ให้ปุ่มบนหน้าแรก ----------
+   Chrome / Samsung Internet / Edge บน Android ยิง beforeinstallprompt เมื่อเว็บพร้อมติดตั้ง ต้องดักตั้งแต่ใน <head>
+   กดแล้วเบราว์เซอร์สร้างแอปจริงให้ (WebAPK): ไอคอนบนหน้าจอ เปิดเต็มจอ ใช้ได้ไม่มีเน็ต อัปเดตตามเว็บเอง
+   และใช้ที่เก็บงานชุดเดียวกับในเบราว์เซอร์ งานที่บันทึกไว้จึงอยู่ครบ */
+var instEvt=null, instHooks=[];
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault(); instEvt=e; instHooks.forEach(function(f){ f(); });
+});
+window.addEventListener("appinstalled", function(){
+  instEvt=null; try{ localStorage.setItem("klong-installed","1"); }catch(_){}
+  instHooks.forEach(function(f){ f(true); });
+});
+
 /* ---------- ตารางสี: [กลางวัน, กลางคืน] ----------
    คีย์คือสีที่โค้ดโปรแกรมเขียนไว้ (ตัวเล็ก ไม่มีช่องว่าง)
    สีเสียงกลองอยู่ใน VOICES ของโปรแกรม ไฮแฮตถูกเปลี่ยนเป็น #4FC8D4 ใน index.html
@@ -360,6 +373,48 @@ function ready(){
     });
     new MutationObserver(arm).observe(B, {attributes:true, attributeFilter:["class"]});
     arm();
+  }
+
+  /* ---------- การ์ด "ติดตั้งลงมือถือ" บนหน้าแรก ----------
+     มีคำเชิญจากเบราว์เซอร์ = ปุ่มติดตั้งปุ่มเดียว · ไม่มี (Safari, เบราว์เซอร์ที่ไม่รองรับ) = บอกวิธีตามเบราว์เซอร์นั้น
+     ไม่ขึ้นเมื่อเปิดเป็นแอปอยู่แล้ว ติดตั้งแล้ว หรือกด "ไม่ต้อง" ไว้ */
+  var hdrop=document.querySelector("#homeScreen .hdrop");
+  var inApp=navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  if(hdrop && !inApp && !document.getElementById("kInstall")){
+    var UA=navigator.userAgent, how="";
+    if(ios) how='เปิดลิงก์นี้ใน <b>Safari</b> → แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) → <b>เพิ่มไปยังหน้าจอโฮม</b>';
+    else if(/SamsungBrowser/.test(UA)) how='แตะ <b>≡</b> มุมขวาล่าง → <b>เพิ่มหน้าไปยัง</b> → <b>หน้าจอหลัก</b>';
+    else if(/Android/.test(UA)) how='แตะ <b>⋮</b> มุมขวาบนของ Chrome → <b>ติดตั้งแอป</b> (บางรุ่นเขียนว่า <b>เพิ่มลงในหน้าจอหลัก</b>)';
+    var card=document.createElement("div");
+    card.className="hcard kinst"; card.id="kInstall"; card.hidden=true;
+    card.innerHTML='<b>ติดตั้งลงมือถือ</b>'+
+      '<p>ได้ไอคอน Klong Pro บนหน้าจอ เปิดเต็มจอเหมือนแอป ใช้ได้แม้ไม่มีเน็ต อัปเดตเองเมื่อเว็บมีรุ่นใหม่ และงานที่บันทึกไว้อยู่ครบ</p>'+
+      '<p class="kinst-how"></p>'+
+      '<div class="hbtns"><button type="button" class="btn primary" id="kInstBtn">ติดตั้งแอป</button>'+
+      '<button type="button" class="btn" id="kInstHide">ไม่ต้อง</button></div>';
+    hdrop.parentNode.insertBefore(card, hdrop.nextSibling);
+    var ibtn=card.querySelector("#kInstBtn"), ihow=card.querySelector(".kinst-how"), itxt=card.querySelector("p");
+    var off=function(k){ try{ return localStorage.getItem(k)==="1"; }catch(_){ return false; } };
+    var sync=function(done){
+      if(done){ card.hidden=false; ibtn.hidden=true; ihow.hidden=true; card.querySelector("#kInstHide").textContent="ปิด";
+        itxt.innerHTML='<b style="display:inline">ติดตั้งแล้ว ✓</b> เปิด Klong Pro จากไอคอนบนหน้าจอได้เลย'; return; }
+      if(off("klong-install-hide") || off("klong-installed")){ card.hidden=true; return; }
+      ibtn.hidden=!instEvt; ihow.hidden=!!instEvt || !how; ihow.innerHTML=how;
+      card.hidden=!instEvt && !how;
+    };
+    ibtn.addEventListener("click", function(){
+      if(!instEvt) return;
+      var ev=instEvt; instEvt=null; ev.prompt();
+      (ev.userChoice || Promise.resolve({})).then(function(c){
+        if(c && c.outcome==="accepted"){ ibtn.hidden=true; itxt.textContent="กำลังติดตั้ง — ไอคอน Klong Pro จะขึ้นบนหน้าจอในไม่กี่วินาที"; }
+        else sync();
+      });
+    });
+    card.querySelector("#kInstHide").addEventListener("click", function(){
+      try{ localStorage.setItem("klong-install-hide","1"); }catch(_){}
+      card.hidden=true;
+    });
+    instHooks.push(sync); sync();
   }
 
   /* สวิตช์กลางวัน / กลางคืน / ตามเครื่อง ไว้ในแถบล่างแถวเดียวกับเสียงเพลง/กลอง */

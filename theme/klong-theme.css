@@ -242,6 +242,11 @@ html[data-kmode] #npal .np-head b{color:var(--k-wood-ink); font-family:var(--k-d
 html[data-kmode] #npal .seg,
 html[data-kmode] #npal .valwrap{background:var(--k-tray)}
 html[data-kmode] #npal.all .np-sec + .np-sec{border-top-color:rgba(0,0,0,.25)}
+/* แถบห้องท้ายแผง (คัดลอก / วาง / ซ้ำห้องก่อนหน้า) — ตัวหนังสือบนไม้ใช้สีเดียวกับหัวข้อหมวด ไม่ใช่ --dim ที่จมไม้ */
+html[data-kmode] #npal .np-bar{background:var(--k-wood); border-top-color:rgba(0,0,0,.3); box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+html[data-kmode] #npal .np-bar-i{color:var(--k-wood-dim)}
+html[data-kmode] #npal .np-bar-i b{color:var(--k-wood-ink)}
+html[data-kmode] #npal .np-bar-i.err{color:#FFB4A8}
 html[data-kmode] #npPin{
   background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-on-ink);
   border:2px solid var(--k-brass);

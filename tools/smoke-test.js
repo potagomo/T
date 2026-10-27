@@ -297,6 +297,19 @@ async function suite(label, ctxOpts, exe) {
     await page.waitForTimeout(150);
     const pressed = await page.evaluate(() => document.querySelectorAll("#vals button")[3].getAttribute("aria-pressed"));
     if (pressed !== "true") fail.push(`${label}: กดค่าโน้ตในแผงลอยแล้วปุ่มเดิมไม่ถูกเลือก`);
+    /* แถบห้องท้ายแผง: คัดลอก / วาง / ซ้ำห้องก่อนหน้า ต้องเห็นเสมอ เป้านิ้ว 44px และกดแล้วไปกดปุ่มเดิมจริง */
+    const nb = await page.evaluate(() => {
+      const bs = [...document.querySelectorAll("#npal .np-bar-b button")].map((b) => b.getBoundingClientRect());
+      return { n: bs.length, minH: Math.min(...bs.map((r) => r.height)), inView: bs.every((r) => r.bottom <= innerHeight && r.top >= 0) };
+    });
+    await page.click('#npal .np-bar-b button[data-for="barCopy"]'); await page.waitForTimeout(150);
+    const nbCopy = await page.evaluate(() => document.getElementById("npBarInfo").textContent);
+    await page.click('#npal .np-bar-b button[data-for="barDup"]'); await page.waitForTimeout(150);
+    const nbDup = await page.evaluate(() => document.getElementById("npBarInfo").textContent);
+    say(`แผงลอย แถบห้อง: ${nb.n} ปุ่ม สูง ${Math.round(nb.minH)}px · คัดลอก → ${nbCopy} · ซ้ำห้องก่อนหน้า → ${nbDup}`);
+    if (nb.n !== 3 || nb.minH < 44 || !nb.inView) fail.push(`${label}: แถบห้องในแผงลอยไม่ครบ/เล็กกว่า 44px/หลุดจอ`);
+    if (!/✓ คัดลอกห้อง \d+ แล้ว/.test(nbCopy)) fail.push(`${label}: ปุ่มคัดลอกห้องในแผงลอยไม่ทำงาน (${nbCopy})`);
+    if (!/^[✓⚠]/.test(nbDup) || nbDup === nbCopy) fail.push(`${label}: ปุ่มซ้ำห้องก่อนหน้าในแผงลอยไม่ตอบสนอง (${nbDup})`);
   }
   await page.click("#tpToggle"); await page.waitForTimeout(300);     // กลับเป็นแถบเต็มให้ขั้นต่อไปหาปุ่มเจอ
   if (await page.isVisible("#npal")) fail.push(`${label}: ขยายแถบล่างแล้วแผงลอยยังค้างอยู่`);

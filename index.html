@@ -585,6 +585,18 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
 #npal .np-m .valwrap .vn{font-size:12px; white-space:nowrap}
 #npal .np-row{display:flex; gap:6px; margin-top:8px}
 #npal .np-row .btn{min-height:44px; padding:0 14px}
+/* ห้อง: ติดท้ายแผงเสมอ แม้เปิด "ทุกหมวด" จนแผงต้องเลื่อน */
+#npal .np-bar{position:sticky; bottom:-10px; z-index:2; margin:10px -10px -10px; padding:8px 10px 10px;
+  background:inherit; border-top:1px solid var(--line); border-radius:0 0 14px 14px}
+#npal .np-bar-i{font-size:12.5px; color:var(--dim); margin:0 0 6px; min-height:1.4em; line-height:1.4;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#npal .np-bar-i b{color:var(--ink); font-weight:600}
+#npal .np-bar-i.err{color:var(--warn)}
+#npal .np-bar-b{display:grid; grid-template-columns:repeat(3, 1fr); gap:6px}
+#npal .np-bar-b .btn{min-height:58px; padding:5px 2px; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; font-size:12.5px; line-height:1.15; white-space:normal; text-align:center}
+#npal .np-bar-b svg{width:22px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+#npal .np-bar-b svg .f{fill:currentColor; stroke:none}
 #npPin{position:fixed; left:12px; top:80px; z-index:40; width:52px; height:52px; padding:0; border-radius:50%;
   display:grid; place-items:center; background:var(--panel2); color:var(--ok); border:2px solid var(--ok);
   box-shadow:0 6px 16px rgba(0,0,0,.4); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none}
@@ -1167,6 +1179,18 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
   <div class="np-sec" data-cat="art"><h4>ประดับ</h4><div class="np-m" data-src="#ornSeg2"></div>
     <h4>รัว</h4><div class="np-m" data-src="#tremSeg"></div></div>
   <div class="np-sec" data-cat="line"><h4>การวางโน้ต (แนวก้าน)</h4><div class="np-m" data-src="#lineSeg"></div></div>
+  <!-- ห้อง: อยู่ท้ายแผงทุกหมวด แตะครั้งเดียวไม่ต้องสลับหมวด ปุ่มเหล่านี้ไปกดปุ่มเดิมในแถบล่าง -->
+  <div class="np-bar" role="group" aria-label="คัดลอก วาง ทำซ้ำห้อง">
+    <div class="np-bar-i" id="npBarInfo" aria-live="polite"></div>
+    <div class="np-bar-b">
+      <button class="btn sm" data-for="barCopy" title="คัดลอกห้องที่หัวอ่านอยู่">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M5 16V5a2 2 0 0 1 2-2h9"/></svg><span>คัดลอกห้องนี้</span></button>
+      <button class="btn sm" data-for="barPaste" title="วางห้องที่คัดลอกไว้ลงห้องที่หัวอ่านอยู่ (แทนของเดิมในห้อง)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></svg><span>วางลงห้องนี้</span></button>
+      <button class="btn sm" data-for="barDup" title="ทำห้องนี้ให้เหมือนห้องก่อนหน้า">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19L18 5"/><circle cx="7.5" cy="8" r="1.8" class="f"/><circle cx="16.5" cy="16" r="1.8" class="f"/></svg><span>ซ้ำห้องก่อนหน้า</span></button>
+    </div>
+  </div>
 </section>
 <button id="npPin" hidden aria-label="แสดงแผงเขียนโน้ต" title="แผงเขียนโน้ต — แตะเพื่อแสดง ลากเพื่อย้าย"><span class="np-pg" aria-hidden="true">♪</span></button>
 
@@ -5903,6 +5927,7 @@ const NP=(function(){
     pin.hidden=!(on && !st.open);
     syncTabs();
     if(on) place(st.open ? pal : pin);
+    if(on && st.open){ barLast=""; syncBar(); }
     arm();
   }
   function arm(){
@@ -5915,6 +5940,32 @@ const NP=(function(){
     }, st.t*1000);
   }
   function show(open){ st.open=open; save(); render(); }
+
+  // ห้อง: คัดลอก / วาง / ทำซ้ำห้องก่อนหน้า — กดปุ่มเดิมในแถบล่างให้ (ปุ่มที่ซ่อนอยู่ก็ .click() ได้)
+  // บรรทัดบนบอกห้องที่ปุ่มจะทำงานด้วย (ห้องที่หัวอ่านอยู่ ตามที่ปุ่มเดิมใช้ S.pos) และห้องที่คัดลอกไว้
+  // กดแล้วโชว์ผลสั้น ๆ ในแผงด้วย บนมือถือแถบบนที่มีข้อความสถานะอาจถูกเลื่อนหลุดจอ
+  const barInfo=$("#npBarInfo");
+  let barMsgUntil=0, barMsgT=null, barLast="";
+  function syncBar(){
+    if(pal.hidden || Date.now()<barMsgUntil) return;
+    const n=S.bars.length ? barAtTk(secTk(S.pos))+1 : 0;
+    const t=!n ? "" : "หัวอ่านอยู่ <b>ห้อง "+n+"</b> · "+(S.clip
+      ? "คัดลอกไว้: ห้อง "+S.clip.from+" ("+S.clip.notes.length+" ตัวโน้ต)" : "ยังไม่ได้คัดลอกห้อง");
+    if(t!==barLast){ barLast=t; barInfo.innerHTML=t; barInfo.classList.remove("err"); }
+  }
+  pal.querySelector(".np-bar-b").addEventListener("click", e=>{
+    const b=e.target.closest("button[data-for]"); if(!b) return;
+    const o=$("#"+b.dataset.for); if(!o || o.disabled) return;
+    o.click();
+    const err=statusEl.classList.contains("err");
+    barInfo.textContent=(err ? "⚠ " : "✓ ")+statusEl.textContent.split(" — ")[0];
+    barInfo.classList.toggle("err", err); barLast="";
+    barMsgUntil=Date.now()+2600; clearTimeout(barMsgT);
+    barMsgT=setTimeout(()=>{ barMsgUntil=0; syncBar(); }, 2650);
+  });
+  // หัวอ่านขยับ (นาฬิกาเปลี่ยน) หรือกดปุ่มเดิมในแถบล่าง → อัปเดตบรรทัดบน
+  new MutationObserver(syncBar).observe($("#clock"), {childList:true, characterData:true, subtree:true});
+  ["barCopy","barPaste","barDup"].forEach(id=>$("#"+id).addEventListener("click", ()=>setTimeout(syncBar, 0)));
 
   // ลากแผง (ที่หัวแผง) หรือปุ่มกลม · แตะปุ่มกลมเฉย ๆ = เรียกแผงกลับ
   function draggable(handle, el, onTap){

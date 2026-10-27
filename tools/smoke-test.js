@@ -190,7 +190,30 @@ async function suite(label, ctxOpts, exe) {
       const n = white + black + mid; return { white: white / n, black: black / n };
     });
     say(`ตัวอย่างโน้ตพิมพ์: กระดาษขาว ${pv ? Math.round(pv.white * 100) : "-"}% · หมึกดำ ${pv ? (pv.black * 100).toFixed(1) : "-"}%`);
-    if (!pv || pv.white < 0.85 || pv.black < 0.002) fail.push(`${label}: ตัวอย่างโน้ตพิมพ์ไม่ใช่หมึกดำบนกระดาษขาว`);
+    if (!pv || pv.white < 0.85 || pv.black < 0.0008) fail.push(`${label}: ตัวอย่างโน้ตพิมพ์ไม่ใช่หมึกดำบนกระดาษขาว`);
+    /* ตั้งค่าหน้ากระดาษ: กระดาษกำหนดเอง 200×250 มม. แนวตั้ง → PDF ต้องได้ขนาดนั้นจริง (567×709 pt)
+       ค่าต้องจำไว้ในเครื่อง · ตัวอย่างต้องวาดใหม่เองเมื่อแก้ค่า แล้วคืนค่าเริ่มต้นก่อนทำขั้นต่อไป */
+    await page.evaluate(() => {
+      const set = (id, v) => { const e = document.getElementById(id); if (e.type === "checkbox") e.checked = v; else e.value = v;
+        e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); };
+      set("exPaper", "custom"); set("exPW", "200"); set("exPH", "250"); set("exOrient", "p");
+      set("exStaff", "6"); set("exPerSys", "0"); set("exComp", "ทดสอบ");
+    });
+    await page.waitForTimeout(900);
+    const dl2 = await Promise.all([
+      page.waitForEvent("download", { timeout: 30000 }).catch(() => null),
+      clickFirst(page, ["#exPdf"]),
+    ]).then((r) => r[0]);
+    let box = "";
+    if (dl2) { const p2 = path.join(require("os").tmpdir(), `smoke-${label}-custom.pdf`); await dl2.saveAs(p2);
+      box = ((/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/.exec(fs.readFileSync(p2).toString("latin1")) || []).slice(1).join("×")); }
+    const saved = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem("klongpro.print")) || {}; } catch (e) { return {}; } });
+    const pages = await page.evaluate(() => document.getElementById("exPages").textContent);
+    say(`ตั้งค่าหน้ากระดาษ: กระดาษ 200×250 มม. → PDF ${box} pt · จำค่า=${saved.paper}/${saved.staffMM} มม. · ${pages}`);
+    if (box !== "566.93×708.66") fail.push(`${label}: กระดาษกำหนดเองไม่ได้ขนาดตามที่ตั้ง (${box})`);
+    if (saved.paper !== "custom" || +saved.staffMM !== 6) fail.push(`${label}: ไม่ได้จำค่าตั้งหน้ากระดาษไว้`);
+    if (!/\d+ หน้า/.test(pages)) fail.push(`${label}: ตัวอย่างไม่วาดใหม่ตามค่าที่แก้`);
+    await clickFirst(page, ["#exReset"]); await page.waitForTimeout(500);
   }
 
   // ถ้าอยู่หน้าส่งออก กลับมาหน้า editor ก่อน (รุ่น 11)

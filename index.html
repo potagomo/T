@@ -266,6 +266,40 @@ hr{border:0;border-top:1px solid var(--line); margin:13px 0}
 .expg{display:block; max-width:100%; border:1px solid var(--line); border-radius:6px;
   margin:8px 0; background:#fff}
 #exPreview{max-height:48vh; overflow:auto}
+/* หน้าส่งออก: ตั้งค่าซ้าย ตัวอย่างขวา (จอแคบเรียงลง) — ตั้งค่าแบบ Sibelius / Finale */
+.exgrid{display:grid; grid-template-columns:minmax(300px, 430px) minmax(0, 1fr); gap:22px; align-items:start}
+.exview{position:sticky; top:10px}
+.exvhead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 8px; color:var(--ink)}
+.exvhead b{font-size:14px; font-weight:600}
+.exgrid #exPreview{max-height:calc(100vh - 120px); max-height:calc(100dvh - 120px); display:flex; flex-direction:column; gap:14px;
+  padding:4px; border-radius:12px}
+.exgrid .expg{width:100%; max-width:none; margin:0; border:0; box-shadow:0 4px 16px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08); border-radius:3px}
+.expre{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0 0 12px}
+.expre span{font-size:12.5px; color:var(--dim); margin-right:2px}
+.exsec{border:1px solid var(--line); border-radius:12px; background:var(--panel); margin:0 0 10px; padding:0 14px}
+.exsec > summary{cursor:pointer; padding:12px 0; font-weight:600; font-size:14px; color:var(--ink); list-style:none;
+  display:flex; align-items:center; justify-content:space-between; min-height:24px}
+.exsec > summary::-webkit-details-marker{display:none}
+.exsec > summary::after{content:"▾"; color:var(--dim); font-size:13px}
+.exsec:not([open]) > summary::after{content:"▸"}
+.exf{display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; padding:0 0 14px; align-items:end}
+.exf.c4{grid-template-columns:repeat(4, minmax(0,1fr))}
+.exf .full{grid-column:1 / -1}
+.exf label.f{display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--dim); min-width:0}
+.exf label.f em{font-style:normal; color:var(--ink); font-weight:600}
+.exf input[type=number], .exf input[type=text], .exf select{width:100%; min-width:0; box-sizing:border-box; min-height:40px;
+  color:var(--ink); font:inherit; font-size:14px}
+.exf input[type=range]{width:100%; accent-color:var(--ok)}
+.exf .chk{font-size:13px; color:var(--ink); min-height:32px; display:flex; align-items:center; gap:8px}
+.exf .exreset{align-self:end; min-height:40px}
+.exbtns{display:flex; flex-wrap:wrap; gap:8px; padding:0 0 14px}
+.exCustom[hidden]{display:none !important}
+@media (max-width:1000px){ .exgrid{grid-template-columns:minmax(290px, 340px) minmax(0, 1fr); gap:16px} .exf.c4{grid-template-columns:1fr 1fr} }
+@media (max-width:760px){
+  .exgrid{grid-template-columns:1fr}
+  .exview{position:static}
+  .exgrid #exPreview{max-height:70vh}
+}
 #homeScreen{position:fixed; inset:0; z-index:900; background:var(--bg); overflow:auto;
   -webkit-overflow-scrolling:touch}
 #homeScreen .hwrap{max-width:660px; margin:0 auto; padding:34px 18px 48px}
@@ -293,7 +327,7 @@ body.athome header, body.athome main.wrap, body.athome #tp{display:none}
 /* หน้าส่งออกเต็มจอ — โครงเดียวกับหน้าแรก */
 #exportScreen{position:fixed; inset:0; z-index:880; background:var(--bg); overflow:auto;
   -webkit-overflow-scrolling:touch}
-#exportScreen .exwrap{max-width:820px; margin:0 auto; padding:22px 18px 60px}
+#exportScreen .exwrap{max-width:1240px; margin:0 auto; padding:22px 18px 60px}   /* ตั้งค่าซ้าย + ตัวอย่างขวา */
 #exportScreen .exhead{display:flex; align-items:center; gap:14px; margin-bottom:18px}
 #exportScreen .exhead h1{font-size:22px; color:var(--ink); margin:0; font-weight:600}
 #exportScreen .panel{background:transparent; border:0; padding:0}
@@ -756,33 +790,89 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
       <h1>ส่งออกงาน</h1>
     </div>
   <section class="panel" id="pExport">
-    <h2>ส่งออก — รวมทุกรูปแบบไว้ที่เดียว</h2>
-    <div class="bar">
-      <div class="field"><label for="exPaper">ขนาดกระดาษ</label><select id="exPaper"></select></div>
-      <div class="field"><label for="exOrient">แนวกระดาษ</label>
-        <select id="exOrient"><option value="p">แนวตั้ง</option><option value="l">แนวนอน</option></select></div>
-      <div class="field"><label for="exDpi">ความละเอียด</label><select id="exDpi"></select></div>
-      <div class="field"><label for="exPerSys">ห้องต่อบรรทัด</label>
-        <select id="exPerSys"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select></div>
-      <div class="field"><label>&nbsp;</label>
-        <label class="chk"><input type="checkbox" id="exMono" checked> ดำบนขาว</label></div>
-      <div class="field"><label>&nbsp;</label>
-        <label class="chk"><input type="checkbox" id="exTitle" checked> ใส่ชื่องานหน้าแรก</label></div>
-      <div class="field"><label>&nbsp;</label>
-        <label class="chk"><input type="checkbox" id="exKey" checked> คีย์กลองหน้าแรก</label></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="exPrev">ดูตัวอย่าง</button></div>
+  <div class="exgrid">
+  <div class="exset">
+    <div class="expre" role="group" aria-label="ค่าพร้อมใช้">
+      <span>ค่าพร้อมใช้</span>
+      <button class="btn sm" data-preset="std">มาตรฐาน</button>
+      <button class="btn sm" data-preset="big">ตัวใหญ่อ่านง่าย</button>
+      <button class="btn sm" data-preset="eco">ประหยัดกระดาษ</button>
+      <button class="btn sm" data-preset="land">แนวนอน</button>
     </div>
-    <div id="exPreview"></div>
-    <div class="bar">
-      <div class="field"><label>&nbsp;</label><button class="btn primary" id="exPdf">ส่งออก PDF</button></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="exPng">ส่งออกรูปภาพ</button></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="exMid2">ไฟล์ .mid</button></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="exXml2">ไฟล์ .musicxml</button></div>
-      <div class="field"><label>&nbsp;</label><button class="btn" id="exKlong">ไฟล์สำรอง .klong</button></div>
-    </div>
-    <p class="hint" id="exNote">PDF กับรูปภาพวาดด้วยเครื่องเขียนโน้ตตัวเดียวกับบนจอ จัดหน้าแบบโน้ตพิมพ์
-      (กุญแจ · ตัวเลขจังหวะ · ความเร็ว · เลขห้อง · คีย์กลอง) เป็นภาพคมชัดไม่สูญเสีย ไม่ใช่เวกเตอร์
-      · ถ้าต้องการไฟล์ที่แก้ต่อได้ในโปรแกรมโน้ต ใช้ .musicxml</p>
+
+    <details class="exsec" open><summary>หน้ากระดาษ</summary>
+      <div class="exf">
+        <label class="f">ขนาดกระดาษ<select id="exPaper"></select></label>
+        <label class="f">แนวกระดาษ<select id="exOrient"><option value="p">แนวตั้ง</option><option value="l">แนวนอน</option></select></label>
+        <label class="f exCustom">กว้าง (มม.)<input type="number" id="exPW" min="80" max="600" step="1"></label>
+        <label class="f exCustom">สูง (มม.)<input type="number" id="exPH" min="80" max="900" step="1"></label>
+      </div>
+      <div class="exf c4" role="group" aria-label="ขอบกระดาษ (มม.)">
+        <label class="f">ขอบบน<input type="number" id="exMT" min="0" max="60" step="0.5"></label>
+        <label class="f">ขอบล่าง<input type="number" id="exMB" min="0" max="60" step="0.5"></label>
+        <label class="f">ขอบซ้าย<input type="number" id="exML" min="0" max="60" step="0.5"></label>
+        <label class="f">ขอบขวา<input type="number" id="exMR" min="0" max="60" step="0.5"></label>
+      </div>
+    </details>
+
+    <details class="exsec" open><summary>ขนาดโน้ตและการจัดบรรทัด</summary>
+      <div class="exf">
+        <label class="f full">ขนาดบรรทัด 5 เส้น <em id="exStaffV"></em>
+          <input type="range" id="exStaff" min="5" max="11" step="0.1"></label>
+        <label class="f">ห้องต่อบรรทัด<select id="exPerSys"><option value="0">อัตโนมัติ</option><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select></label>
+        <label class="f">ความแน่นของโน้ต<select id="exDen"><option value="0.82">แน่น</option><option value="1">ปกติ</option><option value="1.2">หลวม</option></select></label>
+        <label class="f">ระยะห่างระหว่างบรรทัด (มม.)<input type="number" id="exGap" min="0" max="40" step="0.5"></label>
+        <label class="f">ย่อหน้าบรรทัดแรก (มม.)<input type="number" id="exIndent" min="0" max="60" step="1"></label>
+        <label class="chk full"><input type="checkbox" id="exJustify"> จัดบรรทัดให้ห่างเท่ากันจนเต็มหน้า</label>
+        <label class="chk full"><input type="checkbox" id="exJustLast"> ยืดบรรทัดสุดท้ายให้เต็มความกว้าง</label>
+      </div>
+    </details>
+
+    <details class="exsec"><summary>หัวกระดาษและข้อความ</summary>
+      <div class="exf">
+        <label class="f full">ชื่อเพลง<input type="text" id="exTitle" placeholder="ไม่ใส่ = ไม่มีชื่อเพลง"></label>
+        <label class="f">ขนาดชื่อเพลง (pt)<input type="number" id="exTitlePt" min="10" max="40" step="1"></label>
+        <label class="f">คำบรรยายใต้ชื่อ<input type="text" id="exSub" placeholder="เช่น เพลงประกอบ…"></label>
+        <label class="f">ข้อความมุมซ้าย<input type="text" id="exLeft" placeholder="เช่น กลองชุด"></label>
+        <label class="f">ศิลปิน / ผู้แต่ง<input type="text" id="exComp" placeholder="มุมขวา"></label>
+        <label class="f">ถอดโน้ตโดย<input type="text" id="exArr" placeholder="มุมขวา ใต้ศิลปิน"></label>
+        <label class="f">ข้อความท้ายหน้าแรก<input type="text" id="exFoot" placeholder="เช่น ลิขสิทธิ์ ©"></label>
+        <label class="chk full"><input type="checkbox" id="exRunHead"> ชื่อเพลงตัวเล็กบนหน้าถัดไป</label>
+      </div>
+    </details>
+
+    <details class="exsec"><summary>เครื่องหมายบนโน้ต</summary>
+      <div class="exf">
+        <label class="f">เลขห้อง<select id="exBarNum"><option value="sys">ต้นบรรทัด</option><option value="every">ทุกห้อง</option><option value="n5">ทุก 5 ห้อง</option><option value="n10">ทุก 10 ห้อง</option><option value="none">ไม่แสดง</option></select></label>
+        <label class="f">เลขหน้า<select id="exPageNum"><option value="bc">กลางด้านล่าง</option><option value="br">มุมขวาล่าง</option><option value="to">มุมบนด้านนอก</option><option value="none">ไม่แสดง</option></select></label>
+        <label class="chk"><input type="checkbox" id="exPnFirst"> เลขหน้าบนหน้าแรกด้วย</label>
+        <label class="chk"><input type="checkbox" id="exTempo"> ป้ายความเร็ว ♩ =</label>
+        <label class="chk"><input type="checkbox" id="exKey"> คีย์กลองหน้าแรก</label>
+        <label class="chk"><input type="checkbox" id="exMono"> ดำบนขาว (ไม่ติ๊ก = หัวโน้ตสีตามกลอง)</label>
+      </div>
+    </details>
+
+    <details class="exsec" open><summary>ไฟล์</summary>
+      <div class="exf">
+        <label class="f">ความละเอียด<select id="exDpi"></select></label>
+        <button class="btn sm exreset" id="exReset" type="button">คืนค่าเริ่มต้นทั้งหมด</button>
+      </div>
+      <div class="exbtns">
+        <button class="btn primary" id="exPdf">ส่งออก PDF</button>
+        <button class="btn" id="exPng">ส่งออกรูปภาพ</button>
+        <button class="btn" id="exMid2">ไฟล์ .mid</button>
+        <button class="btn" id="exXml2">ไฟล์ .musicxml</button>
+        <button class="btn" id="exKlong">ไฟล์สำรอง .klong</button>
+      </div>
+    </details>
+    <p class="hint" id="exNote">ตั้งค่าแบบโปรแกรมเขียนโน้ต (Sibelius · Finale) ตัวอย่างเปลี่ยนตามทันทีที่แก้ ค่าที่ตั้งจำไว้ให้
+      · PDF กับรูปภาพเป็นภาพคมชัดไม่สูญเสีย ไม่ใช่เวกเตอร์ · ถ้าต้องการไฟล์ที่แก้ต่อได้ในโปรแกรมโน้ต ใช้ .musicxml</p>
+  </div>
+  <div class="exview">
+    <div class="exvhead"><b id="exPages">ตัวอย่าง</b><button class="btn sm" id="exPrev" type="button">วาดตัวอย่างใหม่</button></div>
+    <div id="exPreview" aria-live="polite"></div>
+  </div>
+  </div>
   </section>
   </div>
 </div>
@@ -6576,10 +6666,13 @@ function renderBarHints(bi, cursorTk){
    แลกกับการที่ภาพตรงกับบนจอเป๊ะ ๆ และไม่ต้องพึ่งไลบรารีภายนอก
    ============================================================ */
 const PAPERS = {
-  a4:     {th:"A4",       w:210, h:297},
-  letter: {th:"Letter",   w:215.9, h:279.4},
-  a3:     {th:"A3",       w:297, h:420},
-  a5:     {th:"A5",       w:148, h:210},
+  a4:      {th:"A4",       w:210,   h:297},
+  letter:  {th:"Letter",   w:215.9, h:279.4},
+  a3:      {th:"A3",       w:297,   h:420},
+  b4:      {th:"B4",       w:250,   h:353},
+  a5:      {th:"A5",       w:148,   h:210},
+  legal:   {th:"Legal",    w:215.9, h:355.6},
+  tabloid: {th:"Tabloid",  w:279.4, h:431.8},
 };
 const EX_DPI = [{v:150, th:"150 · ดูบนจอ"}, {v:200, th:"200 · พิมพ์ทั่วไป"},
                 {v:300, th:"300 · พิมพ์คมชัด"}];
@@ -6600,18 +6693,28 @@ function drawSystemInto(ctx, b0, b1, x, y, w){
 }
 /* ── งานพิมพ์ ──────────────────────────────────────────────────────────
    หน้าตาที่ยึด: แบบโน้ตกลองที่พิมพ์ขายทั่วไป (Hal Leonard / Hudson) ไม่ใช่ภาพหน้าจอ
-   · หมึกดำล้วนบนกระดาษขาว — เดิมวาดบนพื้นมืดแล้วกลับสีตามความสว่าง สีสแนร์/กระเดื่อง
-     จึงออกเป็นเทา ตอนนี้ดักสีที่ตั้งบนผืนผ้าใบงานพิมพ์ ให้เป็นดำทั้งหมด
+   · หมึกดำล้วนบนกระดาษขาว — ดักสีที่ตั้งบนผืนผ้าใบงานพิมพ์ให้เป็นดำทั้งหมด
      (แบบมีสี: หัวโน้ตใช้สีเสียงกลองที่เข้มลงให้อ่านได้บนกระดาษขาว ที่เหลือดำ)
    · ระยะห่างตามความยาวโน้ต (รากของความยาว) แบบเครื่องเรียงโน้ต ไม่ใช่ตามเวลาตรง ๆ
-     โน้ตถี่ในฟิลล์ได้ที่มากขึ้น โน้ตตัวแรกของห้องไม่ทับเส้นกั้นห้องอีก
-   · กุญแจเพอร์คัชชันทุกบรรทัด · ตัวเลขบอกจังหวะ (บรรทัดแรกและที่เปลี่ยน) · ♩ = ความเร็ว
-     · เลขห้องต้นบรรทัด · คีย์กลองหน้าแรก · เส้นจบเพลง · บรรทัดสุดท้ายที่ห้องน้อยไม่ยืดเต็มบรรทัด
+   · กุญแจเพอร์คัชชันทุกบรรทัด · ตัวเลขบอกจังหวะ · ♩ = ความเร็ว · เลขห้อง · คีย์กลอง · เส้นจบเพลง
    · ห้องเปล่าท้ายเพลงไม่พิมพ์ (ห้องว่างที่เหลือจากการถอด ไม่ใช่ดนตรี)
-   หน่วยวาดทั้งหมดเป็นจุดภาพจอ 96 dpi (เส้นบรรทัดห่าง 8 = 2.1 มม.) แล้วขยายตาม dpi ที่เลือก */
-const PR = {padL:11, base:15.5, exp:0.55, minGap:12, clefW:22, tsW:21, staff:32, gap:22, tempoH:24};
-// ช่องว่างระหว่างสองจุดตี: เขบ็ต 2 ชั้น 15.5 · เขบ็ต 1 ชั้น 22.7 · ตัวดำ 33 · ตัวขาว 49 · ตัวกลม 71
-function prGap(dtk){ return Math.max(PR.minGap, PR.base * Math.pow(Math.max(1, dtk)/(PPQ/4), PR.exp)); }
+   ตั้งค่าหน้ากระดาษได้ละเอียดแบบ Sibelius (Document Setup · Layout) / Finale (Page Format)
+   ดู exOpts() — ค่าทั้งหมดอยู่ใน PRO ระหว่างจัดหน้าและวาด
+
+   หน่วย: "หน่วยหน้า" = จุดภาพจอ 96 dpi (1 มม. = 3.78) ใช้กับกระดาษ ขอบ ตัวหนังสือหัวกระดาษ
+          "หน่วยบรรทัด" = หน่วยของ drawStaff (เส้นบรรทัดห่าง 8 · บรรทัดสูง 32)
+          ขนาดบรรทัด (มม.) คือความสูงบรรทัด 5 เส้น — k = หน่วยหน้าต่อหน่วยบรรทัด */
+const PR = {padL:11, base:15.5, exp:0.55, minGap:12, clefW:22, tsW:21, staff:32, tempoH:24, numH:12};
+const PR_STAFF_MM = 32/96*25.4;                       // 8.47 มม. = ขนาดบรรทัดที่ k = 1
+const PR_DEF = {                                      // ค่าเริ่มต้นของการตั้งค่าหน้ากระดาษ
+  paper:"a4", pw:210, ph:297, landscape:false, mT:14, mB:14, mL:14, mR:14,
+  staffMM:7.5, perSys:4, den:1, gapMM:6, indentMM:0, justify:true, justifyLast:false,
+  titlePt:20, runHead:true, barNum:"sys", tempo:true, key:true, pageNum:"bc", pnFirst:false,
+  mono:true, dpi:300,
+};
+let PRO = Object.assign({}, PR_DEF);
+// ช่องว่างระหว่างสองจุดตี (ความแน่นปกติ): เขบ็ต 2 ชั้น 15.5 · เขบ็ต 1 ชั้น 22.7 · ตัวดำ 33 · ตัวขาว 49 · ตัวกลม 71
+function prGap(dtk){ return Math.max(PR.minGap, PR.base * (PRO.den||1) * Math.pow(Math.max(1, dtk)/(PPQ/4), PR.exp)); }
 function prBarCount(){
   let n=S.bars.length;
   while(n>1 && !S.notes.some(m=>m.tk>=barStartTk[n-1] && m.tk<barStartTk[n])) n--;
@@ -6629,21 +6732,42 @@ function prBar(bi, tsInside){
   u+=prGap(b-prev); br.push({tk:b, u});
   return {bi, a, b, br, nat:u, ts:tsInside, pad:PR.padL + (tsInside ? PR.tsW : 0) + (ex.get(a)||0)};
 }
-/* หนึ่งบรรทัด: ห้อง b0..b1 ในความกว้าง avail · fRef = อัตรายืดของบรรทัดก่อน (บรรทัดสุดท้ายใช้ไม่เกินนี้) */
+const prPrefix = b0 => PR.clefW + ((b0===0 || prTsChanged(b0)) ? PR.tsW : 0) + 6;
+/* หนึ่งบรรทัด: ห้อง b0..b1 ในความกว้าง avail (หน่วยบรรทัด)
+   บรรทัดสุดท้ายที่ห้องน้อย: ไม่ยืดเกินอัตราของบรรทัดก่อน (fRef) เว้นแต่ตั้งให้ยืดเต็ม */
 function prSystem(b0, b1, avail, last, fRef){
   const ts0 = b0===0 || prTsChanged(b0);
-  const prefix = PR.clefW + (ts0 ? PR.tsW : 0) + 6;
+  const prefix = prPrefix(b0);
   const bars=[]; for(let i=b0;i<=b1;i++) bars.push(prBar(i, i>b0 && prTsChanged(i)));
   const fixed=bars.reduce((t,B)=>t+B.pad,0), nat=bars.reduce((t,B)=>t+B.nat,0);
   let f=(avail-prefix-fixed)/Math.max(1,nat), width=avail;
-  if(last && fRef && f > fRef*1.35){ f=Math.max(1, fRef); width=prefix+fixed+nat*f; }
+  if(last && !PRO.justifyLast && f > Math.max(1, fRef||1)*1.35){ f=Math.max(1, fRef||1); width=prefix+fixed+nat*f; }
   let x=prefix; for(const B of bars){ B.x=x; B.f=f; x+=B.pad+B.nat*f; }
   return {b0, b1, bars, prefix, width, ts0, f, last};
 }
-/* ของที่ยื่นเหนือ/ใต้บรรทัดจริง ๆ (หัวโน้ต ก้าน คาน เครื่องหมายเน้น เลขพยางค์ ป้ายความเร็ว)
-   ใช้จัดระยะแนวตั้ง: บรรทัดที่มีฉาบสูง ๆ ห่างจากบรรทัดบนมากขึ้น บรรทัดเรียบ ๆ ชิดกันได้ ไม่มีอะไรชนกัน */
+/* แบ่งห้องเป็นบรรทัด: จำนวนคงที่ หรืออัตโนมัติ (ใส่ห้องจนเต็มบรรทัดที่ระยะตามธรรมชาติ แบบ Auto Layout ของ Sibelius) */
+function prBreaks(nBars, availOf){
+  const out=[];
+  if(PRO.perSys>0){ for(let i=0;i<nBars;i+=PRO.perSys) out.push([i, Math.min(nBars-1, i+PRO.perSys-1)]); return out; }
+  let i=0;
+  while(i<nBars){
+    const avail=availOf(out.length);
+    let w=prPrefix(i), j=i;
+    for(;;){
+      const B=prBar(j, j>i && prTsChanged(j));
+      w+=B.pad+B.nat;
+      if(w>avail && j>i){ j--; break; }
+      if(j===nBars-1) break;
+      j++;
+    }
+    out.push([i, j]); i=j+1;
+  }
+  return out;
+}
+/* ของที่ยื่นเหนือ/ใต้บรรทัดจริง ๆ (หัวโน้ต ก้าน คาน เครื่องหมายเน้น เลขพยางค์ เลขห้อง ป้ายความเร็ว)
+   หน่วยบรรทัด วัดจากเส้นบนสุด / เส้นล่างสุด — ใช้จัดระยะแนวตั้ง ไม่มีอะไรชนกัน */
 function prExtents(L){
-  let above=30, below=26;                        // วัดจากเส้นบนสุด / เส้นล่างสุดของบรรทัด
+  let above=30, below=26;
   for(let bi=L.b0; bi<=L.b1; bi++) for(const n of notesInBar(bi)){
     const st=STAFF[n.v]; if(!st) continue;
     const y=(8-st.p)*HG, up=voiceUp(voiceOf(n)), more=(accentOf(n)?12:0)+((n.tp||0)>1?11:0);
@@ -6651,8 +6775,10 @@ function prExtents(L){
     if(up) above=Math.max(above, STEM_LEN+more-y);
     else   below=Math.max(below, y+STEM_LEN+more-PR.staff);
   }
-  const tempo=tempoMarks().some(m=>m.bar>=L.b0 && m.bar<=L.b1);
-  return {above: above+(tempo?PR.tempoH:0), notes:above, below, tempo};
+  const nums = PRO.barNum==="every" || PRO.barNum==="n5" || PRO.barNum==="n10";
+  const tempo = PRO.tempo && tempoMarks().some(m=>m.bar>=L.b0 && m.bar<=L.b1);
+  const notes = above + (nums ? PR.numH : 0);              // ระดับบนสุดของโน้ต (+ แถวเลขห้อง)
+  return {above: notes+(tempo?PR.tempoH:0), notes, noteTop:above, below, tempo};
 }
 function prX(L){
   return t=>{
@@ -6685,18 +6811,18 @@ function prQuarter(g, x, y){
   g.beginPath(); g.moveTo(x+3.2, y-0.5); g.lineTo(x+3.2, y-15); g.stroke();
   g.restore();
 }
-/* วาดหนึ่งบรรทัด ที่ x0 · เส้นบนสุดของบรรทัดอยู่ที่ yTop */
-function prDrawSystem(g, L, x0, yTop, endPiece){
+/* วาดหนึ่งบรรทัด ที่ x0 (หน่วยหน้า) · เส้นบนสุดของบรรทัดอยู่ที่ yTop · k = ขนาดบรรทัด */
+function prDrawSystem(g, L, x0, yTop, k, endPiece){
   const prev=cx, hr0=HR; cx=g; PRINT={}; HR=3.9;     // หัวโน้ตเต็มช่องบรรทัด (สูงราว 1 ช่อง)
   try{
-    g.save(); g.translate(x0, yTop - py(8));
+    g.save(); g.translate(x0, yTop); g.scale(k, k); g.translate(0, -py(8));
     drawStaff(prX(L), L.width, L.b0, L.b1);
     // เส้นกั้นห้อง (เส้นท้ายบรรทัดด้วย) · จบเพลง = เส้นบาง + เส้นหนา
     g.fillStyle="#000";
     const yt=py(8), yb=py(0)+1;
-    L.bars.forEach((B,k)=>{
+    L.bars.forEach((B,i)=>{
       const xe=B.x+B.pad+B.nat*B.f;
-      const fin = endPiece && k===L.bars.length-1;
+      const fin = endPiece && i===L.bars.length-1;
       if(fin){ g.fillRect(xe-4.2, yt, 3.4, yb-yt); g.fillRect(xe-8.6, yt, 1.1, yb-yt); }
       else g.fillRect(xe-0.6, yt, 1.15, yb-yt);
     });
@@ -6711,12 +6837,20 @@ function prDrawSystem(g, L, x0, yTop, endPiece){
     };
     if(L.ts0) ts(PR.clefW + PR.tsW/2, S.bars[L.b0]);
     for(const B of L.bars) if(B.ts) ts(B.x + PR.padL*0.5 + PR.tsW/2, S.bars[B.bi]);
-    // เลขห้องต้นบรรทัด (ห้องแรกของเพลงไม่ต้อง)
-    g.fillStyle="#000";
-    if(L.b0>0){ g.font="italic 600 9.5px "+PR_NUM; g.textAlign="left"; g.textBaseline="alphabetic";
-      g.fillText(String(L.b0+1), 2, py(8)-9); }
+    // เลขห้อง: ต้นบรรทัด (ข้างกุญแจ ไม่มีโน้ตตรงนั้น) หรือเหนือเส้นกั้นห้องเป็นแถวเหนือโน้ต
+    g.fillStyle="#000"; g.font="italic 600 9.5px "+PR_NUM; g.textBaseline="alphabetic";
+    const bn=PRO.barNum;
+    if(bn==="sys" && L.b0>0){ g.textAlign="left"; g.fillText(String(L.b0+1), 2, py(8)-9); }
+    else if(bn==="every" || bn==="n5" || bn==="n10"){
+      const nEvery = bn==="n5" ? 5 : bn==="n10" ? 10 : 1, yN=py(8)-L.ext.noteTop-3;
+      g.textAlign="left";
+      for(const B of L.bars){
+        const no=B.bi+1; if(no===1 || no%nEvery!==0 && !(nEvery===1)) continue;
+        g.fillText(String(no), B===L.bars[0] ? 2 : B.x+1, yN);
+      }
+    }
     // ป้ายความเร็ว ♩ = n ที่ห้องแรกและห้องที่เปลี่ยน
-    for(const m of tempoMarks()){
+    if(PRO.tempo) for(const m of tempoMarks()){
       if(m.bar<L.b0 || m.bar>L.b1) continue;
       const B=L.bars[m.bar-L.b0], x = m.bar===L.b0 ? PR.clefW : B.x+B.pad-4, y=py(8)-L.ext.notes-9;
       prQuarter(g, x+4, y);
@@ -6737,19 +6871,21 @@ function prKeyItems(){
   items.sort((a,b)=>b.p-a.p || a.th.localeCompare(b.th));
   return {items, open:used.has("hihat:open")};
 }
-function prDrawKey(g, x0, y0, avail){
+/* วาดคีย์ที่ (x0, y0) หน่วยหน้า ขนาดตามบรรทัด k · คืนความสูงที่ใช้ (หน่วยหน้า) */
+function prDrawKey(g, x0, y0, avail, k){
   const K=prKeyItems(); if(!K.items.length) return 0;
-  const step=46, fit=Math.max(1, Math.floor((avail-110)/step));
+  const step=46, fit=Math.max(1, Math.floor((avail/k-110)/step));
   const nRows=Math.ceil(K.items.length/fit), perRow=Math.ceil(K.items.length/nRows);   // แถวยาวเท่า ๆ กัน
   const rows=[]; for(let i=0;i<K.items.length;i+=perRow) rows.push(K.items.slice(i,i+perRow));
   const prev=cx, hr0=HR; cx=g; PRINT={}; HR=3.9;
-  let y=y0;
+  let y=0;
   try{
+    g.save(); g.translate(x0, y0); g.scale(k, k);
     g.save(); g.fillStyle="#000"; g.font="600 10.5px "+PR_FONT; g.textBaseline="alphabetic";
-    g.fillText("คีย์กลอง", x0, y0+11); g.restore();
+    g.fillText("คีย์กลอง", 0, 11); g.restore();
     rows.forEach(row=>{
       const w=40+row.length*step, top=y+30;
-      g.save(); g.translate(x0+62, top-py(8));
+      g.save(); g.translate(62, top-py(8));
       g.strokeStyle="#000"; g.lineWidth=0.9;
       for(let p=0;p<=8;p+=2){ const yy=py(p)+.5; g.beginPath(); g.moveTo(0,yy); g.lineTo(w,yy); g.stroke(); }
       g.fillStyle="#000";
@@ -6766,80 +6902,126 @@ function prDrawKey(g, x0, y0, avail){
       y = top + (py(-2)-py(8)) + 18;
     });
     if(K.open){ g.save(); g.fillStyle="#000"; g.font="500 8.6px "+PR_FONT; g.textBaseline="alphabetic";
-      g.fillText("o = ไฮแฮตเปิด   + = ไฮแฮตปิด (หลังเปิด)", x0+62, y+6); g.restore(); y+=14; }
+      g.fillText("o = ไฮแฮตเปิด   + = ไฮแฮตปิด (หลังเปิด)", 62, y+6); g.restore(); y+=14; }
+    g.restore();
   } finally { cx=prev; PRINT=null; HR=hr0; }
-  return y-y0;
+  return y*k;
 }
-/* วางแผนทั้งเล่ม: กี่หน้า หน้าไหนมีบรรทัดไหน ระยะห่างแนวตั้ง — ยังไม่วาดอะไร */
-function printPlan(o){
-  const paper=PAPERS[o.paper]||PAPERS.a4, land=!!o.landscape;
-  const mmW=land?paper.h:paper.w, mmH=land?paper.w:paper.h;
-  const U=mm=>mm/25.4*96;                                   // มม. → หน่วยวาด
-  const W=U(mmW), H=U(mmH), M=U(o.marginMm!=null?o.marginMm:14), inner=W-M*2;
-  const nBars=prBarCount(), per=Math.max(1, o.barsPerSystem||4);
-  const sys=[]; let fRef=0;
-  for(let i=0;i<nBars;i+=per){
-    const L=prSystem(i, Math.min(nBars-1, i+per-1), inner, i+per>=nBars, fRef);
-    if(!L.last) fRef=L.f; sys.push(L);
+/* หัวกระดาษหน้าแรก: ชื่อเพลง (กลาง) · คำบรรยาย (กลาง) · ข้อความซ้าย | ศิลปิน/ผู้แต่ง (ขวา) · ถอดโดย (ขวา)
+   แบบเดียวกับ Title / Subtitle / Instrument / Composer / Lyricist ของ Sibelius · คืนความสูง (หน่วยหน้า) */
+function prHeader(g, o, W, y0, mL, mR, draw){
+  let y=y0;
+  const tPx=(o.titlePt||20)*96/72;
+  if(o.title){ y+=tPx*1.05; if(draw){ g.font="600 "+tPx.toFixed(1)+"px "+PR_FONT; g.textAlign="center"; g.fillText(o.title, W/2, y); } y+=tPx*0.32; }
+  if(o.subtitle){ y+=15; if(draw){ g.font="500 13px "+PR_FONT; g.textAlign="center"; g.fillText(o.subtitle, W/2, y); } y+=5; }
+  const right=[o.composer, o.arranger ? "ถอดโน้ต: "+o.arranger : ""].filter(Boolean);
+  const lines=Math.max(right.length, o.leftText ? 1 : 0);
+  for(let i=0;i<lines;i++){
+    y+=14;
+    if(draw){
+      g.font="500 11px "+PR_FONT;
+      if(i===0 && o.leftText){ g.textAlign="left"; g.fillText(o.leftText, mL, y); }
+      if(right[i]){ g.textAlign="right"; g.fillText(right[i], W-mR, y); }
+    }
   }
-  // หัวหน้าแรก: ชื่อเพลง + คีย์กลอง (วัดความสูงคีย์ด้วยการวาดลงผืนเล็ก ๆ ที่ทิ้ง)
-  const titleH = o.title ? 44 : 6;
-  let keyH=0;
-  if(o.key){ const tmp=document.createElement("canvas"); tmp.width=4; tmp.height=4;
-    keyH=prDrawKey(prInk(tmp.getContext("2d"), false), 0, 0, inner); if(keyH) keyH+=14; }
-  const footH=22, headH2=18;
+  if(draw) g.textAlign="left";
+  return y-y0 + (y>y0 ? 12 : 0);
+}
+/* วางแผนทั้งเล่ม: กี่หน้า หน้าไหนมีบรรทัดไหน ระยะแนวตั้ง — ยังไม่วาดอะไร */
+function printPlan(o){
+  PRO=Object.assign({}, PR_DEF);
+  for(const key in o) if(o[key]!==undefined) PRO[key]=o[key];
+  o=PRO;
+  const paper=o.paper==="custom" ? {w:+o.pw||210, h:+o.ph||297} : (PAPERS[o.paper]||PAPERS.a4);
+  const land=!!o.landscape, mmW=land?paper.h:paper.w, mmH=land?paper.w:paper.h;
+  const U=mm=>mm/25.4*96;                                   // มม. → หน่วยหน้า
+  const W=U(mmW), H=U(mmH), mT=U(o.mT), mB=U(o.mB), mL=U(o.mL), mR=U(o.mR);
+  const inner=Math.max(U(40), W-mL-mR), k=clamp((+o.staffMM||7.5)/PR_STAFF_MM, 0.45, 1.6);
+  const indent=clamp(U(o.indentMM||0), 0, inner*0.4), gap=U(o.gapMM!=null ? o.gapMM : 6);
+  const nBars=prBarCount();
+  const availOf = si => (inner - (si===0 ? indent : 0))/k;  // หน่วยบรรทัด
+  const sys=[]; let fRef=0;
+  const brk=prBreaks(nBars, availOf);
+  brk.forEach(([b0,b1],si)=>{
+    const L=prSystem(b0, b1, availOf(si), si===brk.length-1, fRef);
+    L.x0 = mL + (si===0 ? indent : 0);
+    if(!L.last) fRef=L.f;
+    L.ext=prExtents(L); sys.push(L);
+  });
+  // หัวหน้าแรก + คีย์กลอง (วัดด้วยการวาดลงผืนเล็ก ๆ ที่ทิ้ง)
+  const tmp=document.createElement("canvas"); tmp.width=4; tmp.height=4;
+  const tg=prInk(tmp.getContext("2d"), false);
+  const headH=prHeader(tg, o, W, 0, mL, mR, false);
+  const keyH = o.key ? prDrawKey(tg, 0, 0, inner, k) : 0;
+  const top1 = mT + headH + (keyH ? keyH+U(4) : 0);
   const pages=[]; let cur=null, used=0, room=0;
   for(const L of sys){
-    L.ext=prExtents(L);
-    const h=L.ext.above+PR.staff+L.ext.below;
-    if(!cur || used+h > room){
+    const h=(L.ext.above+PR.staff+L.ext.below)*k;
+    if(!cur || (cur.sys.length && used+h > room)){
       const first=!pages.length;
-      cur={sys:[], top: M + (first ? titleH+keyH : headH2)}; pages.push(cur);
-      room = H - M - footH - cur.top; used=0;
+      cur={sys:[], top: first ? top1 : mT}; pages.push(cur);
+      room = H - mB - cur.top; used=0;
     }
-    cur.sys.push(L); used+=h+PR.gap; cur.used=used-PR.gap;
+    cur.sys.push(L); used+=h+gap; cur.used=used-gap;
   }
-  // หน้าเต็ม (ไม่ใช่หน้าสุดท้าย) กระจายช่องว่างที่เหลือให้บรรทัดห่างเท่า ๆ กัน (เพิ่มได้ไม่เกิน 40 ต่อช่อง)
+  // จัดบรรทัดให้เต็มหน้า (Sibelius: Justify staves) — เฉพาะหน้าที่ไม่ใช่หน้าสุดท้ายและเต็มเกิน 60%
   pages.forEach((pg,pi)=>{
-    const free=(H-M-footH-pg.top)-pg.used;
-    pg.extra = pi<pages.length-1 && pg.sys.length>1 ? Math.max(0, Math.min(40, free/(pg.sys.length-1))) : 0;
+    const free=(H-mB-pg.top)-pg.used, avail=H-mB-pg.top;
+    pg.extra = o.justify && pi<pages.length-1 && pg.sys.length>1 && pg.used/avail>0.6
+      ? Math.max(0, Math.min(U(14), free/(pg.sys.length-1))) : 0;
   });
   // Safari บน iPad สร้างผืนผ้าใบได้ไม่เกินราว 16.7 ล้านจุด (A3 300 dpi = 17.4 ล้าน จะได้หน้าขาว) จึงลด dpi ให้พอดี
   const maxDpi=Math.floor(96*Math.sqrt(16.0e6/(W*H)));
-  return {o, W, H, M, inner, mmW, mmH, pages, titleH, keyH, nBars, maxDpi};
+  return {o, W, H, mT, mB, mL, mR, inner, k, gap, mmW, mmH, pages, headH, keyH, nBars, maxDpi};
 }
 function renderPage(plan, pi, dpi){
-  const o=plan.o, sc=dpi/96;
-  const c=document.createElement("canvas");
+  const o=plan.o; PRO=o;
+  const sc=dpi/96, c=document.createElement("canvas");
   c.width=Math.round(plan.W*sc); c.height=Math.round(plan.H*sc);
   const raw=c.getContext("2d");
   raw.fillStyle="#fff"; raw.fillRect(0,0,c.width,c.height);
   raw.scale(sc, sc);
   const g=prInk(raw, o.mono===false);
-  const {M, W, H, inner}=plan, pg=plan.pages[pi], N=plan.pages.length;
-  const title=o.title||"";
+  const {W, H, mT, mB, mL, mR, inner, k}=plan, pg=plan.pages[pi], N=plan.pages.length;
   g.fillStyle="#000"; g.textBaseline="alphabetic";
   if(pi===0){
-    if(title){ g.font="600 21px "+PR_FONT; g.textAlign="center"; g.fillText(title, W/2, M+24); g.textAlign="left"; }
-    if(o.key) prDrawKey(g, M, M+plan.titleH, inner);
-  } else if(title){
-    g.font="italic 500 9.5px "+PR_FONT; g.textAlign="left"; g.fillText(title, M, M+4);
+    prHeader(g, o, W, mT, mL, mR, true);
+    if(o.key && plan.keyH) prDrawKey(g, mL, mT+plan.headH, inner, k);
+  } else if(o.runHead && o.title){                    // หัวกระดาษหน้าถัดไป: ชื่อเพลงเล็ก ๆ ในขอบบน
+    // เลขหน้ามุมบนด้านนอก: หน้าคี่เลขอยู่ขวา หน้าคู่อยู่ซ้าย → ชื่อเพลงไปอยู่ฝั่งตรงข้าม ไม่ทับกัน
+    const right = o.pageNum==="to" && (pi%2===1);
+    g.font="italic 500 9.5px "+PR_FONT; g.textAlign = right ? "right" : "left";
+    g.fillText(o.title, right ? W-mR : mL, Math.max(10, mT*0.62));
   }
   let y=pg.top;
   for(const L of pg.sys){
-    const yTop=y+L.ext.above;
-    prDrawSystem(g, L, M, yTop, L.b1===plan.nBars-1);
-    y=yTop+PR.staff+L.ext.below+PR.gap+pg.extra;
+    const yTop=y+L.ext.above*k;
+    prDrawSystem(g, L, L.x0, yTop, k, L.b1===plan.nBars-1);
+    y=yTop+(PR.staff+L.ext.below)*k+plan.gap+pg.extra;
   }
-  g.fillStyle="#000"; g.font="500 9.5px "+PR_FONT; g.textAlign="center";
-  g.fillText(N>1 ? "หน้า "+(pi+1)+" / "+N : "", W/2, H-M*0.55);
+  // ข้อความท้ายหน้าแรก (ลิขสิทธิ์ / หมายเหตุ) และเลขหน้า — อยู่ในขอบล่าง/บน ไม่กินพื้นที่โน้ต
+  g.fillStyle="#000"; g.textAlign="center";
+  if(pi===0 && o.footer){ g.font="500 9px "+PR_FONT; g.fillText(o.footer, W/2, H-mB*0.62); }
+  if(o.pageNum!=="none" && (pi>0 || o.pnFirst) && N>0){
+    g.font="500 10px "+PR_FONT;
+    const txt=String(pi+1);
+    if(o.pageNum==="bc") g.fillText(N>1 ? "หน้า "+txt+" / "+N : txt, W/2, H-mB*(pi===0 && o.footer ? 0.3 : 0.5));
+    else if(o.pageNum==="br"){ g.textAlign="right"; g.fillText(txt, W-mR, H-mB*0.5); }
+    else if(o.pageNum==="to"){                       // มุมบนด้านนอก: หน้าคี่ขวา หน้าคู่ซ้าย (แบบหนังสือเพลง)
+      const right=(pi%2===0); g.textAlign=right ? "right" : "left";
+      g.fillText(txt, right ? W-mR : mL, Math.max(10, mT*0.62));
+    }
+  }
   g.textAlign="left";
   return c;
 }
 /* สร้างผืนผ้าใบทุกหน้า (ดูตัวอย่าง / รูปภาพ) — PDF ทยอยวาดทีละหน้าเองเพื่อไม่กินหน่วยความจำ */
-function renderPages(o, dpi){
+function renderPages(o, dpi, maxPages){
   const plan=printPlan(o);
-  return plan.pages.map((_,i)=>renderPage(plan, i, dpi||o.dpi));
+  const n=Math.min(plan.pages.length, maxPages||plan.pages.length);
+  const out=[]; for(let i=0;i<n;i++) out.push(renderPage(plan, i, dpi||o.dpi));
+  out.total=plan.pages.length;
+  return out;
 }
 
 /* ── PDF แบบภาพ เขียนเองทั้งไฟล์ ไม่พึ่งไลบรารี ── */
@@ -8712,7 +8894,7 @@ function showExport(on){
   if(on && (!S.notes.length && !S.bars.length)){ setStatus("ยังไม่มีอะไรให้ส่งออก", true); return; }
   el.classList.toggle("hidden", !on);
   document.body.classList.toggle("atexport", !!on);
-  if(on) window.scrollTo(0,0);
+  if(on){ window.scrollTo(0,0); if(typeof exFill==="function"){ exFill(exLoad()); exPreview(true); } }
   else { const pv=$("#exPreview"); if(pv) pv.innerHTML=""; }
 }
 function openSnapshot(snap, msg){
@@ -8996,16 +9178,80 @@ function wireSave(){
 }
 
 /* ── ต่อสายหน้าส่งออก ── */
+/* ตั้งค่าหน้ากระดาษ: ค่าจัดหน้าจำไว้ในเครื่อง (ใช้กับทุกงาน) · ข้อความหัวกระดาษจำแยกตามชื่องาน */
+const EX_KEY="klongpro.print", EX_META="klongpro.printmeta:";
+const EX_PRESETS = {
+  std:  {paper:"a4", landscape:false, mT:14, mB:14, mL:14, mR:14, staffMM:7.5, perSys:4, den:1,    gapMM:6,   indentMM:0},
+  big:  {paper:"a4", landscape:false, mT:12, mB:12, mL:12, mR:12, staffMM:9.5, perSys:3, den:1.1,  gapMM:8,   indentMM:0},
+  eco:  {paper:"a4", landscape:false, mT:10, mB:10, mL:10, mR:10, staffMM:6,   perSys:0, den:0.82, gapMM:3.5, indentMM:0},
+  land: {paper:"a4", landscape:true,  mT:10, mB:10, mL:12, mR:12, staffMM:7.5, perSys:0, den:1,    gapMM:5,   indentMM:0},
+};
+function exLoad(){
+  let st={}; try{ st=JSON.parse(localStorage.getItem(EX_KEY))||{}; }catch(e){}
+  let meta={}; try{ meta=JSON.parse(localStorage.getItem(EX_META+(S.projName||"")))||{}; }catch(e){}
+  return Object.assign({}, PR_DEF, st, {title: S.projName || "ถอดกลอง"}, meta);
+}
+function exFill(o){
+  const v=(id,x)=>{ const e=$("#"+id); if(e) e.value = x==null ? "" : String(x); };
+  const c=(id,x)=>{ const e=$("#"+id); if(e) e.checked=!!x; };
+  v("exPaper", o.paper); v("exOrient", o.landscape ? "l" : "p"); v("exPW", o.pw); v("exPH", o.ph);
+  v("exMT", o.mT); v("exMB", o.mB); v("exML", o.mL); v("exMR", o.mR);
+  v("exStaff", o.staffMM); v("exPerSys", o.perSys); v("exDen", o.den); v("exGap", o.gapMM); v("exIndent", o.indentMM);
+  c("exJustify", o.justify); c("exJustLast", o.justifyLast);
+  v("exTitle", o.title); v("exTitlePt", o.titlePt); v("exSub", o.subtitle); v("exLeft", o.leftText);
+  v("exComp", o.composer); v("exArr", o.arranger); v("exFoot", o.footer); c("exRunHead", o.runHead);
+  v("exBarNum", o.barNum); v("exPageNum", o.pageNum); c("exPnFirst", o.pnFirst);
+  c("exTempo", o.tempo); c("exKey", o.key); c("exMono", o.mono); v("exDpi", o.dpi);
+  exSyncUI();
+}
+function exSyncUI(){
+  const custom=$("#exPaper").value==="custom";
+  document.querySelectorAll(".exCustom").forEach(e=>e.hidden=!custom);
+  const mm=+$("#exStaff").value;
+  $("#exStaffV").textContent = mm.toFixed(1)+" มม. (ช่องบรรทัด "+(mm/4).toFixed(2)+" มม.)";
+}
 function exOpts(){
+  const n=(id,d)=>{ const x=parseFloat($("#"+id).value); return isFinite(x) ? x : d; };
+  const t=id=>($("#"+id).value||"").trim();
   return {
-    paper: $("#exPaper").value,
+    paper: $("#exPaper").value, pw: n("exPW", 210), ph: n("exPH", 297),
     landscape: $("#exOrient").value === "l",
-    dpi: +$("#exDpi").value,
-    barsPerSystem: +$("#exPerSys").value,
-    mono: $("#exMono").checked,
-    title: $("#exTitle").checked ? (S.projName || "ถอดกลอง") : "",
-    key: !$("#exKey") || $("#exKey").checked,
+    mT: n("exMT",14), mB: n("exMB",14), mL: n("exML",14), mR: n("exMR",14),
+    staffMM: n("exStaff",7.5), perSys: n("exPerSys",4), den: n("exDen",1), gapMM: n("exGap",6), indentMM: n("exIndent",0),
+    justify: $("#exJustify").checked, justifyLast: $("#exJustLast").checked,
+    title: t("exTitle"), titlePt: n("exTitlePt",20), subtitle: t("exSub"), leftText: t("exLeft"),
+    composer: t("exComp"), arranger: t("exArr"), footer: t("exFoot"), runHead: $("#exRunHead").checked,
+    barNum: $("#exBarNum").value, pageNum: $("#exPageNum").value, pnFirst: $("#exPnFirst").checked,
+    tempo: $("#exTempo").checked, key: $("#exKey").checked, mono: $("#exMono").checked,
+    dpi: +$("#exDpi").value || 300,
+    barsPerSystem: n("exPerSys",4),
   };
+}
+function exSave(o){
+  const META=["title","subtitle","leftText","composer","arranger","footer"];
+  const st={}, meta={};
+  for(const k in o) (META.includes(k) ? meta : st)[k]=o[k];
+  delete st.barsPerSystem;
+  try{ localStorage.setItem(EX_KEY, JSON.stringify(st)); localStorage.setItem(EX_META+(S.projName||""), JSON.stringify(meta)); }catch(e){}
+}
+/* ตัวอย่างเปลี่ยนตามทันทีที่แก้ค่า (รอ 0.35 วิ หลังแก้ล่าสุด ไม่วาดซ้ำทุกตัวอักษรที่พิมพ์) */
+let exTimer=0;
+function exPreview(now){
+  clearTimeout(exTimer);
+  const go=()=>{
+    if(!S.bars.length || $("#exportScreen").classList.contains("hidden")) return;
+    try{
+      const o=exOpts(); exSave(o);
+      const pages=renderPages(o, 100, 8);              // ดูบนจอพอ ไม่ต้องวาดเต็มความละเอียด · ไม่เกิน 8 หน้า
+      const box=$("#exPreview"), keep=box.scrollTop;
+      box.replaceChildren(...pages.map((c,i)=>{
+        const img=document.createElement("img"); img.src=c.toDataURL("image/png"); img.className="expg";
+        img.alt="ตัวอย่างหน้า "+(i+1); return img; }));
+      box.scrollTop=keep;
+      $("#exPages").textContent="ตัวอย่าง · "+pages.total+" หน้า"+(pages.total>pages.length ? " (แสดง "+pages.length+" หน้าแรก)" : "");
+    }catch(e){ console.error(e); setStatus("วาดตัวอย่างไม่สำเร็จ: " + e.message, true); }
+  };
+  if(now) go(); else exTimer=setTimeout(go, 350);
 }
 function exReady(){
   if(!S.bars.length){ setStatus("ยังไม่มีอะไรให้ส่งออก", true); return false; }
@@ -9013,28 +9259,26 @@ function exReady(){
 }
 function wireExport(){
   $("#exPaper").innerHTML = Object.keys(PAPERS)
-    .map(k => '<option value="' + k + '"' + (k === "a4" ? " selected" : "") + '>' +
-              PAPERS[k].th + ' (' + PAPERS[k].w + '×' + PAPERS[k].h + ' มม.)</option>').join("");
+    .map(k => '<option value="' + k + '">' + PAPERS[k].th + ' (' + PAPERS[k].w + '×' + PAPERS[k].h + ' มม.)</option>').join("") +
+    '<option value="custom">กำหนดเอง…</option>';
   $("#exDpi").innerHTML = EX_DPI
-    .map(d => '<option value="' + d.v + '"' + (d.v === 300 ? " selected" : "") + '>' + d.th + '</option>').join("");
-
-  $("#exPrev").onclick = () => {
-    if(!exReady()) return;
-    setStatus("กำลังวาดตัวอย่าง…");
-    try{
-      const pages = renderPages(exOpts(), 110);       // ดูบนจอพอ ไม่ต้องวาดเต็มความละเอียด
-      const box = $("#exPreview");
-      box.innerHTML = "";
-      pages.slice(0, 3).forEach(c => {
-        const img = document.createElement("img");
-        img.src = c.toDataURL("image/png");
-        img.className = "expg";
-        box.appendChild(img);
-      });
-      setStatus("ตัวอย่าง " + pages.length + " หน้า" +
-        (pages.length > 3 ? " (แสดง 3 หน้าแรก)" : "") + " — ถ้าโอเคแล้วกดส่งออกได้เลย");
-    }catch(e){ setStatus("วาดตัวอย่างไม่สำเร็จ: " + e.message, true); }
+    .map(d => '<option value="' + d.v + '">' + d.th + '</option>').join("");
+  exFill(exLoad());
+  const set=$("#pExport .exset");
+  set.addEventListener("input", e=>{ if(e.target.id==="exStaff" || e.target.id==="exPaper") exSyncUI(); exPreview(); });
+  set.addEventListener("change", e=>{ exSyncUI(); exPreview(); });
+  set.querySelector(".expre").addEventListener("click", e=>{
+    const b=e.target.closest("button[data-preset]"); if(!b) return;
+    exFill(Object.assign(exOpts(), EX_PRESETS[b.dataset.preset]));
+    setStatus("ใช้ค่าพร้อมใช้ “" + b.textContent + "” แล้ว — ปรับต่อได้ทุกช่อง");
+    exPreview(true);
+  });
+  $("#exReset").onclick = () => {
+    exFill(Object.assign({}, PR_DEF, {title: S.projName || "ถอดกลอง"}));
+    setStatus("คืนค่าเริ่มต้นแล้ว"); exPreview(true);
   };
+
+  $("#exPrev").onclick = () => { if(exReady()) exPreview(true); };
   $("#exPdf").onclick = async () => {
     if(!exReady()) return;
     setStatus("กำลังสร้าง PDF…");
@@ -9051,7 +9295,8 @@ function wireExport(){
       }
       const pdf = buildPDF(imgs, plan.mmW, plan.mmH);
       dlBytes(pdf, (S.projName || "drums") + ".pdf", "application/pdf");
-      setStatus("ส่งออก PDF แล้ว " + imgs.length + " หน้า · " + paper.th +
+      setStatus("ส่งออก PDF แล้ว " + imgs.length + " หน้า · " +
+                (o.paper === "custom" ? "กำหนดเอง " + o.pw + "×" + o.ph + " มม." : paper.th) +
                 (o.landscape ? " แนวนอน" : " แนวตั้ง") + " · " + dpi + " dpi" +
                 (dpi < o.dpi ? " (ลดจาก " + o.dpi + " ให้พอดีหน่วยความจำ iPad)" : "") + " · " +
                 Math.max(1, Math.round(pdf.length/1024)) + " KB");

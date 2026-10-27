@@ -162,6 +162,37 @@ async function suite(label, ctxOpts, exe) {
     if (head !== magic) fail.push(`${label}: ไฟล์ .${ext_} ผิดรูปแบบ`);
   }
 
+  /* โน้ตพิมพ์ (PDF): ต้องเป็น PDF จริง ภาพไม่สูญเสีย (FlateDecode ไม่ใช่ JPEG ที่เส้นเป็นฝ้า)
+     และหน้าตัวอย่างต้องเป็นกระดาษขาว มีหมึกดำ (ไม่ใช่พื้นมืดกลับสีแบบเดิม) */
+  if (toExp) {
+    const dlPdf = await Promise.all([
+      page.waitForEvent("download", { timeout: 30000 }).catch(() => null),
+      clickFirst(page, ["#exPdf"]),
+    ]).then((r) => r[0]);
+    if (!dlPdf) fail.push(`${label}: ส่งออก PDF ไม่ได้ไฟล์`);
+    else {
+      const p = path.join(require("os").tmpdir(), `smoke-${label}.pdf`);
+      await dlPdf.saveAs(p);
+      const b = fs.readFileSync(p), txt = b.toString("latin1");
+      const ok = txt.startsWith("%PDF-") && /%%EOF\s*$/.test(txt), flate = /\/FlateDecode/.test(txt);
+      say(`ส่งออก PDF: ${b.length} B · ${ok ? "OK" : "ผิดรูปแบบ"} · ${flate ? "ภาพไม่สูญเสีย" : "JPEG"}`);
+      if (!ok) fail.push(`${label}: ไฟล์ PDF ผิดรูปแบบ`);
+      if (!flate) fail.push(`${label}: PDF ยังเป็นภาพ JPEG`);
+    }
+    await clickFirst(page, ["#exPrev"]); await page.waitForTimeout(800);
+    const pv = await page.evaluate(async () => {
+      const im = document.querySelector("#exPreview img"); if (!im) return null;
+      await im.decode().catch(() => {});
+      const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+      const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data; let white = 0, black = 0, mid = 0;
+      for (let i = 0; i < d.length; i += 16) { const l = d[i]; if (l > 245) white++; else if (l < 60) black++; else mid++; }
+      const n = white + black + mid; return { white: white / n, black: black / n };
+    });
+    say(`ตัวอย่างโน้ตพิมพ์: กระดาษขาว ${pv ? Math.round(pv.white * 100) : "-"}% · หมึกดำ ${pv ? (pv.black * 100).toFixed(1) : "-"}%`);
+    if (!pv || pv.white < 0.85 || pv.black < 0.002) fail.push(`${label}: ตัวอย่างโน้ตพิมพ์ไม่ใช่หมึกดำบนกระดาษขาว`);
+  }
+
   // ถ้าอยู่หน้าส่งออก กลับมาหน้า editor ก่อน (รุ่น 11)
   if (toExp) {
     await clickFirst(page, ["#exBack", "#exClose", "#backEdit", '#exportScreen button:has-text("กลับ")']);

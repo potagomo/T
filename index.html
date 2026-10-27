@@ -768,6 +768,8 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
         <label class="chk"><input type="checkbox" id="exMono" checked> ดำบนขาว</label></div>
       <div class="field"><label>&nbsp;</label>
         <label class="chk"><input type="checkbox" id="exTitle" checked> ใส่ชื่องานหน้าแรก</label></div>
+      <div class="field"><label>&nbsp;</label>
+        <label class="chk"><input type="checkbox" id="exKey" checked> คีย์กลองหน้าแรก</label></div>
       <div class="field"><label>&nbsp;</label><button class="btn" id="exPrev">ดูตัวอย่าง</button></div>
     </div>
     <div id="exPreview"></div>
@@ -778,8 +780,9 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
       <div class="field"><label>&nbsp;</label><button class="btn" id="exXml2">ไฟล์ .musicxml</button></div>
       <div class="field"><label>&nbsp;</label><button class="btn" id="exKlong">ไฟล์สำรอง .klong</button></div>
     </div>
-    <p class="hint" id="exNote">PDF กับรูปภาพเป็นภาพของโน้ตจริงที่วาดด้วยเครื่องเดียวกับบนจอ
-      จึงตรงกันเป๊ะ แต่เป็นภาพไม่ใช่เวกเตอร์ · ถ้าต้องการไฟล์ที่แก้ต่อได้ในโปรแกรมโน้ต ใช้ .musicxml</p>
+    <p class="hint" id="exNote">PDF กับรูปภาพวาดด้วยเครื่องเขียนโน้ตตัวเดียวกับบนจอ จัดหน้าแบบโน้ตพิมพ์
+      (กุญแจ · ตัวเลขจังหวะ · ความเร็ว · เลขห้อง · คีย์กลอง) เป็นภาพคมชัดไม่สูญเสีย ไม่ใช่เวกเตอร์
+      · ถ้าต้องการไฟล์ที่แก้ต่อได้ในโปรแกรมโน้ต ใช้ .musicxml</p>
   </section>
   </div>
 </div>
@@ -2876,17 +2879,26 @@ function drawRest(x, p, len, per, tp, whole){
     cx.fillRect(x-4.5, py(p), 9, 3.2);                 // เต็มห้อง — ห้อยใต้เส้น
   } else if(b>=2-1e-6){
     cx.fillRect(x-4.5, py(p)-3.2, 9, 3.2);             // ตัวขาว — วางบนเส้น
+  } else if(b>=1-1e-6 && PRINT){                      // งานพิมพ์: ตัวหยุดตัวดำหนาแบบโน้ตพิมพ์ มีขอโค้งท้าย
+    cx.lineJoin="round"; cx.lineCap="round"; cx.lineWidth=2.3;
+    cx.beginPath(); cx.moveTo(x-2.2,y-8.4); cx.lineTo(x+2.5,y-3); cx.lineTo(x-1.8,y+1.2); cx.lineTo(x+2.5,y+5.6); cx.stroke();
+    cx.lineWidth=1.7;
+    cx.beginPath(); cx.moveTo(x+2.5,y+5.6); cx.quadraticCurveTo(x-4.2,y+3.4,x-0.6,y+9.6); cx.stroke();
   } else if(b>=1-1e-6){
     cx.beginPath();
     cx.moveTo(x-2.4,y-7); cx.lineTo(x+2.2,y-2); cx.lineTo(x-2.2,y+1.6); cx.lineTo(x+2.6,y+6.6);
     cx.stroke();
   } else {
-    const n=beamsOf(len, per, tp||0, dot);
-    cx.beginPath(); cx.moveTo(x+2.6,y-6); cx.lineTo(x-1.4,y+6); cx.stroke();
+    const n=beamsOf(len, per, tp||0, dot), r=PRINT?2.05:1.5;
+    if(PRINT){ cx.lineWidth=1.45; cx.lineCap="round"; }
+    cx.beginPath(); cx.moveTo(x+2.6,y-6); cx.lineTo(x-1.4-(PRINT?(n-1)*1.2:0),y+6+(PRINT?(n-1)*3.6:0)); cx.stroke();
     for(let i=0;i<n;i++){
-      const yy=y-5.2+i*3.6;
-      cx.beginPath(); cx.arc(x-0.4, yy, 1.5, 0, Math.PI*2); cx.fill();
-      cx.beginPath(); cx.moveTo(x+0.9,yy-0.6); cx.lineTo(x+2.9,yy-2.4); cx.stroke();
+      const yy=y-5.2+i*3.6, sx=2.6-i*1.2;
+      cx.beginPath(); cx.arc(x-0.6-i*1.2, yy, r, 0, Math.PI*2); cx.fill();
+      cx.beginPath();
+      if(PRINT){ cx.moveTo(x-0.6-i*1.2,yy+0.6); cx.quadraticCurveTo(x+0.8-i*1.2,yy+1.4,x+sx,yy-1.4); }   // ขอโค้งเข้าก้าน
+      else { cx.moveTo(x+0.9,yy-0.6); cx.lineTo(x+2.9,yy-2.4); }
+      cx.stroke();
     }
   }
   if(dot){ cx.beginPath(); cx.arc(x+6.4, y-2, 1.5, 0, Math.PI*2); cx.fill(); }
@@ -3381,7 +3393,8 @@ function groupForBeams(items){
   return cut;
 }
 function drawBeams(stems){
-  const BH=2.4, BGAP=4;
+  // งานพิมพ์: คานหนาครึ่งช่องบรรทัด ช่องระหว่างคานหนึ่งในสี่ ตามมาตรฐานโน้ตพิมพ์ (บนจอบางกว่าเพื่อไม่บังกริด)
+  const BH=PRINT?3.8:2.4, BGAP=PRINT?6.2:4;
   const bar=(x1,x2,lvl,k,up)=>{
     const y = up ? lvl + k*BGAP : lvl - k*BGAP;
     cx.fillStyle="#D9CEC5";
@@ -3398,6 +3411,14 @@ function drawBeams(stems){
       const s=g[0];
       for(let i=0;i<s.bm;i++){
         const y=s.end+(up? i*BGAP : -i*BGAP);
+        if(PRINT){                           // งานพิมพ์: ธงโค้งแบบโน้ตพิมพ์ ไม่ใช่ขีดตรง
+          const d=up?1:-1;
+          cx.beginPath(); cx.moveTo(s.x, y);
+          cx.bezierCurveTo(s.x+0.5, y+d*4, s.x+8.5, y+d*6.5, s.x+6.2, y+d*15);
+          cx.bezierCurveTo(s.x+7.2, y+d*8.5, s.x+2.5, y+d*6.8, s.x, y+d*6.2);
+          cx.closePath(); cx.fill();
+          continue;
+        }
         cx.beginPath(); cx.moveTo(s.x,y); cx.lineTo(s.x+5.5, y+(up?5:-5)); cx.stroke();
       }
       if(s.tp>1){                            // ไม่มีคาน → ใส่วงเล็บ เลขฝั่งหัวโน้ต
@@ -3466,12 +3487,18 @@ function drawTies(ties){
 }
 
 /* ------------------------------------------------------------ */
-const STEM_LEN=26, HR=3.4;
+const STEM_LEN=26;
+let HR=3.4;                 // รัศมีหัวโน้ต — งานพิมพ์ขยายชั่วคราวให้หัวโน้ตเต็มช่องบรรทัด (prDrawSystem)
+/* PRINT: ระหว่างวาดหน้ากระดาษ (ข้อ 27) เป็นอ็อบเจกต์ ไม่ใช่ null
+   drawStaff ตัวเดียวกับบนจอ ต่างแค่ 3 อย่าง: ไม่วาดเส้นกั้นห้อง (หน้ากระดาษวางเองหลังเว้นที่ให้โน้ตตัวแรก)
+   · ไม่วาดวงเลือกโน้ต · เครื่องหมายเน้นวางเหนือคานของกลุ่มนั้นหลังวาดคานแล้ว (บนจอวางที่ระดับตายตัว
+   ซึ่งชนคานเมื่อกลุ่มมีฉาบอยู่สูง) */
+let PRINT=null;
 function drawStaff(X, vw, b0, b1){
   cx.strokeStyle="#6A5A53"; cx.lineWidth=1;
   for(let p=0;p<=8;p+=2){ const y=py(p)+.5; cx.beginPath(); cx.moveTo(0,y); cx.lineTo(vw,y); cx.stroke(); }
   cx.strokeStyle="#8A7469"; cx.lineWidth=1.6;
-  for(let i=b0;i<=b1+1 && i<barStarts.length;i++){
+  if(!PRINT) for(let i=b0;i<=b1+1 && i<barStarts.length;i++){
     const x=X(barStarts[i]);
     if(x<-4||x>vw+4) continue;
     cx.beginPath(); cx.moveTo(x+.5,py(8)); cx.lineTo(x+.5,py(0)); cx.stroke();
@@ -3547,7 +3574,7 @@ function drawStaff(X, vw, b0, b1){
           const hm = si===0 ? hhMark.get(n) : null;
           if(hm){ cx.fillStyle="#EFE7DE"; cx.font="600 10px 'IBM Plex Sans Thai', sans-serif";
             cx.fillText(hm, x-3, y-8); }
-          if(si===0 && (n===lastTouched || S.notes[S.selIdx]===n)){
+          if(!PRINT && si===0 && (n===lastTouched || S.notes[S.selIdx]===n)){
             cx.strokeStyle=n===S.notes[S.selIdx]?"#4FC7D4":"#FFF3E6"; cx.lineWidth=1.5;
             cx.beginPath(); cx.arc(x,y,HR+5.5,0,Math.PI*2); cx.stroke();
           }
@@ -3569,7 +3596,8 @@ function drawStaff(X, vw, b0, b1){
             cx.restore();
           });
         }
-        if(si===0 && c.notes.some(accentOf)){
+        const acc = si===0 && c.notes.some(accentOf);
+        if(acc && !PRINT){
           cx.strokeStyle="#E0A64A"; cx.lineWidth=1.5;
           const ay = up ? py(8)-STEM_LEN-9 : py(0)+STEM_LEN+9;
           cx.beginPath(); cx.moveTo(x-4.5,ay-3.4); cx.lineTo(x+4.5,ay); cx.lineTo(x-4.5,ay+3.4); cx.stroke();
@@ -3601,7 +3629,8 @@ function drawStaff(X, vw, b0, b1){
         const ui=unitIndex(sg.bi, sg.a);
         stems.push({x:sx, end, up, vc, bi:sg.bi, a:sg.a, len:sg.len, per:sg.per, tp:sg.tp,
                     unit:ui.unit, grp:ui.grp, simple:ui.simple,
-                    bm:beamsOf(sg.len, sg.per, sg.tp, sg.dot)});
+                    bm:beamsOf(sg.len, sg.per, sg.tp, sg.dot),
+                    acc, hx:x, top, bot, stemmed: wb < 4-1e-6});
         if(sg.tp>1) noteTup(sg.bi, vc, ui.unit, sg.tp, x, up, top, bot);
         prev={x};
       }
@@ -3609,6 +3638,20 @@ function drawStaff(X, vw, b0, b1){
   }
   drawTupBrackets(tupSpans, drawBeams(stems));
   drawTies(ties);
+  if(PRINT) printAccents(stems);
+}
+/* งานพิมพ์: เครื่องหมายเน้นเหนือ/ใต้ปลายก้านหลังคานถูกจัดระดับแล้ว (drawBeams ยืด s.end ให้ทั้งกลุ่มเท่ากัน)
+   กลุ่มเดียวกันจึงเรียงเป็นแนวเดียว และไม่ชนคาน · มีเลขพยางค์อยู่ตรงนั้นก็หลบออกไปอีกหนึ่งชั้น */
+function printAccents(stems){
+  cx.save(); cx.strokeStyle="#000"; cx.lineWidth=1.45; cx.lineJoin="miter";
+  for(const s of stems){
+    if(!s.acc) continue;
+    const ref = s.stemmed ? s.end : (s.up ? s.top-HR : s.bot+HR);
+    const off = 8 + (s.tp>1 ? 10 : 0);
+    const ay = s.up ? ref-off : ref+off;
+    cx.beginPath(); cx.moveTo(s.hx-4.6,ay-3.2); cx.lineTo(s.hx+4.6,ay); cx.lineTo(s.hx-4.6,ay+3.2); cx.stroke();
+  }
+  cx.restore();
 }
 
 /* ============================================================
@@ -5240,8 +5283,10 @@ function applyMidiProject(pr){
   S.bpm = pr.bpm;
   S.offset = 0;
   S.projName = S.projName || "";
-  let total = 0;
-  for(const b of pr.bars) total += b.num * (60/(b.bpm || pr.bpm)) * (4/b.den);
+  // ป้ายความเร็วมีผลไปจนเจอป้ายใหม่ (เหมือน bpmAt) — เดิมห้องที่ไม่มีป้ายใช้ความเร็วห้องแรก
+  // เพลงที่ช้าลงกลางเพลงจึงได้ความยาวสั้นกว่าจริง ห้องท้าย ๆ ถูกตัดทิ้งทั้งที่มีโน้ต
+  let total = 0, cur = pr.bpm;
+  for(const b of pr.bars){ if(b.bpm > 0) cur = b.bpm; total += b.num * (60/cur) * (4/b.den); }
   S.dur = Math.max(1, total);
   S.selIdx = -1; lastTouched = null;
   rebuildBars(); retime(); rebuildRows(); syncVals(); fitBottom();
@@ -6539,29 +6584,8 @@ const PAPERS = {
 const EX_DPI = [{v:150, th:"150 · ดูบนจอ"}, {v:200, th:"200 · พิมพ์ทั่วไป"},
                 {v:300, th:"300 · พิมพ์คมชัด"}];
 
-/* กลับเป็นดำบนขาว — ใช้ความสว่างอย่างเดียว ตัวโน้ตสีต่าง ๆ จึงกลายเป็นดำเข้มเท่ากันหมด
-   ตรงกับธรรมเนียมโน้ตที่พิมพ์ออกกระดาษ */
-function inkify(ctx, w, h){
-  const im = ctx.getImageData(0, 0, w, h), d = im.data;
-  for(let i=0;i<d.length;i+=4){
-    let l = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
-    l = 255 - l;                                   // พื้นเข้ม → ขาว · หมึกสว่าง → ดำ
-    l = l < 70 ? 0 : l > 205 ? 255 : (l - 70) * 255 / 135;   // ดันให้ตัดกันชัด
-    d[i] = d[i+1] = d[i+2] = l; d[i+3] = 255;
-  }
-  ctx.putImageData(im, 0, 0);
-}
-/* แบ่งห้องออกเป็นบรรทัด ๆ ละกี่ห้อง แล้วบรรทัดไหนอยู่หน้าไหน */
-function paginate(nBars, perSystem, sysPerPage){
-  const systems = [];
-  for(let i=0;i<nBars;i+=perSystem)
-    systems.push([i, Math.min(nBars-1, i+perSystem-1)]);
-  const pages = [];
-  for(let i=0;i<systems.length;i+=sysPerPage)
-    pages.push(systems.slice(i, i+sysPerPage));
-  return pages.length ? pages : [[]];
-}
-/* วาดหนึ่งบรรทัดโน้ตลงผืนผ้าใบที่ให้มา โดยยืมเครื่องเขียนโน้ตตัวจริง */
+/* วาดหนึ่งบรรทัดโน้ตลงผืนผ้าใบที่ให้มา โดยยืมเครื่องเขียนโน้ตตัวจริง (แถบภาพย่อ · แป้นกลอง)
+   ระยะตามเวลาตรง ๆ เหมือนบนจอ — หน้ากระดาษใช้ prDrawSystem ด้านล่างแทน */
 function drawSystemInto(ctx, b0, b1, x, y, w){
   const prev = cx;
   cx = ctx;
@@ -6574,45 +6598,248 @@ function drawSystemInto(ctx, b0, b1, x, y, w){
     ctx.restore();
   } finally { cx = prev; }
 }
-/* สร้างผืนผ้าใบของแต่ละหน้า */
-function renderPages(o){
-  const paper = PAPERS[o.paper] || PAPERS.a4;
-  const land = !!o.landscape;
-  const mmW = land ? paper.h : paper.w, mmH = land ? paper.w : paper.h;
-  const px = mm => Math.round(mm / 25.4 * o.dpi);
-  const W = px(mmW), H = px(mmH), M = px(o.marginMm != null ? o.marginMm : 14);
-  const scale = o.dpi / 96;                        // drawStaff คิดเป็นจุดภาพหน้าจอ
-  const sysH = Math.round(150 * scale);            // ความสูงที่เผื่อให้หนึ่งบรรทัด
-  const headH = Math.round((o.title ? 46 : 8) * scale);
-  const inner = W - M*2;
-  const sysPerPage = Math.max(1, Math.floor((H - M*2 - headH) / sysH));
-  const pages = paginate(S.bars.length, Math.max(1, o.barsPerSystem||4), sysPerPage);
-  const out = [];
-  for(let pi=0; pi<pages.length; pi++){
-    const c = document.createElement("canvas");
-    c.width = W; c.height = H;
-    const g = c.getContext("2d");
-    g.fillStyle = "#1F1B19"; g.fillRect(0, 0, W, H);   // พื้นเดิม เดี๋ยวกลับสีตอนท้าย
-    let y = M + headH;
-    if(o.title && pi === 0){
-      g.fillStyle = "#EFE7DE";
-      g.font = "600 " + Math.round(17*scale) + "px 'IBM Plex Sans Thai', sans-serif";
-      g.fillText(o.title, M, M + Math.round(20*scale));
-    }
-    for(const [b0, b1] of pages[pi]){
-      g.save();
-      g.scale(scale, scale);
-      drawSystemInto(g, b0, b1, M/scale, (y - M - headH + M + headH)/scale, inner/scale);
-      g.restore();
-      y += sysH;
-    }
-    g.fillStyle = "#9C8B82";
-    g.font = Math.round(10*scale) + "px 'IBM Plex Sans Thai', sans-serif";
-    g.fillText((pi+1) + " / " + pages.length, W - M - Math.round(40*scale), H - Math.round(M/2));
-    if(o.mono !== false) inkify(g, W, H);
-    out.push(c);
+/* ── งานพิมพ์ ──────────────────────────────────────────────────────────
+   หน้าตาที่ยึด: แบบโน้ตกลองที่พิมพ์ขายทั่วไป (Hal Leonard / Hudson) ไม่ใช่ภาพหน้าจอ
+   · หมึกดำล้วนบนกระดาษขาว — เดิมวาดบนพื้นมืดแล้วกลับสีตามความสว่าง สีสแนร์/กระเดื่อง
+     จึงออกเป็นเทา ตอนนี้ดักสีที่ตั้งบนผืนผ้าใบงานพิมพ์ ให้เป็นดำทั้งหมด
+     (แบบมีสี: หัวโน้ตใช้สีเสียงกลองที่เข้มลงให้อ่านได้บนกระดาษขาว ที่เหลือดำ)
+   · ระยะห่างตามความยาวโน้ต (รากของความยาว) แบบเครื่องเรียงโน้ต ไม่ใช่ตามเวลาตรง ๆ
+     โน้ตถี่ในฟิลล์ได้ที่มากขึ้น โน้ตตัวแรกของห้องไม่ทับเส้นกั้นห้องอีก
+   · กุญแจเพอร์คัชชันทุกบรรทัด · ตัวเลขบอกจังหวะ (บรรทัดแรกและที่เปลี่ยน) · ♩ = ความเร็ว
+     · เลขห้องต้นบรรทัด · คีย์กลองหน้าแรก · เส้นจบเพลง · บรรทัดสุดท้ายที่ห้องน้อยไม่ยืดเต็มบรรทัด
+   · ห้องเปล่าท้ายเพลงไม่พิมพ์ (ห้องว่างที่เหลือจากการถอด ไม่ใช่ดนตรี)
+   หน่วยวาดทั้งหมดเป็นจุดภาพจอ 96 dpi (เส้นบรรทัดห่าง 8 = 2.1 มม.) แล้วขยายตาม dpi ที่เลือก */
+const PR = {padL:11, base:15.5, exp:0.55, minGap:12, clefW:22, tsW:21, staff:32, gap:22, tempoH:24};
+// ช่องว่างระหว่างสองจุดตี: เขบ็ต 2 ชั้น 15.5 · เขบ็ต 1 ชั้น 22.7 · ตัวดำ 33 · ตัวขาว 49 · ตัวกลม 71
+function prGap(dtk){ return Math.max(PR.minGap, PR.base * Math.pow(Math.max(1, dtk)/(PPQ/4), PR.exp)); }
+function prBarCount(){
+  let n=S.bars.length;
+  while(n>1 && !S.notes.some(m=>m.tk>=barStartTk[n-1] && m.tk<barStartTk[n])) n--;
+  return n;
+}
+const prTsChanged = i => i>0 && (S.bars[i].num!==S.bars[i-1].num || S.bars[i].den!==S.bars[i-1].den);
+/* ห้องหนึ่งห้อง: จุดหักของระยะ (tick → หน่วย) เผื่อที่ให้ฟลาม/ดร้าก/เกรซหน้าตัวหลัก */
+function prBar(bi, tsInside){
+  const a=barStartTk[bi], b=barStartTk[bi+1], ns=notesInBar(bi), ex=new Map();
+  for(const n of ns) if(n.orn!=="grace") ex.set(n.tk, Math.max(ex.get(n.tk)||0, (ORN_N[n.orn||""]||0)*6.5));
+  for(const n of ns) if(n.orn==="grace"){ const h=graceHost(n); if(h && ex.has(h.tk)) ex.set(h.tk, ex.get(h.tk)+6.5); }
+  const pts=[...ex.keys()].filter(t=>t>a && t<b).sort((x,y)=>x-y);
+  const br=[{tk:a, u:0}]; let u=0, prev=a;
+  for(const t of pts){ u+=prGap(t-prev)+(ex.get(t)||0); br.push({tk:t, u}); prev=t; }
+  u+=prGap(b-prev); br.push({tk:b, u});
+  return {bi, a, b, br, nat:u, ts:tsInside, pad:PR.padL + (tsInside ? PR.tsW : 0) + (ex.get(a)||0)};
+}
+/* หนึ่งบรรทัด: ห้อง b0..b1 ในความกว้าง avail · fRef = อัตรายืดของบรรทัดก่อน (บรรทัดสุดท้ายใช้ไม่เกินนี้) */
+function prSystem(b0, b1, avail, last, fRef){
+  const ts0 = b0===0 || prTsChanged(b0);
+  const prefix = PR.clefW + (ts0 ? PR.tsW : 0) + 6;
+  const bars=[]; for(let i=b0;i<=b1;i++) bars.push(prBar(i, i>b0 && prTsChanged(i)));
+  const fixed=bars.reduce((t,B)=>t+B.pad,0), nat=bars.reduce((t,B)=>t+B.nat,0);
+  let f=(avail-prefix-fixed)/Math.max(1,nat), width=avail;
+  if(last && fRef && f > fRef*1.35){ f=Math.max(1, fRef); width=prefix+fixed+nat*f; }
+  let x=prefix; for(const B of bars){ B.x=x; B.f=f; x+=B.pad+B.nat*f; }
+  return {b0, b1, bars, prefix, width, ts0, f, last};
+}
+/* ของที่ยื่นเหนือ/ใต้บรรทัดจริง ๆ (หัวโน้ต ก้าน คาน เครื่องหมายเน้น เลขพยางค์ ป้ายความเร็ว)
+   ใช้จัดระยะแนวตั้ง: บรรทัดที่มีฉาบสูง ๆ ห่างจากบรรทัดบนมากขึ้น บรรทัดเรียบ ๆ ชิดกันได้ ไม่มีอะไรชนกัน */
+function prExtents(L){
+  let above=30, below=26;                        // วัดจากเส้นบนสุด / เส้นล่างสุดของบรรทัด
+  for(let bi=L.b0; bi<=L.b1; bi++) for(const n of notesInBar(bi)){
+    const st=STAFF[n.v]; if(!st) continue;
+    const y=(8-st.p)*HG, up=voiceUp(voiceOf(n)), more=(accentOf(n)?12:0)+((n.tp||0)>1?11:0);
+    above=Math.max(above, HR+2-y); below=Math.max(below, y+HR+2-PR.staff);
+    if(up) above=Math.max(above, STEM_LEN+more-y);
+    else   below=Math.max(below, y+STEM_LEN+more-PR.staff);
   }
-  return out;
+  const tempo=tempoMarks().some(m=>m.bar>=L.b0 && m.bar<=L.b1);
+  return {above: above+(tempo?PR.tempoH:0), notes:above, below, tempo};
+}
+function prX(L){
+  return t=>{
+    const tk=secTk(t);
+    let B=L.bars[L.bars.length-1];
+    for(const bb of L.bars){ if(tk < bb.b){ B=bb; break; } }
+    if(tk>=B.b) return B.x+B.pad+B.nat*B.f;
+    const br=B.br; let k=1; while(k<br.length-1 && br[k].tk<=tk) k++;
+    const p0=br[k-1], p1=br[k];
+    return B.x+B.pad+(p0.u+(p1.u-p0.u)*(tk-p0.tk)/Math.max(1,p1.tk-p0.tk))*B.f;
+  };
+}
+/* สีบนผืนผ้าใบงานพิมพ์: ทุกสีเป็นดำ · แบบมีสีให้หัวโน้ตใช้สีเสียงกลองที่เข้มลง */
+function prInk(g, color){
+  const lanes=new Set(PALETTE.map(e=>e.color.toLowerCase()));
+  const dark=h=>{ const v=parseInt(h.slice(1),16), k=0.62;
+    return "rgb("+Math.round((v>>16&255)*k)+","+Math.round((v>>8&255)*k)+","+Math.round((v&255)*k)+")"; };
+  const map=v=> typeof v!=="string" ? v : (color && lanes.has(v.toLowerCase()) ? dark(v.toLowerCase()) : "#000");
+  return new Proxy(g, {
+    get(t,k){ const v=t[k]; return typeof v==="function" ? v.bind(t) : v; },
+    set(t,k,v){ t[k] = (k==="fillStyle"||k==="strokeStyle") ? map(v) : v; return true; }
+  });
+}
+const PR_FONT="'IBM Plex Sans Thai', system-ui, sans-serif";
+const PR_NUM="Georgia, 'Times New Roman', 'Noto Serif', serif";
+/* ตัวโน้ตตัวดำเล็ก ๆ สำหรับป้ายความเร็ว ♩ = 100 (ไม่พึ่งฟอนต์ที่มีสัญลักษณ์ดนตรี) */
+function prQuarter(g, x, y){
+  g.save(); g.fillStyle="#000"; g.strokeStyle="#000"; g.lineWidth=1.1;
+  g.beginPath(); g.ellipse(x, y, 3.6, 2.6, -0.35, 0, Math.PI*2); g.fill();
+  g.beginPath(); g.moveTo(x+3.2, y-0.5); g.lineTo(x+3.2, y-15); g.stroke();
+  g.restore();
+}
+/* วาดหนึ่งบรรทัด ที่ x0 · เส้นบนสุดของบรรทัดอยู่ที่ yTop */
+function prDrawSystem(g, L, x0, yTop, endPiece){
+  const prev=cx, hr0=HR; cx=g; PRINT={}; HR=3.9;     // หัวโน้ตเต็มช่องบรรทัด (สูงราว 1 ช่อง)
+  try{
+    g.save(); g.translate(x0, yTop - py(8));
+    drawStaff(prX(L), L.width, L.b0, L.b1);
+    // เส้นกั้นห้อง (เส้นท้ายบรรทัดด้วย) · จบเพลง = เส้นบาง + เส้นหนา
+    g.fillStyle="#000";
+    const yt=py(8), yb=py(0)+1;
+    L.bars.forEach((B,k)=>{
+      const xe=B.x+B.pad+B.nat*B.f;
+      const fin = endPiece && k===L.bars.length-1;
+      if(fin){ g.fillRect(xe-4.2, yt, 3.4, yb-yt); g.fillRect(xe-8.6, yt, 1.1, yb-yt); }
+      else g.fillRect(xe-0.6, yt, 1.15, yb-yt);
+    });
+    // กุญแจเพอร์คัชชัน: สองแท่งระหว่างเส้นที่ 2 กับเส้นที่ 4
+    g.fillRect(5, py(6), 2.8, py(2)-py(6)); g.fillRect(10.4, py(6), 2.8, py(2)-py(6));
+    // ตัวเลขบอกจังหวะ
+    const ts=(x, bar)=>{
+      g.save(); g.fillStyle="#000"; g.textAlign="center"; g.textBaseline="middle";
+      g.font="bold 18.5px "+PR_NUM;
+      g.fillText(String(bar.num), x, py(6)+0.5); g.fillText(String(bar.den), x, py(2)+0.5);
+      g.restore();
+    };
+    if(L.ts0) ts(PR.clefW + PR.tsW/2, S.bars[L.b0]);
+    for(const B of L.bars) if(B.ts) ts(B.x + PR.padL*0.5 + PR.tsW/2, S.bars[B.bi]);
+    // เลขห้องต้นบรรทัด (ห้องแรกของเพลงไม่ต้อง)
+    g.fillStyle="#000";
+    if(L.b0>0){ g.font="italic 600 9.5px "+PR_NUM; g.textAlign="left"; g.textBaseline="alphabetic";
+      g.fillText(String(L.b0+1), 2, py(8)-9); }
+    // ป้ายความเร็ว ♩ = n ที่ห้องแรกและห้องที่เปลี่ยน
+    for(const m of tempoMarks()){
+      if(m.bar<L.b0 || m.bar>L.b1) continue;
+      const B=L.bars[m.bar-L.b0], x = m.bar===L.b0 ? PR.clefW : B.x+B.pad-4, y=py(8)-L.ext.notes-9;
+      prQuarter(g, x+4, y);
+      g.font="600 11.5px "+PR_FONT; g.textAlign="left"; g.textBaseline="alphabetic";
+      g.fillText("= "+(Math.round(m.bpm*10)/10), x+11, y+4);
+    }
+    g.restore();
+  } finally { cx=prev; PRINT=null; HR=hr0; }
+}
+/* คีย์กลอง: บรรทัดสั้น ๆ บอกว่าตำแหน่งไหน หัวโน้ตแบบไหน คือกลองใบไหน (เฉพาะที่ใช้ในเพลง) */
+function prKeyItems(){
+  const used=new Map();
+  for(const n of S.notes){ if(!STAFF[n.v] || n.orn==="grace") continue;
+    const k=pkeyOf(n); if(!used.has(k)) used.set(k, {v:n.v, art:n.art||""}); }
+  // ไฮแฮตเปิดไม่ต้องแยกหัวโน้ต (หัวเดียวกับปิด ต่างที่ o เหนือหัว) แต่บอกในคำอธิบายท้ายคีย์
+  const items=[...used.entries()].filter(([k])=>k!=="hihat:open")
+    .map(([k,n])=>({k, n, th:(PAL[k]||PAL[n.v]||{th:n.v}).th, p:STAFF[n.v].p}));
+  items.sort((a,b)=>b.p-a.p || a.th.localeCompare(b.th));
+  return {items, open:used.has("hihat:open")};
+}
+function prDrawKey(g, x0, y0, avail){
+  const K=prKeyItems(); if(!K.items.length) return 0;
+  const step=46, fit=Math.max(1, Math.floor((avail-110)/step));
+  const nRows=Math.ceil(K.items.length/fit), perRow=Math.ceil(K.items.length/nRows);   // แถวยาวเท่า ๆ กัน
+  const rows=[]; for(let i=0;i<K.items.length;i+=perRow) rows.push(K.items.slice(i,i+perRow));
+  const prev=cx, hr0=HR; cx=g; PRINT={}; HR=3.9;
+  let y=y0;
+  try{
+    g.save(); g.fillStyle="#000"; g.font="600 10.5px "+PR_FONT; g.textBaseline="alphabetic";
+    g.fillText("คีย์กลอง", x0, y0+11); g.restore();
+    rows.forEach(row=>{
+      const w=40+row.length*step, top=y+30;
+      g.save(); g.translate(x0+62, top-py(8));
+      g.strokeStyle="#000"; g.lineWidth=0.9;
+      for(let p=0;p<=8;p+=2){ const yy=py(p)+.5; g.beginPath(); g.moveTo(0,yy); g.lineTo(w,yy); g.stroke(); }
+      g.fillStyle="#000";
+      g.fillRect(5, py(6), 2.8, py(2)-py(6)); g.fillRect(10.4, py(6), 2.8, py(2)-py(6));
+      row.forEach((it,i)=>{
+        const x=36+i*step, yN=py(it.p);
+        if(it.p>=10){ g.lineWidth=1; g.beginPath(); g.moveTo(x-7,py(10)+.5); g.lineTo(x+7,py(10)+.5); g.stroke(); }
+        headShape(headOf(it.n), x, yN, HR, (PAL[it.k]||PAL[it.n.v]||{}).color||"#000", false, false);   // แบบมีสี: สีเดียวกับในโน้ต
+        g.beginPath(); g.lineWidth=1.2; g.moveTo(x+HR+0.6, yN); g.lineTo(x+HR+0.6, yN-20); g.stroke();
+        g.save(); g.font="500 8.6px "+PR_FONT; g.textAlign="center"; g.textBaseline="top";
+        g.fillText(it.th, x+2, py(-2)+3); g.restore();
+      });
+      g.restore();
+      y = top + (py(-2)-py(8)) + 18;
+    });
+    if(K.open){ g.save(); g.fillStyle="#000"; g.font="500 8.6px "+PR_FONT; g.textBaseline="alphabetic";
+      g.fillText("o = ไฮแฮตเปิด   + = ไฮแฮตปิด (หลังเปิด)", x0+62, y+6); g.restore(); y+=14; }
+  } finally { cx=prev; PRINT=null; HR=hr0; }
+  return y-y0;
+}
+/* วางแผนทั้งเล่ม: กี่หน้า หน้าไหนมีบรรทัดไหน ระยะห่างแนวตั้ง — ยังไม่วาดอะไร */
+function printPlan(o){
+  const paper=PAPERS[o.paper]||PAPERS.a4, land=!!o.landscape;
+  const mmW=land?paper.h:paper.w, mmH=land?paper.w:paper.h;
+  const U=mm=>mm/25.4*96;                                   // มม. → หน่วยวาด
+  const W=U(mmW), H=U(mmH), M=U(o.marginMm!=null?o.marginMm:14), inner=W-M*2;
+  const nBars=prBarCount(), per=Math.max(1, o.barsPerSystem||4);
+  const sys=[]; let fRef=0;
+  for(let i=0;i<nBars;i+=per){
+    const L=prSystem(i, Math.min(nBars-1, i+per-1), inner, i+per>=nBars, fRef);
+    if(!L.last) fRef=L.f; sys.push(L);
+  }
+  // หัวหน้าแรก: ชื่อเพลง + คีย์กลอง (วัดความสูงคีย์ด้วยการวาดลงผืนเล็ก ๆ ที่ทิ้ง)
+  const titleH = o.title ? 44 : 6;
+  let keyH=0;
+  if(o.key){ const tmp=document.createElement("canvas"); tmp.width=4; tmp.height=4;
+    keyH=prDrawKey(prInk(tmp.getContext("2d"), false), 0, 0, inner); if(keyH) keyH+=14; }
+  const footH=22, headH2=18;
+  const pages=[]; let cur=null, used=0, room=0;
+  for(const L of sys){
+    L.ext=prExtents(L);
+    const h=L.ext.above+PR.staff+L.ext.below;
+    if(!cur || used+h > room){
+      const first=!pages.length;
+      cur={sys:[], top: M + (first ? titleH+keyH : headH2)}; pages.push(cur);
+      room = H - M - footH - cur.top; used=0;
+    }
+    cur.sys.push(L); used+=h+PR.gap; cur.used=used-PR.gap;
+  }
+  // หน้าเต็ม (ไม่ใช่หน้าสุดท้าย) กระจายช่องว่างที่เหลือให้บรรทัดห่างเท่า ๆ กัน (เพิ่มได้ไม่เกิน 40 ต่อช่อง)
+  pages.forEach((pg,pi)=>{
+    const free=(H-M-footH-pg.top)-pg.used;
+    pg.extra = pi<pages.length-1 && pg.sys.length>1 ? Math.max(0, Math.min(40, free/(pg.sys.length-1))) : 0;
+  });
+  // Safari บน iPad สร้างผืนผ้าใบได้ไม่เกินราว 16.7 ล้านจุด (A3 300 dpi = 17.4 ล้าน จะได้หน้าขาว) จึงลด dpi ให้พอดี
+  const maxDpi=Math.floor(96*Math.sqrt(16.0e6/(W*H)));
+  return {o, W, H, M, inner, mmW, mmH, pages, titleH, keyH, nBars, maxDpi};
+}
+function renderPage(plan, pi, dpi){
+  const o=plan.o, sc=dpi/96;
+  const c=document.createElement("canvas");
+  c.width=Math.round(plan.W*sc); c.height=Math.round(plan.H*sc);
+  const raw=c.getContext("2d");
+  raw.fillStyle="#fff"; raw.fillRect(0,0,c.width,c.height);
+  raw.scale(sc, sc);
+  const g=prInk(raw, o.mono===false);
+  const {M, W, H, inner}=plan, pg=plan.pages[pi], N=plan.pages.length;
+  const title=o.title||"";
+  g.fillStyle="#000"; g.textBaseline="alphabetic";
+  if(pi===0){
+    if(title){ g.font="600 21px "+PR_FONT; g.textAlign="center"; g.fillText(title, W/2, M+24); g.textAlign="left"; }
+    if(o.key) prDrawKey(g, M, M+plan.titleH, inner);
+  } else if(title){
+    g.font="italic 500 9.5px "+PR_FONT; g.textAlign="left"; g.fillText(title, M, M+4);
+  }
+  let y=pg.top;
+  for(const L of pg.sys){
+    const yTop=y+L.ext.above;
+    prDrawSystem(g, L, M, yTop, L.b1===plan.nBars-1);
+    y=yTop+PR.staff+L.ext.below+PR.gap+pg.extra;
+  }
+  g.fillStyle="#000"; g.font="500 9.5px "+PR_FONT; g.textAlign="center";
+  g.fillText(N>1 ? "หน้า "+(pi+1)+" / "+N : "", W/2, H-M*0.55);
+  g.textAlign="left";
+  return c;
+}
+/* สร้างผืนผ้าใบทุกหน้า (ดูตัวอย่าง / รูปภาพ) — PDF ทยอยวาดทีละหน้าเองเพื่อไม่กินหน่วยความจำ */
+function renderPages(o, dpi){
+  const plan=printPlan(o);
+  return plan.pages.map((_,i)=>renderPage(plan, i, dpi||o.dpi));
 }
 
 /* ── PDF แบบภาพ เขียนเองทั้งไฟล์ ไม่พึ่งไลบรารี ── */
@@ -6625,7 +6852,20 @@ function jpegOf(canvas, q){
   const url = canvas.toDataURL("image/jpeg", q == null ? 0.92 : q);
   return b64ToBytes(url.slice(url.indexOf(",") + 1));
 }
-/* ประกอบไฟล์ PDF จากภาพหน้าละใบ ฝังเป็น DCTDecode (ไบต์ JPEG ตรง ๆ) */
+/* ภาพหน้ากระดาษแบบไม่สูญเสีย: พิกเซลดิบบีบด้วย deflate ฝังเป็น FlateDecode
+   JPEG ทำให้เส้นบรรทัดกับตัวหนังสือมีฝ้ารอบ ๆ (ภาพลายเส้นขาวดำเป็นจุดอ่อนของ JPEG)
+   ขาวดำเก็บช่องเดียว (DeviceGray) — หน้าขาวล้วนบีบเหลือเล็กกว่า JPEG ด้วย
+   CompressionStream มีใน Safari 16.4+ · ไม่มีก็ถอยไปใช้ JPEG แบบเดิม */
+async function pageImage(canvas, gray){
+  if(typeof CompressionStream === "undefined")
+    return {w:canvas.width, h:canvas.height, bytes:jpegOf(canvas, 0.95)};
+  const w=canvas.width, h=canvas.height, d=canvas.getContext("2d").getImageData(0,0,w,h).data;
+  const ch=gray ? 1 : 3, raw=new Uint8Array(w*h*ch);
+  for(let i=0,j=0;i<raw.length;j+=4){ raw[i++]=d[j]; if(!gray){ raw[i++]=d[j+1]; raw[i++]=d[j+2]; } }
+  const z=await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer();
+  return {w, h, bytes:new Uint8Array(z), filter:"FlateDecode", cs:gray ? "DeviceGray" : "DeviceRGB"};
+}
+/* ประกอบไฟล์ PDF จากภาพหน้าละใบ (FlateDecode จาก pageImage หรือ DCTDecode = ไบต์ JPEG ตรง ๆ) */
 function buildPDF(imgs, mmW, mmH){
   const enc = new TextEncoder();
   const parts = [], offsets = [];
@@ -6648,8 +6888,8 @@ function buildPDF(imgs, mmW, mmH){
       " 0 R >> >> /Contents " + ct + " 0 R >>\nendobj\n");
     const bytes = imgs[i].bytes;
     mark(); push(im + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + imgs[i].w +
-      " /Height " + imgs[i].h + " /ColorSpace /DeviceRGB /BitsPerComponent 8" +
-      " /Filter /DCTDecode /Length " + bytes.length + " >>\nstream\n");
+      " /Height " + imgs[i].h + " /ColorSpace /" + (imgs[i].cs || "DeviceRGB") + " /BitsPerComponent 8" +
+      " /Filter /" + (imgs[i].filter || "DCTDecode") + " /Length " + bytes.length + " >>\nstream\n");
     push(bytes); push("\nendstream\nendobj\n");
     const cs = "q " + ptW.toFixed(2) + " 0 0 " + ptH.toFixed(2) + " 0 0 cm /Im0 Do Q\n";
     mark(); push(ct + " 0 obj\n<< /Length " + cs.length + " >>\nstream\n" + cs + "endstream\nendobj\n");
@@ -8764,6 +9004,7 @@ function exOpts(){
     barsPerSystem: +$("#exPerSys").value,
     mono: $("#exMono").checked,
     title: $("#exTitle").checked ? (S.projName || "ถอดกลอง") : "",
+    key: !$("#exKey") || $("#exKey").checked,
   };
 }
 function exReady(){
@@ -8775,13 +9016,13 @@ function wireExport(){
     .map(k => '<option value="' + k + '"' + (k === "a4" ? " selected" : "") + '>' +
               PAPERS[k].th + ' (' + PAPERS[k].w + '×' + PAPERS[k].h + ' มม.)</option>').join("");
   $("#exDpi").innerHTML = EX_DPI
-    .map(d => '<option value="' + d.v + '"' + (d.v === 200 ? " selected" : "") + '>' + d.th + '</option>').join("");
+    .map(d => '<option value="' + d.v + '"' + (d.v === 300 ? " selected" : "") + '>' + d.th + '</option>').join("");
 
   $("#exPrev").onclick = () => {
     if(!exReady()) return;
     setStatus("กำลังวาดตัวอย่าง…");
     try{
-      const pages = renderPages(exOpts());
+      const pages = renderPages(exOpts(), 110);       // ดูบนจอพอ ไม่ต้องวาดเต็มความละเอียด
       const box = $("#exPreview");
       box.innerHTML = "";
       pages.slice(0, 3).forEach(c => {
@@ -8794,33 +9035,43 @@ function wireExport(){
         (pages.length > 3 ? " (แสดง 3 หน้าแรก)" : "") + " — ถ้าโอเคแล้วกดส่งออกได้เลย");
     }catch(e){ setStatus("วาดตัวอย่างไม่สำเร็จ: " + e.message, true); }
   };
-  $("#exPdf").onclick = () => {
+  $("#exPdf").onclick = async () => {
     if(!exReady()) return;
     setStatus("กำลังสร้าง PDF…");
     try{
-      const o = exOpts();
-      const paper = PAPERS[o.paper] || PAPERS.a4;
-      const mmW = o.landscape ? paper.h : paper.w, mmH = o.landscape ? paper.w : paper.h;
-      const pages = renderPages(o);
-      const imgs = pages.map(c => ({w:c.width, h:c.height, bytes:jpegOf(c)}));
-      const pdf = buildPDF(imgs, mmW, mmH);
+      const o = exOpts(), plan = printPlan(o), paper = PAPERS[o.paper] || PAPERS.a4;
+      const dpi = Math.min(o.dpi, plan.maxDpi);
+      const imgs = [];
+      for(let i=0;i<plan.pages.length;i++){            // ทีละหน้า วาดเสร็จบีบแล้วทิ้งผืนผ้าใบ (iPad หน่วยความจำจำกัด)
+        setStatus("กำลังสร้าง PDF… หน้า " + (i+1) + " / " + plan.pages.length);
+        const c = renderPage(plan, i, dpi);
+        imgs.push(await pageImage(c, o.mono !== false));
+        c.width = c.height = 0;
+        await yieldNow();
+      }
+      const pdf = buildPDF(imgs, plan.mmW, plan.mmH);
       dlBytes(pdf, (S.projName || "drums") + ".pdf", "application/pdf");
-      setStatus("ส่งออก PDF แล้ว " + pages.length + " หน้า · " + paper.th +
-                (o.landscape ? " แนวนอน" : " แนวตั้ง") + " · " + o.dpi + " dpi");
+      setStatus("ส่งออก PDF แล้ว " + imgs.length + " หน้า · " + paper.th +
+                (o.landscape ? " แนวนอน" : " แนวตั้ง") + " · " + dpi + " dpi" +
+                (dpi < o.dpi ? " (ลดจาก " + o.dpi + " ให้พอดีหน่วยความจำ iPad)" : "") + " · " +
+                Math.max(1, Math.round(pdf.length/1024)) + " KB");
     }catch(e){ setStatus("สร้าง PDF ไม่สำเร็จ: " + e.message, true); }
   };
-  $("#exPng").onclick = () => {
+  $("#exPng").onclick = async () => {
     if(!exReady()) return;
     try{
-      const pages = renderPages(exOpts());
-      pages.forEach((c, i) => c.toBlob(b => {
+      const o = exOpts(), plan = printPlan(o), n = plan.pages.length, dpi = Math.min(o.dpi, plan.maxDpi);
+      for(let i=0;i<n;i++){                            // ทีละหน้า เหมือน PDF
+        const c = renderPage(plan, i, dpi);
+        const b = await new Promise(r => c.toBlob(r, "image/png"));
+        c.width = c.height = 0;
         const a = document.createElement("a");
         a.href = URL.createObjectURL(b);
-        a.download = (S.projName || "drums") + (pages.length > 1 ? ("-หน้า" + (i+1)) : "") + ".png";
+        a.download = (S.projName || "drums") + (n > 1 ? ("-หน้า" + (i+1)) : "") + ".png";
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 8000);
-      }, "image/png"));
-      setStatus("ส่งออกรูปภาพแล้ว " + pages.length + " ไฟล์");
+      }
+      setStatus("ส่งออกรูปภาพแล้ว " + n + " ไฟล์");
     }catch(e){ setStatus("ส่งออกรูปไม่สำเร็จ: " + e.message, true); }
   };
   $("#exMid2").onclick = () => exportMidi();

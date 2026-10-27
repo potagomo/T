@@ -607,6 +607,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
 #npal .np-time select{min-height:40px; max-width:96px; padding:0 6px; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:8px}
 #npal .np-tabs{display:flex; width:100%; margin:0 0 8px}
 #npal .np-tabs button{flex:1 1 0; min-height:42px; padding:4px 2px; font-size:13.5px}
+#npal:not(.docked) .np-tabs .np-tbar{display:none}   /* หมวด "ห้อง" มีเฉพาะแผงที่เกาะขอบจอบนมือถือ */
 #npal.all .np-tabs{display:none}
 #npal .np-sec h4{margin:6px 0 6px; font-size:12.5px; font-weight:600; color:var(--dim)}
 #npal .np-sec h4:first-child{margin-top:0}
@@ -1265,6 +1266,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
     <button data-cat="dyn" role="tab" aria-pressed="false">น้ำหนัก</button>
     <button data-cat="art" role="tab" aria-pressed="false">ลูกเล่น</button>
     <button data-cat="line" role="tab" aria-pressed="false">การวาง</button>
+    <button data-cat="bar" role="tab" aria-pressed="false" class="np-tbar">ห้อง</button>
   </div>
   <div class="np-sec" data-cat="val"><h4>ค่าโน้ต</h4><div class="np-m np-vals" data-src="#vals"></div>
     <div class="np-row"><button class="btn sm" id="npDot" aria-pressed="false">ประจุด ( . )</button></div></div>
@@ -2600,6 +2602,13 @@ function drawHead(){
     if(hb>=0){ const ha=barStarts[hb], hz=hb+1<barStarts.length?barStarts[hb+1]:totalEnd();
       ox.fillStyle=window.KlongTheme.focus; ox.fillRect(X0(ha)-scroller.scrollLeft, 0, (hz-ha)*S.zoom, ovH); }
   }
+  if(penHover){                                    // ปากกาลอย: จุดที่จะวาง (ฟ้าจาง) · จะลบ (วงแดง)
+    const hx=X0(penHover.t)-scroller.scrollLeft, hy=ROWTOP+penHover.row*ROWH+ROWH/2, r=Math.max(5, ROWH*.34);
+    ox.save(); ox.beginPath(); ox.arc(hx, hy, r, 0, Math.PI*2);
+    if(penHover.del){ ox.strokeStyle="#E2564A"; ox.lineWidth=2.2; ox.stroke(); }
+    else{ ox.globalAlpha=.45; ox.fillStyle="#4FC7D4"; ox.fill(); }
+    ox.restore();
+  }
   if(playAbs==null) return;
   const px=playAbs-scroller.scrollLeft;
   if(px<0 || px>ovW) return;
@@ -3767,12 +3776,19 @@ function hit(ev){
 }
 // ปากกาแอปเปิลถือว่าตั้งใจเขียนเสมอ ส่วนนิ้วทำตามเครื่องมือที่เลือก
 function actsAsPen(e){ return e.pointerType==="pen"; }
+// ปุ่มข้างปากกา (S Pen) หรือหางยางลบ = ลบโน้ต ไม่ว่าเลือกเครื่องมือไหน — Chrome บน Android ส่งปุ่มข้างเป็นปุ่มที่ 2
+function penErases(e){ return actsAsPen(e) && (e.button===2 || e.button===5 || (e.buttons & 34)!==0); }
+// สั่นสั้น ๆ ตอนปากกาวาง/ลบโน้ต (Android) · iPad/iPhone ไม่มีระบบสั่นให้เว็บ จึงเงียบไปเอง
+function penBuzz(){ try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){} }
+// ปากกาลอยเหนือจอ (S Pen · Apple Pencil รุ่นที่ลอยได้) = โชว์จุดที่จะวางโน้ต หรือวงแดงถ้าแตะแล้วจะลบตัวเดิม (วาดใน drawHead)
+let penHover=null;
 
 cv.addEventListener("pointerdown", e=>{
   if(activePid!==null && e.pointerId!==activePid) return;   // มีจุดสัมผัสทำงานอยู่แล้ว
   const pen=actsAsPen(e);
-  const mode = pen ? (tool==="pan"||tool==="select" ? (tool==="select"?"select":"draw") : tool) : tool;
+  const mode = penErases(e) ? "erase" : pen ? (tool==="pan"||tool==="select" ? (tool==="select"?"select":"draw") : tool) : tool;
   const p=hit(e);
+  if(penHover){ penHover=null; drawHead(); }
 
   if(p.head){
     if(p.y>=RULER_Y){ loopDown(e, p); return; }  // แถบไม้บรรทัด = ลากตั้งช่วงวนซ้ำ (นิ้ว/ปากกา ทุกเครื่องมือ)
@@ -3810,14 +3826,15 @@ cv.addEventListener("pointerdown", e=>{
   activePid=e.pointerId; dragRow=p.row; dragPen=pen;
   cv.setPointerCapture(e.pointerId);
   pushUndo();
-  if(mode==="erase"){ dragMode="erase"; if(idx>=0) S.notes.splice(idx,1); }
-  else if(idx>=0){ dragMode="erase"; S.notes.splice(idx,1); }
+  if(mode==="erase"){ dragMode="erase"; if(idx>=0){ S.notes.splice(idx,1); if(pen) penBuzz(); } }
+  else if(idx>=0){ dragMode="erase"; S.notes.splice(idx,1); if(pen) penBuzz(); }
   else{
     const s=snapTime(p.t);
     if(!s){ undoStack.pop(); return; }
     dragMode="draw";
     const n=addNote(s.tk, pe.v, GEN.id==="funk"||GEN.id==="rnb"?95:100, false, null, null, pe.art);
     lastTouched=n; S.selIdx=S.notes.indexOf(n);
+    if(pen) penBuzz();
     previewHit(vid, n.vel);
     tellNote(vid, s);
     showInspector();
@@ -3854,12 +3871,30 @@ cv.addEventListener("pointermove", e=>{
   const pe=ROWS[row], vid=pe.id;
   const tol=hitTol(dragPen);
   const idx=noteNear(p.t, vid, tol);
-  if(dragMode==="erase" && idx>=0){ S.notes.splice(idx,1); S.selIdx=-1; afterEdit(); }
+  if(dragMode==="erase" && idx>=0){ S.notes.splice(idx,1); S.selIdx=-1; if(dragPen) penBuzz(); afterEdit(); }
   else if(dragMode==="draw" && idx<0){
     const sl=snapTime(p.t);
-    if(sl){ addNote(sl.tk, pe.v, 100, false, null, null, pe.art); afterEdit(); }
+    if(sl){ addNote(sl.tk, pe.v, 100, false, null, null, pe.art); if(dragPen) penBuzz(); afterEdit(); }
   }
 });
+// ปากกาลอย: หาจุดที่แตะแล้วจะเกิดอะไร ตามกติกาเดียวกับ pointerdown (ปากกาวางได้ในเครื่องมือเลื่อน/วางโน้ต · ลบในเครื่องมือลบ)
+cv.addEventListener("pointermove", e=>{
+  if(e.pointerType!=="pen") return;
+  let h=null;
+  if(!e.buttons && !dragMode && (tool==="pan" || tool==="draw" || tool==="erase")){
+    const p=hit(e);
+    if(!p.head && !p.staff && p.row>=0 && p.row<ROWS.length && p.x-scroller.scrollLeft>LABELW()){
+      const idx=noteNear(p.t, ROWS[p.row].id, hitTol(true));
+      if(idx>=0) h={t:S.notes[idx].t, row:p.row, del:true};
+      else if(tool!=="erase"){ const s=snapTime(p.t); if(s) h={t:s.t, row:p.row, del:false}; }
+    }
+  }
+  const same = h===penHover || (h && penHover && h.t===penHover.t && h.row===penHover.row && h.del===penHover.del);
+  if(!same){ penHover=h; drawHead(); }
+});
+cv.addEventListener("pointerleave", e=>{ if(penHover){ penHover=null; drawHead(); } });
+// ปุ่มข้างปากกาบน Android ยิงเมนูคลิกขวาด้วย — บนกริดไม่ต้องมีเมนู
+cv.addEventListener("contextmenu", e=>{ if(e.pointerType==="pen" || e.pointerType==="touch") e.preventDefault(); });
 ["pointerup","pointercancel"].forEach(ev=>cv.addEventListener(ev, e=>{
   if(e && activePid!==null && e.pointerId!==activePid) return;
   activePid=null; dragRow=-1;
@@ -6038,8 +6073,12 @@ const NP=(function(){
     return tp.classList.contains("min") && !tp.classList.contains("hidden")
       && !/\b(athome|atexport|ataudio)\b/.test(document.body.className);
   }
+  // มือถือ (data-kphone จาก theme/klong-theme.js): แผงเกาะขอบจอ — ใต้กริดตอนแนวตั้ง ขวาจอตอนแนวนอน
+  // กริดหดหลบให้ ไม่ลอยทับ จึงไม่ซ่อนเอง ไม่มีหัวลาก · ห้อง (คัดลอก/วาง/ซ้ำ) เป็นหมวดที่ห้าแทนแถบท้ายแผง
+  const docked=()=>document.documentElement.hasAttribute("data-kphone");
   // ตำแหน่งเก็บเป็นสัดส่วนของจอ หมุนจอแล้วยังอยู่มุมเดิม
   function place(el){
+    if(el===pal && docked()){ el.style.left=el.style.top=""; return; }
     const vw=innerWidth, vh=innerHeight, r=el.getBoundingClientRect();
     if(st.fx<0){                                  // ครั้งแรก: มุมขวาล่าง เหนือแถบล่าง
       const tb=tp.getBoundingClientRect();
@@ -6049,17 +6088,21 @@ const NP=(function(){
     el.style.left=x+"px"; el.style.top=y+"px";
   }
   function syncTabs(){
-    pal.classList.toggle("all", !!st.all);
-    $("#npAll").setAttribute("aria-pressed", String(!!st.all));
+    const dk=docked(), all=!!st.all && !dk, tab=(!dk && st.tab==="bar") ? "val" : st.tab;
+    pal.classList.toggle("all", all);
+    $("#npAll").setAttribute("aria-pressed", String(all));
     pal.querySelectorAll(".np-tabs button").forEach(b=>{
-      const on=b.dataset.cat===st.tab;
+      const on=b.dataset.cat===tab;
       b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-selected", String(on)); });
-    pal.querySelectorAll(".np-sec").forEach(sec=>{ sec.hidden = !st.all && sec.dataset.cat!==st.tab; });
+    pal.querySelectorAll(".np-sec").forEach(sec=>{ sec.hidden = !all && sec.dataset.cat!==tab; });
+    pal.querySelector(".np-bar").hidden = dk && tab!=="bar";
   }
   function render(){
-    const on=active();
-    pal.hidden=!(on && st.open);
-    pin.hidden=!(on && !st.open);
+    const on=active(), dk=docked();
+    pal.hidden=!(on && (st.open || dk));
+    pin.hidden=!(on && !st.open && !dk);
+    pal.classList.toggle("docked", dk);
+    document.body.classList.toggle("np-docked", on && dk);
     syncTabs();
     if(on) place(st.open ? pal : pin);
     if(on && st.open){ barLast=""; syncBar(); }
@@ -6067,7 +6110,7 @@ const NP=(function(){
   }
   function arm(){
     clearTimeout(timer);
-    if(!active() || !st.open || holding || !(st.t>0)) return;
+    if(!active() || !st.open || holding || !(st.t>0) || docked()) return;
     timer=setTimeout(()=>{
       if(holding || !active()) return;
       st.open=false; save(); render();
@@ -6155,7 +6198,8 @@ const NP=(function(){
     render(); fitBottom();
   }
   $("#tpToggle").onclick=()=>setMin(!tp.classList.contains("min"));
-  try{ if(localStorage.getItem(MINKEY)==="1") tp.classList.add("min"); }catch(e){}
+  // มือถือเริ่มแบบย่อ (แถบเต็มกินครึ่งจอ) จนกว่าผู้ใช้จะเลือกเอง
+  try{ const m=localStorage.getItem(MINKEY); if(m==="1" || (m===null && docked())) tp.classList.add("min"); }catch(e){}
   $("#tpToggle").setAttribute("aria-expanded", String(!tp.classList.contains("min")));
 
   // คลาสของ body/แถบล่างเปลี่ยนบ่อย (โหมดต่าง ๆ) วาดใหม่เฉพาะเมื่อแผงควรขึ้น/หายจริง
@@ -6165,17 +6209,23 @@ const NP=(function(){
   new MutationObserver(refresh).observe(tp, {attributes:true, attributeFilter:["class"]});
   new MutationObserver(refresh).observe(document.body, {attributes:true, attributeFilter:["class"]});
   window.addEventListener("resize", ()=>{ if(active()) place(st.open ? pal : pin); });
+  // หมุนจอ / เข้า-ออกโหมดมือถือ: ย้ายแผงไปเกาะขอบใหม่ แล้วเว้นที่ให้กริดใหม่
+  new MutationObserver(()=>{ render(); fitBottom(); })
+    .observe(document.documentElement, {attributes:true, attributeFilter:["data-kphone"]});
   refresh();
   return {show, setMin, state:()=>Object.assign({}, st, {active:active()})};
 })();
 $("#moreBtn").onclick=()=>setInsp($("#insp").classList.contains("hidden"));
 // เว้นที่ให้กริดพอดีกับความสูงจริงของแถบล่าง ไม่ให้บังกัน
 function fitBottom(){
-  const tp=$("#tp");
+  const tp=$("#tp"), pal=$("#npal");
   const hh=tp.classList.contains("hidden") ? 0 : tp.getBoundingClientRect().height;
-  document.querySelector("main").style.paddingBottom=(hh+18)+"px";
+  // มือถือแนวตั้ง: แผงเขียนโน้ตเกาะอยู่เหนือแถบล่าง เว้นที่ให้มันด้วย (แนวนอนอยู่ขวาจอ CSS เว้นให้)
+  const dock=document.documentElement.getAttribute("data-kphone")==="port" && !pal.hidden
+    ? pal.getBoundingClientRect().height : 0;
+  document.querySelector("main").style.paddingBottom=(hh+dock+(dock ? 6 : 18))+"px";
 }
-if(window.ResizeObserver) new ResizeObserver(fitBottom).observe($("#tp"));
+if(window.ResizeObserver){ new ResizeObserver(fitBottom).observe($("#tp")); new ResizeObserver(fitBottom).observe($("#npal")); }
 window.addEventListener("resize", fitBottom);
 $("#stopb").onclick=()=>stop();
 $("#loop").onchange=()=>restartIfPlaying();

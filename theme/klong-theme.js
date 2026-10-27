@@ -30,6 +30,20 @@ function sysNight(){ return !!(mq && mq.matches); }
 var night = pref==="night" || (pref==="auto" && sysNight());
 root.setAttribute("data-kmode", night?"night":"day");
 
+/* ---------- มือถือ: data-kphone="port" (แนวตั้ง) | "land" (แนวนอน) ----------
+   จอแคบ ≤599px หรือจอเตี้ย ≤500px ที่ใช้นิ้ว (มือถือแนวนอน) — iPad ไม่เข้าเงื่อนไขทั้งสองแนว
+   กฎ CSS โหมดมือถือผูกกับแอตทริบิวต์นี้ทั้งหมด และแผงเขียนโน้ต (NP ใน index.html) อ่านค่านี้
+   เพื่อเกาะขอบจอแทนการลอยทับกริด ตั้งตั้งแต่ใน <head> ก่อนโปรแกรมวาดหน้าแรก */
+var phoneMq=window.matchMedia ? matchMedia("(max-width:599px), (max-height:500px) and (pointer:coarse) and (orientation:landscape)") : null;
+function phoneMode(){
+  var v=(phoneMq && phoneMq.matches) ? (innerWidth>innerHeight ? "land" : "port") : "";
+  if((root.getAttribute("data-kphone")||"")===v) return;
+  if(v) root.setAttribute("data-kphone", v); else root.removeAttribute("data-kphone");
+}
+phoneMode();
+window.addEventListener("resize", phoneMode);
+window.addEventListener("orientationchange", function(){ setTimeout(phoneMode, 120); });
+
 /* ---------- ตารางสี: [กลางวัน, กลางคืน] ----------
    คีย์คือสีที่โค้ดโปรแกรมเขียนไว้ (ตัวเล็ก ไม่มีช่องว่าง)
    สีเสียงกลองอยู่ใน VOICES ของโปรแกรม ไฮแฮตถูกเปลี่ยนเป็น #4FC8D4 ใน index.html
@@ -263,8 +277,12 @@ function ready(){
   probe.setAttribute("aria-hidden","true");
   probe.style.cssText="position:fixed;top:0;bottom:0;left:0;width:0;visibility:hidden;pointer-events:none";
   document.body.appendChild(probe);
+  /* เฉพาะ iPad/iPhone: แอปที่ติดตั้งบน Android ก็เตี้ยกว่าจอจริงราว 40–60px (แถบสถานะ + แถบนำทาง)
+     ซึ่งไม่ใช่ช่องโหว่ ถ้าคิดเป็นช่องว่าง แถบบนจะมีแถบว่างเกินมา และแถวนาฬิกาหลุดใต้ขอบจอล่าง */
+  var ios=("standalone" in navigator) || /iP(ad|hone|od)/.test(navigator.userAgent)
+    || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints>1);
   var standalone=function(){
-    return navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+    return ios && (navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches));
   };
   var fitGap=function(){
     var gap=0;
@@ -292,6 +310,57 @@ function ready(){
   window.addEventListener("resize", gapLater);
   window.addEventListener("orientationchange", gapLater);
   if(window.visualViewport) visualViewport.addEventListener("resize", gapLater);
+
+  /* ---------- มือถือ: แถบบนแถวเดียว + ปุ่ม ⋯ ----------
+     แถวแรกมีแค่ของที่ใช้ระหว่างเขียน (ย้อนแก้ · เครื่องมือ) ที่เหลือ (นำเข้า โหมด ส่งออก ตั้งค่า)
+     อยู่แถวที่สอง กด ⋯ ถึงขึ้น — เดิมทั้งหมดอยู่แถวเดียวที่ต้องปัดหา และเครื่องมือหลุดขอบจอ
+     กดปุ่มในแถวที่สองแล้วแถวนั้นพับเก็บเอง */
+  if(tb && !document.getElementById("kTbMore")){
+    var more=document.createElement("button");
+    more.type="button"; more.id="kTbMore"; more.className="btn";
+    more.title="นำเข้าไฟล์ · โหมด · ส่งออก · ตั้งค่า"; more.setAttribute("aria-label","เมนูเพิ่มเติม");
+    more.setAttribute("aria-expanded","false"); more.textContent="⋯";
+    tb.appendChild(more);
+    var tbx=function(on){ root.classList.toggle("k-tbx", on); more.setAttribute("aria-expanded", String(on)); };
+    more.addEventListener("click", function(){ tbx(!root.classList.contains("k-tbx")); });
+    tb.addEventListener("click", function(e){
+      if(e.target.closest && e.target.closest("#pick, #toExport, #moreBtn, #modeSeg button")) tbx(false);
+    });
+  }
+
+  /* ---------- มือถือ: ข้อความสถานะเป็นป้ายลอยใต้แถบบน 3 วิ (ผิดพลาด 5 วิ) ----------
+     แถบบนแถวเดียวไม่มีที่ให้ข้อความ แต่ผลของการกด (คัดลอกห้อง นำเข้าไฟล์ ข้อผิดพลาด) ต้องเห็น */
+  var stEl=document.getElementById("status"), stT=0;
+  if(stEl) new MutationObserver(function(){
+    if(!root.hasAttribute("data-kphone")) return;
+    var t=(stEl.textContent||"").trim();
+    clearTimeout(stT);
+    if(!t){ stEl.classList.remove("k-show"); return; }
+    stEl.classList.add("k-show");
+    stT=setTimeout(function(){ stEl.classList.remove("k-show"); }, stEl.classList.contains("err") ? 5000 : 3000);
+  }).observe(stEl, {childList:true, characterData:true, subtree:true});
+
+  /* ---------- Android: ปัดย้อนกลับ = ถอยทีละหน้า ไม่ปิดแอป ----------
+     แอปที่ติดตั้งไม่มีประวัติหน้า ปัดขอบจอ (หรือปุ่มย้อนกลับ) จึงปิดแอปทิ้งกลางงาน
+     วางหน้ากันไว้หนึ่งชั้นเมื่อไม่ได้อยู่หน้าแรก แล้วตอนย้อนกลับ: ปิดแผงตั้งค่า → ออกจากหน้าส่งออก →
+     กลับหน้าแรก (เหมือนกดปุ่ม "หน้าแรก" ซึ่งเก็บงานค้างไว้ก่อน) · ไม่ทำบน iPad/iPhone
+     เพราะ Safari ในแท็บใช้ปัดขอบจอเป็นย้อนกลับ ถ้ามีประวัติ ปากกาที่ลากชิดขอบจะพาออกจากหน้าเขียน */
+  if(/Android/i.test(navigator.userAgent) && window.history && history.pushState){
+    var B=document.body, guard=false;
+    var deep=function(){ return !/\bathome\b/.test(B.className); };
+    var arm=function(){ if(deep() && !guard){ try{ history.pushState({klong:1}, ""); guard=true; }catch(_){} } };
+    var tap=function(id){ var b=document.getElementById(id); if(b){ b.click(); return true; } return false; };
+    window.addEventListener("popstate", function(){
+      guard=false;
+      if(B.classList.contains("inspOn") && innerWidth<=900) tap("inspClose");
+      else if(B.classList.contains("atexport")) tap("exBack");
+      else if(B.classList.contains("ataudio")) {}            // กำลังถอดเสียง: ไม่ทิ้งงานกลางทาง
+      else if(deep()) tap("toHome");
+      setTimeout(arm, 0);
+    });
+    new MutationObserver(arm).observe(B, {attributes:true, attributeFilter:["class"]});
+    arm();
+  }
 
   /* สวิตช์กลางวัน / กลางคืน / ตามเครื่อง ไว้ในแถบล่างแถวเดียวกับเสียงเพลง/กลอง */
   var host=document.getElementById("rowMain");

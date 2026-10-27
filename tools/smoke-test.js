@@ -4,7 +4,7 @@
  *   npm i playwright && node tools/smoke-test.js
  *
  * เสิร์ฟโปรเจกต์ใต้ /T/ เลียนแบบ GitHub Pages แล้วเปิดด้วย Chromium
- * ทั้งขนาดจอ iPad และ iPhone ตรวจว่า
+ * ทั้งขนาดจอ iPad, iPhone และ Android (S Pen) ตรวจว่า
  *   โปรแกรมเปิดขึ้น · ฟอนต์ในเครื่องมา · ไม่มีคำขอออกนอกเครื่อง
  *   Service Worker ทำงาน · ตัดเน็ตแล้วยังเปิดได้
  *   แตะนิ้ววางโน้ตได้ · ส่งออก .mid/.musicxml ได้จริง · กดเล่นแล้วเวลาเดิน
@@ -66,6 +66,12 @@ async function clickFirst(page, sels) {
     if (await el.count() && await el.isVisible().catch(() => false)) { await el.click(); return s; }
   }
   return null;
+}
+
+/* จอมือถือ (data-kphone): ส่งออก ตั้งค่า นำเข้า โหมด อยู่แถวที่สองของแถบบน ต้องกด ⋯ ก่อน */
+async function showTopMore(page) {
+  if (await page.locator("#toExport").isVisible().catch(() => false)) return;
+  if (await page.locator("#kTbMore").isVisible().catch(() => false)) { await page.click("#kTbMore"); await page.waitForTimeout(200); }
 }
 
 /* โปรแกรมเปิดขึ้นแล้วหรือยัง: ประตูหน้าต้องหาย และหน้าแรกต้องโผล่
@@ -146,6 +152,7 @@ async function suite(label, ctxOpts, exe) {
   if (!/ตัวโน้ตรวม\s*[1-9]/.test(stats)) fail.push(`${label}: แตะแล้วไม่มีโน้ตเกิดขึ้น`);
 
   // หยุดเล่นก่อน (ถ้ามี) แล้วเข้าหน้าส่งออกในรุ่นที่แยกหน้าไว้
+  await showTopMore(page);
   const toExp = await clickFirst(page, ["#toExport"]);
   if (toExp) { say("เข้าหน้าส่งออก"); await page.waitForTimeout(500); }
   for (const [ids, ext_, magic] of [[["#exMid2", "#exp"], "mid", "MThd"],
@@ -339,6 +346,10 @@ async function suite(label, ctxOpts, exe) {
   await page.click('#tool button[data-v="draw"]');
 
   /* ---- ย่อแถบล่าง: ต้องเตี้ยลงจริง (เคยกดแล้วไม่มีอะไรยุบ) และแผงเขียนโน้ตลอยต้องเลือกค่าโน้ตได้ ---- */
+  // มือถือเริ่มแบบย่อ (ดู phoneSuite) — ขยายก่อน แล้วทดสอบการย่อเหมือนจอใหญ่
+  if (await page.evaluate(() => document.getElementById("tp").classList.contains("min"))) {
+    await page.click("#tpToggle"); await page.waitForTimeout(300);
+  }
   const tpH0 = (await page.locator("#tp").boundingBox()).height;
   await page.click("#tpToggle"); await page.waitForTimeout(300);
   const tpH1 = (await page.locator("#tp").boundingBox()).height;
@@ -351,7 +362,11 @@ async function suite(label, ctxOpts, exe) {
     await page.waitForTimeout(150);
     const pressed = await page.evaluate(() => document.querySelectorAll("#vals button")[3].getAttribute("aria-pressed"));
     if (pressed !== "true") fail.push(`${label}: กดค่าโน้ตในแผงลอยแล้วปุ่มเดิมไม่ถูกเลือก`);
-    /* แถบห้องท้ายแผง: คัดลอก / วาง / ซ้ำห้องก่อนหน้า ต้องเห็นเสมอ เป้านิ้ว 44px และกดแล้วไปกดปุ่มเดิมจริง */
+    /* แถบห้องท้ายแผง: คัดลอก / วาง / ซ้ำห้องก่อนหน้า ต้องเห็นเสมอ เป้านิ้ว 44px และกดแล้วไปกดปุ่มเดิมจริง
+       (แผงที่เกาะขอบจอบนมือถือ แถบห้องเป็นหมวด "ห้อง") */
+    if (await page.evaluate(() => document.getElementById("npal").classList.contains("docked"))) {
+      await page.click('#npal .np-tabs button[data-cat="bar"]'); await page.waitForTimeout(150);
+    }
     const nb = await page.evaluate(() => {
       const bs = [...document.querySelectorAll("#npal .np-bar-b button")].map((b) => b.getBoundingClientRect());
       return { n: bs.length, minH: Math.min(...bs.map((r) => r.height)), inView: bs.every((r) => r.bottom <= innerHeight && r.top >= 0) };
@@ -506,6 +521,146 @@ async function suite(label, ctxOpts, exe) {
   await browser.close();
 }
 
+/* ---- มือถือ Android + S Pen (Galaxy S26 Ultra: 384×784 แนวตั้ง · 784×352 แนวนอน ในแอปที่ติดตั้ง) ----
+   ผู้ใช้เขียนโน้ตด้วย S Pen บนมือถือทั้งสองแนว ตรวจเฉพาะของมือถือ ที่เหลือชุด iPhone ตรวจแล้ว
+   กริดต้องได้พื้นที่ (เดิมแนวตั้งเหลือ 40% แนวนอนไม่เห็นแถวกลอง) แผงเขียนโน้ตเกาะขอบจอไม่บังกริด
+   ปากกา: ลอย = โชว์จุด · แตะ = วาง + สั่น · ปุ่มข้าง = ลบ · นิ้ว (เครื่องมือเลื่อน) ไม่วาง
+   ปัดย้อนกลับของ Android ถอยทีละหน้า · แอปที่ติดตั้งบน Android ไม่มีช่องว่างแบบ iPad (บั๊กเดิม) */
+async function phoneSuite(label, exe) {
+  const UA = "Mozilla/5.0 (Linux; Android 16; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
+  const browser = await chromium.launch({ executablePath: exe });
+  const say = (t) => console.log(`[${label}] ${t}`);
+  const errs = [];
+  const open = async (vp, scr, init) => {
+    const ctx = await browser.newContext({ viewport: vp, screen: scr, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: UA });
+    if (init) await ctx.addInitScript(init);
+    const page = await ctx.newPage();
+    page.on("pageerror", (e) => errs.push("PAGEERROR " + e.message));
+    page.on("console", (m) => { if (m.type() === "error" && !/favicon/i.test(m.text())) errs.push(m.text()); });
+    await page.goto(BASE, { waitUntil: "load" }); await page.waitForTimeout(500);
+    return { ctx, page };
+  };
+  const box = (page, sel) => page.evaluate((q) => { const e = document.querySelector(q); if (!e) return null;
+    const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, sel);
+  const notes = (page) => page.evaluate(() => +((/ตัวโน้ตรวม\s*(\d+)/.exec(document.getElementById("stats").textContent) || [])[1] || 0));
+
+  /* แนวตั้ง */
+  const P = await open({ width: 384, height: 784 }, { width: 384, height: 832 },
+    () => { window.__buzz = 0; navigator.vibrate = () => { window.__buzz++; return true; }; });
+  let page = P.page;
+  await page.click("#homeBlank"); await page.waitForTimeout(600);
+  const pt = await page.evaluate(() => { const tb = document.getElementById("topbar");
+    return { kp: document.documentElement.getAttribute("data-kphone"), h: tb.getBoundingClientRect().height, over: tb.scrollWidth - tb.clientWidth,
+             min: document.getElementById("tp").classList.contains("min"), docked: document.getElementById("npal").classList.contains("docked") }; });
+  const vis = async (q) => page.locator(q).isVisible().catch(() => false);
+  const v0 = { tool: await vis("#tool"), undo: await vis("#undoBtn"), more: await vis("#kTbMore"), exp: await vis("#toExport") };
+  await page.click("#kTbMore"); await page.waitForTimeout(200);
+  const expOpen = await vis("#toExport");
+  await page.click("#kTbMore"); await page.waitForTimeout(200);
+  const st = await box(page, "#stage"), np = await box(page, "#npal"), tp = await box(page, "#tp");
+  say(`แนวตั้ง: kphone=${pt.kp} · แถบบน ${Math.round(pt.h)}px ล้น ${pt.over}px · เครื่องมือ ${v0.tool} ย้อนแก้ ${v0.undo} ⋯ ${v0.more} · ส่งออกซ่อน ${!v0.exp} → กด ⋯ เห็น ${expOpen}`);
+  say(`แนวตั้ง: แถบล่างเริ่มย่อ ${pt.min} · แผงเกาะขอบ ${pt.docked} · กริดสูง ${Math.round(st.h)}px (${Math.round(st.h / 784 * 100)}%) จบ ${Math.round(st.b)} · แผง ${Math.round(np.t)}–${Math.round(np.b)} · แถบล่าง ${Math.round(tp.t)}`);
+  if (pt.kp !== "port") fail.push(`${label}: จอแนวตั้งไม่เข้าโหมดมือถือ`);
+  if (pt.h > 70 || pt.over > 1) fail.push(`${label}: แถบบนไม่ได้เป็นแถวเดียว/ล้นจอ (${Math.round(pt.h)}px ล้น ${pt.over}px)`);
+  if (!v0.tool || !v0.undo || !v0.more || v0.exp || !expOpen) fail.push(`${label}: แถบบนมือถือไม่ถูกต้อง (เครื่องมือ/ย้อนแก้/⋯/ส่งออกในแถวสอง)`);
+  if (!pt.min || !pt.docked) fail.push(`${label}: มือถือไม่ได้เริ่มแบบย่อ หรือแผงเขียนโน้ตไม่เกาะขอบจอ`);
+  if (st.b > np.t + 1 || Math.abs(np.b - tp.t) > 2) fail.push(`${label}: แผงเขียนโน้ตทับกริดหรือไม่ชิดแถบล่าง`);
+  if (st.h < 784 * 0.55) fail.push(`${label}: กริดได้พื้นที่น้อยไป (${Math.round(st.h)}px)`);
+  const hs = [];
+  for (const c of ["dyn", "art", "line", "bar", "val"]) {
+    await page.click(`#npal .np-tabs button[data-cat="${c}"]`); await page.waitForTimeout(120);
+    hs.push(Math.round((await box(page, "#npal")).h));
+  }
+  await page.locator("#npal .np-vals button").nth(2).click(); await page.waitForTimeout(120);
+  const valOk = await page.evaluate(() => document.querySelectorAll("#vals button")[2].getAttribute("aria-pressed") === "true");
+  say(`แนวตั้ง: ความสูงแผงทุกหมวด ${hs.join("/")}px · เลือกค่าโน้ตจากแผง ${valOk}`);
+  if (new Set(hs).size !== 1) fail.push(`${label}: แผงสูงไม่เท่ากันทุกหมวด กริดกระตุกตอนสลับหมวด (${hs.join("/")})`);
+  if (!valOk) fail.push(`${label}: เลือกค่าโน้ตจากแผงที่เกาะขอบจอไม่ได้`);
+  // แผงตั้งค่าอยู่ชั้นต่ำกว่าแผงเขียนโน้ต — เปิดตั้งค่าแล้วแผงเขียนโน้ตต้องหลบ ปิดแล้วกลับมา
+  await showTopMore(page); await page.click("#moreBtn"); await page.waitForTimeout(300);
+  const ins = await page.evaluate(() => ({ on: document.body.classList.contains("inspOn"), np: getComputedStyle(document.getElementById("npal")).display }));
+  await page.click("#inspClose"); await page.waitForTimeout(300);
+  const npBack = await page.locator("#npal").isVisible();
+  say(`แนวตั้ง: เปิดตั้งค่า → แผงเขียนโน้ตหลบ ${ins.on && ins.np === "none"} · ปิดแล้วกลับมา ${npBack}`);
+  if (!(ins.on && ins.np === "none" && npBack)) fail.push(`${label}: แผงเขียนโน้ตบังแผงตั้งค่า หรือไม่กลับมาหลังปิดตั้งค่า`);
+
+  /* ปากกา */
+  const s = await P.ctx.newCDPSession(page);
+  const Y = await page.evaluate(() => { const r = [...document.querySelectorAll("#labels .r")][10].getBoundingClientRect(); return r.top + r.height / 2; });
+  const X = 250, clip = { x: 140, y: Y - 14, width: 244, height: 28 };
+  const shot = async () => (await page.screenshot({ clip })).toString("base64");
+  const pen = (type, o = {}) => s.send("Input.dispatchMouseEvent", Object.assign({ type, x: X, y: Y, pointerType: "pen", button: "none", buttons: 0, clickCount: 0 }, o));
+  const tapPen = async (btn, bs, x = X) => { await pen("mousePressed", { button: btn, buttons: bs, clickCount: 1, x }); await pen("mouseReleased", { button: btn, buttons: 0, clickCount: 1, x });
+    await pen("mouseMoved", { x: 10, y: 10 }); await page.waitForTimeout(150); };
+  const n0 = await notes(page), s0 = await shot();
+  await pen("mouseMoved"); await page.waitForTimeout(150);
+  const hover = (await shot()) !== s0;
+  await tapPen("left", 1);
+  const n1 = await notes(page), bz = await page.evaluate(() => window.__buzz);
+  await tapPen("right", 2);
+  const n2 = await notes(page);
+  await tapPen("right", 2, X + 60);
+  const n3 = await notes(page);
+  await s.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: X, y: Y }] });
+  await s.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await page.waitForTimeout(150);
+  const n4 = await notes(page);
+  say(`S Pen: ลอยโชว์จุด ${hover} · แตะวาง ${n0}→${n1} สั่น ${bz} ครั้ง · ปุ่มข้างลบ ${n1}→${n2} · ปุ่มข้างบนช่องว่าง ${n2}→${n3} · นิ้ว (เลื่อน) ${n3}→${n4}`);
+  if (!hover) fail.push(`${label}: ปากกาลอยแล้วไม่โชว์จุดที่จะวาง`);
+  if (n1 !== n0 + 1 || bz < 1) fail.push(`${label}: แตะปากกาแล้วไม่วางโน้ตหรือไม่สั่น`);
+  if (n2 !== n1 - 1 || n3 !== n2) fail.push(`${label}: ปุ่มข้างปากกาไม่ลบ หรือไปวางโน้ตบนช่องว่าง`);
+  if (n4 !== n3) fail.push(`${label}: นิ้วในเครื่องมือเลื่อนไปวางโน้ต`);
+
+  /* ป้ายสถานะ + ปัดย้อนกลับ */
+  await page.click('#npal .np-tabs button[data-cat="bar"]');
+  await page.click('#npal .np-bar-b button[data-for="barCopy"]'); await page.waitForTimeout(150);
+  const toast = await page.evaluate(() => { const e = document.getElementById("status"), r = e.getBoundingClientRect();
+    return e.classList.contains("k-show") && getComputedStyle(e).visibility === "visible" && r.top >= 0 && r.bottom <= innerHeight && r.width > 40; });
+  await showTopMore(page); await page.click("#toExport"); await page.waitForTimeout(600);
+  const where = () => page.evaluate(() => /atexport/.test(document.body.className) ? "ส่งออก" : /athome/.test(document.body.className) ? "หน้าแรก" : "หน้าเขียน");
+  const w0 = await where();
+  await page.evaluate(() => history.back()); await page.waitForTimeout(500); const w1 = await where();
+  await page.evaluate(() => history.back()); await page.waitForTimeout(500); const w2 = await where();
+  say(`ป้ายสถานะ ${toast} · ปัดย้อนกลับ: ${w0} → ${w1} → ${w2}`);
+  if (!toast) fail.push(`${label}: ผลการกดไม่ขึ้นเป็นป้ายบนจอมือถือ`);
+  if (w0 !== "ส่งออก" || w1 !== "หน้าเขียน" || w2 !== "หน้าแรก") fail.push(`${label}: ปัดย้อนกลับไม่ถอยทีละหน้า (${w0} → ${w1} → ${w2})`);
+
+  /* หมุนเป็นแนวนอน (หน้าเดิม) */
+  await page.click("#homeBlank"); await page.waitForTimeout(400);
+  await page.setViewportSize({ width: 784, height: 352 }); await page.waitForTimeout(600);
+  const L = await page.evaluate(() => { const R = (q) => { const r = document.querySelector(q).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, h: r.height }; };
+    const np = R("#npal"), tabs = [...document.querySelectorAll("#npal .np-tabs button")].map((b) => b.getBoundingClientRect());
+    return { kp: document.documentElement.getAttribute("data-kphone"), st: R("#stage"), np, tb: R("#topbar"), tp: R("#tp"),
+             tabsIn: tabs.length === 5 && tabs.every((r) => r.height > 30 && r.top >= np.t - 1 && r.bottom <= np.b + 1),
+             play: (() => { const r = document.getElementById("play").getBoundingClientRect(); return r.width > 0 && r.bottom <= innerHeight; })(),
+             over: document.documentElement.scrollWidth - innerWidth }; });
+  say(`แนวนอน: kphone=${L.kp} · กริด ${Math.round(L.st.r)}×${Math.round(L.st.h)}px · แผงขวา ${Math.round(L.np.l)}–${Math.round(L.np.r)} สูง ${Math.round(L.np.h)} · หมวดครบในแผง ${L.tabsIn} · ปุ่มเล่นบนแถบบน ${L.tp.b <= L.tb.b + 1 && L.play}`);
+  if (L.kp !== "land") fail.push(`${label}: หมุนเป็นแนวนอนแล้วไม่เข้าโหมดมือถือแนวนอน`);
+  if (L.st.r > L.np.l + 1 || L.st.h < 260 || L.over > 1) fail.push(`${label}: แนวนอน กริดโดนแผงบังหรือได้พื้นที่น้อย (${Math.round(L.st.h)}px)`);
+  if (!L.tabsIn) fail.push(`${label}: แนวนอน หมวดในแผงเขียนโน้ตไม่ครบ/หลุดแผง`);
+  if (!(L.tp.b <= L.tb.b + 1 && L.play)) fail.push(`${label}: แนวนอน ปุ่มเล่นไม่ได้อยู่บนแถบบน`);
+  await P.ctx.close();
+
+  /* แอปที่ติดตั้ง: Android ต้องไม่มีช่องว่างแบบ iPad · iPad ยังได้ช่องว่างตามเดิม */
+  const sa = () => { const mm = window.matchMedia.bind(window);
+    window.matchMedia = (q) => /display-mode:\s*standalone/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q); };
+  const A = await open({ width: 384, height: 784 }, { width: 384, height: 832 }, sa);
+  const ga = await A.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--kt-gap").trim());
+  await A.ctx.close();
+  const ictx = await browser.newContext({ viewport: { width: 834, height: 1160 }, screen: { width: 834, height: 1194 }, hasTouch: true,
+    userAgent: "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1" });
+  await ictx.addInitScript(sa);
+  const ip = await ictx.newPage(); await ip.goto(BASE, { waitUntil: "load" }); await ip.waitForTimeout(500);
+  const gi = await ip.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--kt-gap").trim());
+  await ictx.close();
+  say(`แอปที่ติดตั้ง: ช่องว่างล่าง Android ${ga} · iPad ${gi}`);
+  if (ga !== "0px") fail.push(`${label}: แอปที่ติดตั้งบน Android ได้ช่องว่างแบบ iPad (${ga}) แถบล่างจะหลุดจอ`);
+  if (gi !== "34px") fail.push(`${label}: iPad ที่เปิดจากหน้าโฮมไม่ได้ช่องว่างล่างแล้ว (${gi})`);
+
+  say(`errors=${errs.join(" | ") || "ไม่มี"}`);
+  if (errs.length) fail.push(`${label}: ${errs[0]}`);
+  await browser.close();
+}
+
 (async () => {
   const exe = findChromium();
   const server = serve();
@@ -517,6 +672,7 @@ async function suite(label, ctxOpts, exe) {
     await suite("iPad", { ...devices["iPad Pro 11"], hasTouch: true, isMobile: false }, exe);
     await suite("iPhone", { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3,
       hasTouch: true, isMobile: true, userAgent: devices["iPhone 13"].userAgent }, exe);
+    await phoneSuite("Android", exe);
   } finally { server.close(); }
   console.log("\n================ RESULT ================");
   if (fail.length) { console.log("ไม่ผ่าน:\n - " + fail.join("\n - ")); process.exit(1); }

@@ -521,6 +521,56 @@ async function suite(label, ctxOpts, exe) {
   await browser.close();
 }
 
+/* ---- iPad: ช่องแรกของกริด · แถบเสียงตอนย่อ · แก้โน้ตระหว่างเล่นวนซ้ำ (ผู้ใช้ขอหลังลองบน iPad) ----
+   ช่องแรกเคยห่างปุ่ม S แค่ ~6px แตะแล้วโดนปุ่ม · แถบเสียงเพลง/กลองต้องอยู่ในแถวเล่นตอนย่อ
+   วางโน้ตระหว่างวนซ้ำห้องเดิมต้องดังรอบถัดไปเลย (เดิมต้องหยุดแล้วเล่นใหม่) */
+async function editSuite(label, exe) {
+  const browser = await chromium.launch({ executablePath: exe, args: ["--autoplay-policy=no-user-gesture-required"] });
+  const ctx = await browser.newContext({ ...devices["iPad Pro 11 landscape"], hasTouch: true, isMobile: false });
+  await ctx.addInitScript(() => { try { localStorage.setItem("klongpro.tpmin", "1"); localStorage.setItem("klongpro.insp", "0"); } catch (e) {} });
+  const page = await ctx.newPage(); const errs = [];
+  page.on("pageerror", (e) => errs.push("PAGEERROR " + e.message));
+  const say = (t) => console.log(`[${label}] ${t}`);
+  await page.goto(BASE, { waitUntil: "load" }); await page.waitForTimeout(500);
+  await page.click("#homeBlank"); await page.waitForTimeout(600);
+  await page.click('#tool button[data-v="draw"]');
+  const g = await page.evaluate(() => { const lw = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--labelw"));
+    const c = document.getElementById("grid").getBoundingClientRect(), sb = document.querySelector("#labels .r .so").getBoundingClientRect();
+    const row = (re) => { const r = [...document.querySelectorAll("#labels .r")].find((x) => re.test(x.textContent)).getBoundingClientRect(); return r.top + r.height / 2; };
+    return { first: c.left + lw + 28, sRight: sb.right, snare: row(/สแนร์/), kick: row(/กระเดื่อง/) }; });
+  const count = () => page.evaluate(() => +((/ตัวโน้ตรวม\s*(\d+)/.exec(document.getElementById("stats").textContent) || [])[1] || 0));
+  await page.touchscreen.tap(g.first, g.snare); await page.waitForTimeout(150); const c1 = await count();
+  await page.touchscreen.tap(g.first - 18, g.snare); await page.waitForTimeout(150); const c2 = await count();
+  await page.touchscreen.tap(g.first, g.snare); await page.waitForTimeout(150); const c3 = await count();
+  say(`ช่องแรกของกริดห่างปุ่ม S ${Math.round(g.first - g.sRight)}px · แตะช่องแรก ${c1} ตัว · แตะช่องว่างข้างหน้า (ช่องเดิม) ${c2} · แตะอีกครั้ง ${c3}`);
+  if (g.first - g.sRight < 24) fail.push(`${label}: ช่องแรกของกริดชิดปุ่ม S เกินไป (${Math.round(g.first - g.sRight)}px)`);
+  if (c1 !== 1 || c2 !== 0 || c3 !== 1) fail.push(`${label}: แตะช่องแรก/ช่องว่างหน้าห้อง 1 ไม่ถูกต้อง (${c1}/${c2}/${c3}) — ต้องวาง ลบ วาง ไม่ซ้อนตัว`);
+  const mix = await page.evaluate(() => { const m = document.getElementById("tpMix"), r = m.getBoundingClientRect(), d = m.querySelector('input[data-for="dvol"]');
+    const on = getComputedStyle(m).display !== "none" && r.width > 150 && r.bottom <= innerHeight;
+    d.value = "31"; d.dispatchEvent(new Event("input")); const to = document.getElementById("dvol").value;
+    const o = document.getElementById("vol"); o.value = "42"; o.dispatchEvent(new Event("input"));
+    const back = m.querySelector('input[data-for="vol"]').value; d.value = "65"; d.dispatchEvent(new Event("input"));
+    return { on, to, back }; });
+  say(`แถบเสียงตอนย่อ: เห็น ${mix.on} · เลื่อนกลอง → ตัวจริง ${mix.to} · ตัวจริงเพลง 42 → สำเนา ${mix.back}`);
+  if (!mix.on || mix.to !== "31" || mix.back !== "42") fail.push(`${label}: แถบเสียงเพลง/กลองตอนย่อแถบล่างไม่ทำงาน`);
+  await page.evaluate(() => { window.__hits = []; const K = window.KlongSounds, o = K.play.bind(K);
+    K.play = (c, s, key, w, v) => { window.__hits.push(key); return o(c, s, key, w, v); }; });
+  await page.evaluate(() => { document.querySelector('#scope button[data-v="bar"]').click(); document.getElementById("loop").checked = true;
+    document.getElementById("play").click(); });
+  await page.waitForTimeout(600);
+  await page.touchscreen.tap(g.first + 220, g.kick);                    // กระเดื่องราวจังหวะ 3 ระหว่างเล่น
+  await page.waitForTimeout(4300);
+  const hits = await page.evaluate(() => window.__hits);
+  await page.evaluate(() => document.getElementById("stopb").click());
+  const kicks = hits.filter((k) => /kick/.test(k)).length, snares = hits.filter((k) => /snare/.test(k)).length;
+  say(`วนห้องเดิม ~4.9 วิ: สแนร์ดัง ${snares} รอบ · กระเดื่องที่วางระหว่างเล่นดัง ${kicks} ครั้ง (ตอนแตะ 1 + ทุกรอบหลังจากนั้น)`);
+  if (snares < 2) fail.push(`${label}: วนซ้ำห้องเดิมแล้วเสียงไม่วน (${snares})`);
+  if (kicks < 3) fail.push(`${label}: โน้ตที่วางระหว่างเล่นไม่ดังในรอบถัดไป ต้องกดเล่นใหม่ (${kicks})`);
+  say(`errors=${errs.join(" | ") || "ไม่มี"}`);
+  if (errs.length) fail.push(`${label}: ${errs[0]}`);
+  await browser.close();
+}
+
 /* ---- มือถือ Android + S Pen (Galaxy S26 Ultra: 384×784 แนวตั้ง · 784×352 แนวนอน ในแอปที่ติดตั้ง) ----
    ผู้ใช้เขียนโน้ตด้วย S Pen บนมือถือทั้งสองแนว ตรวจเฉพาะของมือถือ ที่เหลือชุด iPhone ตรวจแล้ว
    กริดต้องได้พื้นที่ (เดิมแนวตั้งเหลือ 40% แนวนอนไม่เห็นแถวกลอง) แผงเขียนโน้ตเกาะขอบจอไม่บังกริด
@@ -584,7 +634,7 @@ async function phoneSuite(label, exe) {
   if (st.b > np.t + 1 || Math.abs(np.b - tp.t) > 2) fail.push(`${label}: แผงเขียนโน้ตทับกริดหรือไม่ชิดแถบล่าง`);
   if (st.h < 784 * 0.55) fail.push(`${label}: กริดได้พื้นที่น้อยไป (${Math.round(st.h)}px)`);
   const hs = [];
-  for (const c of ["dyn", "art", "line", "bar", "val"]) {
+  for (const c of ["dyn", "art", "line", "bar", "mix", "val"]) {
     await page.click(`#npal .np-tabs button[data-cat="${c}"]`); await page.waitForTimeout(120);
     hs.push(Math.round((await box(page, "#npal")).h));
   }
@@ -647,7 +697,7 @@ async function phoneSuite(label, exe) {
   const L = await page.evaluate(() => { const R = (q) => { const r = document.querySelector(q).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, h: r.height }; };
     const np = R("#npal"), tabs = [...document.querySelectorAll("#npal .np-tabs button")].map((b) => b.getBoundingClientRect());
     return { kp: document.documentElement.getAttribute("data-kphone"), st: R("#stage"), np, tb: R("#topbar"), tp: R("#tp"),
-             tabsIn: tabs.length === 5 && tabs.every((r) => r.height > 30 && r.top >= np.t - 1 && r.bottom <= np.b + 1),
+             tabsIn: tabs.length === 6 && tabs.every((r) => r.height > 30 && r.top >= np.t - 1 && r.bottom <= np.b + 1),
              play: (() => { const r = document.getElementById("play").getBoundingClientRect(); return r.width > 0 && r.bottom <= innerHeight; })(),
              over: document.documentElement.scrollWidth - innerWidth }; });
   say(`แนวนอน: kphone=${L.kp} · กริด ${Math.round(L.st.r)}×${Math.round(L.st.h)}px · แผงขวา ${Math.round(L.np.l)}–${Math.round(L.np.r)} สูง ${Math.round(L.np.h)} · หมวดครบในแผง ${L.tabsIn} · ปุ่มเล่นบนแถบบน ${L.tp.b <= L.tb.b + 1 && L.play}`);
@@ -689,6 +739,7 @@ async function phoneSuite(label, exe) {
     await suite("iPad", { ...devices["iPad Pro 11"], hasTouch: true, isMobile: false }, exe);
     await suite("iPhone", { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3,
       hasTouch: true, isMobile: true, userAgent: devices["iPhone 13"].userAgent }, exe);
+    await editSuite("iPad-แก้ระหว่างเล่น", exe);
     await phoneSuite("Android", exe);
   } finally { server.close(); }
   console.log("\n================ RESULT ================");

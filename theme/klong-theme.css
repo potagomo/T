@@ -397,3 +397,12 @@ html[data-kmode][data-kphone="land"] body.np-docked #insp{bottom:0}   /* แถ�
 #kInstall > b{color:var(--ok)}
 #kInstall .kinst-how{color:var(--ink); margin-top:-4px}
 #kInstall p b{display:inline; font-size:inherit; margin:0}
+
+/* ---------- แถบเสียงเพลง/กลองตอนย่อแถบล่าง (#tpMix) และหมวด "เสียง" ในแผงมือถือ ---------- */
+html[data-kmode] .tpmix label{color:var(--k-wood-dim)}
+html[data-kmode] #npal .np-mix label{color:var(--k-wood-ink)}
+html[data-kmode] #npal .np-mix input[type=range]{accent-color:var(--k-brass)}
+html[data-kphone] .tpmix{display:none !important}          /* มือถือ: แถวเล่นไม่มีที่ ใช้หมวด "เสียง" ในแผงแทน */
+html[data-kphone="port"] #npal.docked .np-mix{padding:0 6px}
+html[data-kphone="land"] #npal.docked .np-mix{flex-direction:column; align-items:stretch; gap:14px; padding-top:6px}
+html[data-kphone="land"] #npal.docked .np-mix label{flex:none}

@@ -583,7 +583,7 @@ body.shell #topbar{overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:con
 #tp.min #rowVals, #tp.min #rowArt, #tp.min #rowMain, #tp.min #barHint{display:none !important}
 #tp.min #rowLive{border-top:0; padding:2px 56px 2px 0; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
 #tp.min #rowLive::-webkit-scrollbar{display:none}
-#tp.min #rowLive > :not(#play):not(#stopb):not(#home):not(#clock):not(#kLamp){display:none}
+#tp.min #rowLive > :not(#play):not(#stopb):not(#home):not(#clock):not(#kLamp):not(#tpMix){display:none}
 #tp.min #rowLive > *{flex:none}
 /* ธีมให้ปุ่มนี้ position:relative (ปุ่มนูน) มันเลยกินแถวของตัวเองเหนือแถวเล่น — ตอนย่อให้ลอยชิดขวาแทน */
 #tp.min #tpToggle{position:absolute; left:auto; right:calc(10px + var(--sar)); top:50%; margin-top:-22px; width:44px; height:40px}
@@ -607,7 +607,16 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
 #npal .np-time select{min-height:40px; max-width:96px; padding:0 6px; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:8px}
 #npal .np-tabs{display:flex; width:100%; margin:0 0 8px}
 #npal .np-tabs button{flex:1 1 0; min-height:42px; padding:4px 2px; font-size:13.5px}
-#npal:not(.docked) .np-tabs .np-tbar{display:none}   /* หมวด "ห้อง" มีเฉพาะแผงที่เกาะขอบจอบนมือถือ */
+#npal:not(.docked) .np-tabs .np-tbar{display:none}   /* หมวด "ห้อง" "เสียง" มีเฉพาะแผงที่เกาะขอบจอบนมือถือ */
+#npal:not(.docked) .np-sec[data-cat="mix"]{display:none}
+/* แถบเสียงเพลง/กลองตอนย่อแถบล่าง (สำเนาของ #vol / #dvol ในแถวล่างสุด ซึ่งซ่อนไปตอนย่อ) */
+.tpmix{display:none; align-items:center; gap:10px; margin-left:6px}
+#tp.min .tpmix{display:flex}
+.tpmix label, .np-mix label{display:flex; align-items:center; gap:6px; font-size:13px; white-space:nowrap}
+.tpmix input[type=range]{width:110px}
+.np-mix{display:flex; align-items:center; gap:14px; width:100%}
+.np-mix label{flex:1 1 0; min-width:0}
+.np-mix input[type=range]{flex:1 1 auto; min-width:0; accent-color:var(--ok)}
 #npal.all .np-tabs{display:none}
 #npal .np-sec h4{margin:6px 0 6px; font-size:12.5px; font-weight:600; color:var(--dim)}
 #npal .np-sec h4:first-child{margin-top:0}
@@ -1218,6 +1227,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
     <button class="btn" id="stopb">หยุด</button>
     <button class="btn" id="home" aria-label="กลับไปต้นช่วงที่ฟัง" title="กลับไปต้นช่วงที่ฟัง">⏮</button>
     <span class="clock" id="clock">ห้อง 1 · จังหวะ 1 · 0:00.00</span>
+    <div class="tpmix" id="tpMix" role="group" aria-label="ระดับเสียงเพลงและกลอง"></div>
     <span class="grpname">ฟัง</span>
     <div class="seg" id="scope">
       <button data-v="all" aria-pressed="true">ทั้งเพลง</button>
@@ -1267,6 +1277,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
     <button data-cat="art" role="tab" aria-pressed="false">ลูกเล่น</button>
     <button data-cat="line" role="tab" aria-pressed="false">การวาง</button>
     <button data-cat="bar" role="tab" aria-pressed="false" class="np-tbar">ห้อง</button>
+    <button data-cat="mix" role="tab" aria-pressed="false" class="np-tbar">เสียง</button>
   </div>
   <div class="np-sec" data-cat="val"><h4>ค่าโน้ต</h4><div class="np-m np-vals" data-src="#vals"></div>
     <div class="np-row"><button class="btn sm" id="npDot" aria-pressed="false">ประจุด ( . )</button></div></div>
@@ -1274,6 +1285,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
   <div class="np-sec" data-cat="art"><h4>ประดับ</h4><div class="np-m" data-src="#ornSeg2"></div>
     <h4>รัว</h4><div class="np-m" data-src="#tremSeg"></div></div>
   <div class="np-sec" data-cat="line"><h4>การวางโน้ต (แนวก้าน)</h4><div class="np-m" data-src="#lineSeg"></div></div>
+  <div class="np-sec" data-cat="mix"><h4>ระดับเสียง</h4><div class="np-mix" role="group" aria-label="ระดับเสียงเพลงและกลอง"></div></div>
   <!-- ห้อง: อยู่ท้ายแผงทุกหมวด แตะครั้งเดียวไม่ต้องสลับหมวด ปุ่มเหล่านี้ไปกดปุ่มเดิมในแถบล่าง -->
   <div class="np-bar" role="group" aria-label="คัดลอก วาง ทำซ้ำห้อง">
     <div class="np-bar-i" id="npBarInfo" aria-live="polite"></div>
@@ -2155,6 +2167,12 @@ function addNote(tkPos, vid, vel, auto, val, ln, art){
   S.notes.sort((a,b)=>a.tk-b.tk);
   return n;
 }
+// โน้ตใต้จุดแตะ: ใกล้พอ (ระยะเผื่อ) หรืออยู่ช่องเดียวกันหลังดึงเข้ากริด — กันวางซ้ำช่องเดิมเมื่อแตะเยื้องตัวเดิม
+function noteAtTap(t, pk, tol){
+  let i=noteNear(t, pk, tol);
+  if(i<0){ const s=snapTime(t); if(s) i=S.notes.findIndex(n=>pkeyOf(n)===pk && n.tk===s.tk); }
+  return i;
+}
 function noteNear(t, pk, tol){
   let best=-1, bd=tol;
   for(let i=0;i<S.notes.length;i++){
@@ -2371,9 +2389,12 @@ function labelOf(n){
   return a.lb || st.lb || "";
 }
 function LABELW(){ return parseInt(getComputedStyle(document.documentElement).getPropertyValue("--labelw")) || 132; }
-function X0(t){ return LABELW() + (t - S.offset)*S.zoom; }              // ตำแหน่งสัมบูรณ์
-function T0(x){ return S.offset + (x - LABELW())/S.zoom; }
-function contentW(){ return LABELW() + (totalEnd()-S.offset)*S.zoom + 80; }
+/* ช่องว่างหน้าห้อง 1: เดิมจังหวะแรกชิดขอบช่องชื่อแถว ห่างปุ่ม S แค่ราว 6px นิ้วที่แตะช่องแรกจึงไปโดนปุ่ม S
+   (ผู้ใช้เจอบน iPad) เว้นไว้ 28px แตะในช่องว่างนี้ = ช่องแรก (secTk ของเวลาก่อนต้นเพลงคือ tick 0) */
+const GRID_LEAD=28;
+function X0(t){ return LABELW() + GRID_LEAD + (t - S.offset)*S.zoom; }  // ตำแหน่งสัมบูรณ์
+function T0(x){ return S.offset + (x - LABELW() - GRID_LEAD)/S.zoom; }
+function contentW(){ return LABELW() + GRID_LEAD + (totalEnd()-S.offset)*S.zoom + 80; }
 
 let playAbs=null, violIdx=new Set();
 /* วาดเฟรมละครั้งพอ
@@ -3808,7 +3829,7 @@ cv.addEventListener("pointerdown", e=>{
 
   const pe=ROWS[p.row], vid=pe.id;
   const tol=hitTol(pen);
-  const idx=noteNear(p.t, vid, tol);
+  const idx=noteAtTap(p.t, vid, tol);
 
   if(mode==="select"){
     e.preventDefault();
@@ -3870,7 +3891,7 @@ cv.addEventListener("pointermove", e=>{
   if(row<0||row>=ROWS.length) return;
   const pe=ROWS[row], vid=pe.id;
   const tol=hitTol(dragPen);
-  const idx=noteNear(p.t, vid, tol);
+  const idx=noteAtTap(p.t, vid, tol);
   if(dragMode==="erase" && idx>=0){ S.notes.splice(idx,1); S.selIdx=-1; if(dragPen) penBuzz(); afterEdit(); }
   else if(dragMode==="draw" && idx<0){
     const sl=snapTime(p.t);
@@ -3884,7 +3905,7 @@ cv.addEventListener("pointermove", e=>{
   if(!e.buttons && !dragMode && (tool==="pan" || tool==="draw" || tool==="erase")){
     const p=hit(e);
     if(!p.head && !p.staff && p.row>=0 && p.row<ROWS.length && p.x-scroller.scrollLeft>LABELW()){
-      const idx=noteNear(p.t, ROWS[p.row].id, hitTol(true));
+      const idx=noteAtTap(p.t, ROWS[p.row].id, hitTol(true));
       if(idx>=0) h={t:S.notes[idx].t, row:p.row, del:true};
       else if(tool!=="erase"){ const s=snapTime(p.t); if(s) h={t:s.t, row:p.row, del:false}; }
     }
@@ -3924,6 +3945,7 @@ function flushValidate(){
   draw();
 }
 function afterEdit(){
+  if(S.playing) evDirty=true;                       // เล่นอยู่: เสียงตามโน้ตใหม่ตั้งแต่รอบถัดไป (ดู refreshEvents)
   if(S.hideEmpty) rebuildRows();
   draw(); updStats(); showInspector(); markDirty();
   if(validTimer) clearTimeout(validTimer);
@@ -4736,7 +4758,7 @@ function laneRegion(){
 }
 function drawLoopLane(sx, vw, b0, b1, h){
   const lw=LABELW(), y0=RULER_Y, hh=RULER_H, yb=y0+hh;
-  const X=t=>lw+(t-S.offset)*S.zoom-sx;
+  const X=t=>X0(t)-sx;
   cx.save();
   cx.fillStyle="rgba(255,255,255,.028)"; cx.fillRect(0, y0, vw, hh);
   const R=laneRegion();
@@ -4949,6 +4971,17 @@ function buildEvents(){
   return list;
 }
 let evList=[], schedIter=0, schedIdx=0, playFrom=0, headLen=0, playLoop=false;
+/* แก้โน้ตระหว่างเล่น (วาง ลบ เปลี่ยนน้ำหนัก/ลูกเล่น ฯลฯ) มีผลทันที ไม่ต้องกดเล่นใหม่
+   เดิมรายการเสียงสร้างครั้งเดียวตอนกดเล่น โน้ตที่วางระหว่างวนซ้ำห้องเดิมจึงเงียบจนกว่าจะหยุดแล้วเล่นใหม่
+   afterEdit() ตั้งธงไว้ pump() รอบถัดไป (ไม่เกิน 60 ms) สร้างรายการใหม่ แล้วต่อจากจุดที่ตั้งเวลาไปแล้ว (schedHorizon)
+   เสียงที่ตั้งเวลาไปแล้วไม่ซ้ำ และวาดรัว ๆ ก็สร้างใหม่แค่ครั้งเดียวต่อรอบ */
+let evDirty=false, schedHorizon=0;
+function refreshEvents(){
+  evDirty=false;
+  evList=buildEvents();
+  schedIdx=0;
+  while(schedIdx<evList.length && startedAt+elapsedOf(schedIter, evList[schedIdx].t)/S.rate <= schedHorizon+1e-4) schedIdx++;
+}
 /* ลำดับของโน้ตประดับที่ผูกกับตัวหลักเดียวกัน (ตัวใกล้ตัวหลักที่สุด = 0) ใช้กำหนดระยะก่อนตัวหลัก */
 function graceRanks(){
   const groups=new Map(), out=new Map();
@@ -5017,7 +5050,7 @@ async function play(){
   S.playing=true; $("#play").textContent="พัก";
   followPaused=false; scrollDirty=false;
   pumpWarned=false;
-  evList=buildEvents(); schedIter=0;
+  evList=buildEvents(); schedIter=0; evDirty=false; schedHorizon=0;
   schedIdx=0; while(schedIdx<evList.length && evList[schedIdx].t < playFrom-1e-6) schedIdx++;
   if(abMode===1){
     const n=evList.filter(e=>e.k==="n" && e.t>=playFrom).length;
@@ -5045,6 +5078,7 @@ function elapsedOf(it, t){
 let pumpWarned=false;
 function pump(){
   if(!S.playing) return;
+  if(evDirty) refreshEvents();
   const now=S.ctx.currentTime, until=now+0.3;
   const looping=playLoop, clickOn=$("#click").checked;
   let guard=0;
@@ -5059,6 +5093,7 @@ function pump(){
     const e=evList[schedIdx];
     const w=startedAt+elapsedOf(schedIter, e.t)/S.rate;
     if(w>until) break;
+    schedHorizon=w;
     if(w>=now-0.01){
       try{
         if(e.k==="n"){ if(abMode!==2) playVoice(e.v, w, e.vel, e.art); }
@@ -6088,7 +6123,7 @@ const NP=(function(){
     el.style.left=x+"px"; el.style.top=y+"px";
   }
   function syncTabs(){
-    const dk=docked(), all=!!st.all && !dk, tab=(!dk && st.tab==="bar") ? "val" : st.tab;
+    const dk=docked(), all=!!st.all && !dk, tab=(!dk && (st.tab==="bar" || st.tab==="mix")) ? "val" : st.tab;
     pal.classList.toggle("all", all);
     $("#npAll").setAttribute("aria-pressed", String(all));
     pal.querySelectorAll(".np-tabs button").forEach(b=>{
@@ -6214,6 +6249,28 @@ const NP=(function(){
     .observe(document.documentElement, {attributes:true, attributeFilter:["data-kphone"]});
   refresh();
   return {show, setMin, state:()=>Object.assign({}, st, {active:active()})};
+})();
+/* แถบเสียงเพลง/กลองแบบย่อ: แถวล่างสุดของแถบล่าง (#vol #dvol) ซ่อนไปตอนย่อ ผู้ใช้ต้องกางแถบทุกครั้งที่จะปรับ
+   สำเนาไว้ในแถวเล่นตอนย่อ (iPad) และหมวด "เสียง" ของแผงเขียนโน้ตบนมือถือ (แถวเล่นบนมือถือไม่มีที่)
+   เลื่อนสำเนา = เลื่อนตัวจริงแล้วยิง input ให้ตัวจริงปรับเสียงเอง · ตัวจริงขยับ = สำเนาตาม */
+(function(){
+  const pairs=[["vol","เพลง","ระดับเสียงเพลง"],["dvol","กลอง","ระดับเสียงกลอง"]];
+  const copies=[];
+  [$("#tpMix"), document.querySelector("#npal .np-mix")].forEach(host=>{
+    if(!host) return;
+    pairs.forEach(([id, name, aria])=>{
+      const o=$("#"+id); if(!o) return;
+      const lb=document.createElement("label"), sp=document.createElement("span"), r=document.createElement("input");
+      sp.textContent=name; r.type="range"; r.min=o.min; r.max=o.max; r.value=o.value; r.dataset.for=id;
+      r.setAttribute("aria-label", aria);
+      r.addEventListener("input", ()=>{ o.value=r.value; o.dispatchEvent(new Event("input")); syncMix(); });
+      r.addEventListener("change", ()=>o.dispatchEvent(new Event("change")));
+      lb.append(sp, r); host.appendChild(lb); copies.push(r);
+    });
+  });
+  function syncMix(){ copies.forEach(r=>{ const v=$("#"+r.dataset.for).value; if(r.value!==v) r.value=v; }); }
+  pairs.forEach(([id])=>{ const o=$("#"+id); if(o){ o.addEventListener("input", syncMix); o.addEventListener("change", syncMix); } });
+  new MutationObserver(syncMix).observe($("#tp"), {attributes:true, attributeFilter:["class"]});
 })();
 $("#moreBtn").onclick=()=>setInsp($("#insp").classList.contains("hidden"));
 // เว้นที่ให้กริดพอดีกับความสูงจริงของแถบล่าง ไม่ให้บังกัน

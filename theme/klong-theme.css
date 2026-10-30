@@ -406,3 +406,13 @@ html[data-kphone] .tpmix{display:none !important}          /* มือถือ
 html[data-kphone="port"] #npal.docked .np-mix{padding:0 6px}
 html[data-kphone="land"] #npal.docked .np-mix{flex-direction:column; align-items:stretch; gap:14px; padding-top:6px}
 html[data-kphone="land"] #npal.docked .np-mix label{flex:none}
+
+/* ---------- แถบล่างเต็มถึงขอบจอ (ผู้ใช้เจอบน iPad Pro 11 นิ้ว M4 · iPadOS 26 แบบเปิดจากหน้าโฮม) ----------
+   ใต้แถบล่างมีแถบสีพื้นหน้ากว้างราว 30px โผล่ (หน้าเว็บยาวกว่ากรอบที่แถบล่างเกาะ) และปุ่ม ▴ ถูกตัดครึ่ง
+   เพราะจัดไว้กึ่งกลางกล่องทั้งกล่องรวมขอบล่าง (ลงต่ำกว่าแถวปุ่มเล่น 10px) แล้วกล่องตัดส่วนที่ล้น
+   1) ต่อเนื้อไม้ลงไปใต้แถบ 200px ด้วยเงาทึบ (ขยาย 100 เลื่อนลง 100 จึงเริ่มที่ขอบล่างแถบพอดี) (ไม่เปลี่ยนเลย์เอาต์ ไม่ต้องวัดจอ) — ตรงไหนของหน้าโผล่ใต้แถบก็เป็นไม้ต่อกัน
+      นอกจอก็มองไม่เห็น · 2) ปุ่ม ▴ ตรงแถวปุ่มเล่น · 3) แถบแบบย่อไม่ตัดของที่ล้น (เงาปุ่ม) */
+html[data-kmode] #tp{
+  box-shadow:inset 0 3px 0 -2px var(--k-brass-hi), 0 -3px 10px rgba(30,15,5,.2), 0 100px 0 100px var(--k-wood-b)}
+html[data-kmode] #tp.min{overflow:visible}
+html[data-kmode] #tp.min #tpToggle{top:10px; margin-top:0}

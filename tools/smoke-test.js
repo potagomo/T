@@ -241,19 +241,19 @@ async function suite(label, ctxOpts, exe) {
   if (!playStarted) fail.push(`${label}: กดเล่นแล้วเวลาไม่เดินภายใน 5 วินาที`);
   await clickFirst(page, ["#stopb", "#stop"]);
 
-  /* ---- หัวอ่าน: ลากไปวางแล้วกดเล่น ต้องเล่นต่อจากจุดนั้น ----
-     ผู้ใช้ขอข้อนี้มาตรง ๆ ตั้งแต่แรก ล็อกไว้ไม่ให้หลุดตอนแก้ UI */
+  /* ---- หัวอ่าน: แตะหัวกริดตั้งจุดเล่นแล้วกดเล่น ต้องเล่นต่อจากจุดนั้น ----
+     ผู้ใช้ขอข้อนี้มาตรง ๆ ตั้งแต่แรก ล็อกไว้ไม่ให้หลุดตอนแก้ UI
+     หัวกริดเป็นแถบเดียว (สูง 54px): แตะ = จุดเล่น · ลาก = วนซ้ำ (ผู้ใช้ขอให้รวมไว้ที่เดียว) */
   const secs = (t) => { const m = /(\d+):(\d+(?:\.\d+)?)\s*$/.exec(t || ""); return m ? (+m[1]) * 60 + (+m[2]) : NaN; };
   const readClock = () => page.evaluate(() => ((document.querySelector("#clock") || {}).textContent || "").trim());
   await page.waitForTimeout(300);
   const gb = await page.locator("#grid").boundingBox();
-  const hy = gb.y + 10, hx0 = gb.x + 170, hx1 = gb.x + Math.min(gb.width - 40, 520);   // แถบบนสุด 26px ของกริด = ที่จับหัวอ่าน
-  await page.mouse.move(hx0, hy); await page.mouse.down();
-  await page.mouse.move(hx1, hy, { steps: 8 }); await page.mouse.up();
+  const hy = gb.y + 12, hx1 = gb.x + Math.min(gb.width - 40, 520);
+  await page.mouse.click(hx1, hy);
   await page.waitForTimeout(250);
   const headClock = await readClock(), tHead = secs(headClock);
-  say(`ลากหัวอ่านไปที่: ${headClock}`);
-  if (!(tHead > 0.2)) fail.push(`${label}: ลากหัวอ่านแล้วตำแหน่งไม่ขยับ (${headClock})`);
+  say(`แตะหัวกริดตั้งจุดเล่น: ${headClock}`);
+  if (!(tHead > 0.2)) fail.push(`${label}: แตะหัวกริดแล้วจุดเล่นไม่ขยับ (${headClock})`);
   await page.evaluate(() => {
     window.__lampOn = 0; const l = document.getElementById("kLamp");
     if (l) new MutationObserver(() => { if (l.classList.contains("on")) window.__lampOn++; }).observe(l, { attributes: true });
@@ -280,12 +280,12 @@ async function suite(label, ctxOpts, exe) {
   if (lab.cut.length) fail.push(`${label}: ชื่อแถวถูกตัด ${lab.cut.join(", ")}`);
   if (lab.over) fail.push(`${label}: วงล้อซูมทับพื้นที่โน้ต`);
 
-  /* ---- ช่วงวนซ้ำ: ลากบนแถบไม้บรรทัด (ใต้แถบเลขห้อง y 46–74) แล้วเล่นต้องวนอยู่ในช่วงนั้น
-     ผู้ใช้ขอให้ตั้งวนซ้ำด้วยการลากคลุมบนไทม์ไลน์แทนการกดปุ่ม ---- */
+  /* ---- ช่วงวนซ้ำ: ลากบนหัวกริด (ไม้บรรทัด y 26–54) แล้วเล่นต้องวนอยู่ในช่วงนั้น
+     ผู้ใช้ขอให้ตั้งวนซ้ำด้วยการลากคลุมบนไทม์ไลน์แทนการกดปุ่ม · แตะในช่วง = จุดเล่น · ✕ ท้ายช่วง = ยกเลิก ---- */
   await page.evaluate(() => { const g = document.getElementById("gs"); if (g) g.scrollLeft = 0; });
   await page.waitForTimeout(200);
   const gb2 = await page.locator("#grid").boundingBox();
-  const ly = gb2.y + 46 + 14, lx0 = gb2.x + 150, lx1 = gb2.x + Math.min(gb2.width - 80, 420);
+  const ly = gb2.y + 26 + 14, lx0 = gb2.x + 150, lx1 = gb2.x + Math.min(gb2.width - 80, 420);
   await page.mouse.move(lx0, ly); await page.mouse.down();
   await page.mouse.move(lx1, ly, { steps: 10 }); await page.mouse.up();
   await page.waitForTimeout(250);
@@ -303,9 +303,19 @@ async function suite(label, ctxOpts, exe) {
     const out = seen.filter((t) => !(t >= loopA - 0.06 && t <= loopB + 0.06));
     say(`เล่นในช่วงวนซ้ำ: ${seen.map((t) => t.toFixed(2)).join(" ")}`);
     if (out.length) fail.push(`${label}: เล่นหลุดออกนอกช่วงวนซ้ำ (${out.join(", ")})`);
+    // แตะในช่วง = ย้ายจุดเล่น ช่วงยังอยู่
     await page.mouse.click((lx0 + lx1) / 2, ly); await page.waitForTimeout(200);
+    const inMsg = await page.evaluate(() => document.querySelector("#status").textContent), tIn = secs(await readClock());
+    // ✕ ท้ายช่วง: หาจากภาพบนผืนผ้าใบ — วงสีฟ้าอมเขียวขวาสุดในแถวกลางไม้บรรทัด
+    const chipX = await page.evaluate((y) => { const c = document.getElementById("grid"), r = c.getBoundingClientRect(), k = c.width / r.width;
+      const row = c.getContext("2d").getImageData(0, Math.round((y - r.top) * k), c.width, 1).data; let mx = -1;
+      for (let i = 0; i < c.width; i++) { const R = row[i * 4], G = row[i * 4 + 1], B = row[i * 4 + 2]; if (G > R + 35 && B > R + 25) mx = i; }
+      return mx < 0 ? null : r.left + mx / k - 9; }, ly);
+    if (chipX) { await page.mouse.click(chipX, ly); await page.waitForTimeout(200); }
     const clr = await page.evaluate(() => document.querySelector("#status").textContent);
-    if (!/ยกเลิกช่วงวนซ้ำ/.test(clr)) fail.push(`${label}: แตะในช่วงแล้วไม่ยกเลิกวนซ้ำ (${clr})`);
+    say(`แตะในช่วง → จุดเล่น ${tIn.toFixed(2)} วิ (ช่วงยังอยู่ ${!/ยกเลิกช่วงวนซ้ำแล้ว|ออกจากช่วงวนซ้ำ/.test(inMsg)}) · แตะ ✕ → ${clr.split(" — ")[0]}`);
+    if (!(tIn >= loopA - 0.06 && tIn <= loopB + 0.06) || /ยกเลิกช่วงวนซ้ำแล้ว|ออกจากช่วงวนซ้ำ/.test(inMsg)) fail.push(`${label}: แตะในช่วงวนซ้ำแล้วไม่ได้ย้ายจุดเล่น หรือไปยกเลิกช่วง`);
+    if (!/ยกเลิกช่วงวนซ้ำ/.test(clr)) fail.push(`${label}: แตะ ✕ ท้ายช่วงแล้วไม่ยกเลิกวนซ้ำ (${clr})`);
   }
 
   /* ---- นิ้วบนไม้บรรทัด ด้วยเครื่องมือ "เลื่อน" ที่เป็นค่าเริ่มต้น
@@ -329,18 +339,21 @@ async function suite(label, ctxOpts, exe) {
   const gb3 = await page.locator("#grid").boundingBox();
   const lw3 = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--labelw")) || 132);
   const fx0 = gb3.x + lw3 + 50, fx1 = Math.min(gb3.x + gb3.width - 40, fx0 + 220);
-  const fr = await finger(fx1, fx0, gb3.y + 46 + 14);                   // ไม้บรรทัด ลากจากขวาไปซ้าย
+  const fr = await finger(fx1, fx0, gb3.y + 26 + 14);                   // ไม้บรรทัด ลากจากขวาไปซ้าย
   say(`นิ้วบนไม้บรรทัด (เครื่องมือเลื่อน): ${fr.st.split(" — ")[0]} · จอเลื่อน ${Math.round(fr.sl)}px · ลากขาด ${fr.pc} ครั้ง`);
   if (!/วนซ้ำ/.test(fr.st) || fr.pc || fr.sl > 2)
     fail.push(`${label}: ลากไม้บรรทัดด้วยนิ้วไม่ได้ (จอเลื่อน ${Math.round(fr.sl)}px · ลากขาด ${fr.pc} · ${fr.st})`);
-  else { await page.mouse.click((fx0 + fx1) / 2, gb3.y + 46 + 14); await page.waitForTimeout(200); }   // แตะในช่วง = ยกเลิก
   const clk0 = await readClock();
-  const fh = await finger(fx0, fx1, gb3.y + 12);                        // แถบบนสุด = ลากหัวอ่าน
-  if (fh.clock === clk0 || fh.pc > fr.pc || Math.abs(fh.sl - fr.sl) > 2)
-    fail.push(`${label}: ลากหัวอ่านด้วยนิ้วไม่ได้ (จอเลื่อน ${Math.round(fh.sl - fr.sl)}px · ลากขาด ${fh.pc - fr.pc})`);
+  // นิ้วแตะหัวกริด (บรรทัดเลขห้อง) นอกช่วง = จุดเล่นใหม่ + เลิกวนซ้ำ · จอต้องไม่เลื่อน
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: fx1 + 30, y: gb3.y + 12, id: 1 }] }); await page.waitForTimeout(60);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await page.waitForTimeout(300);
+  const fh = await page.evaluate(() => ({ sl: document.getElementById("gs").scrollLeft, pc: window.__pcancel,
+    st: document.querySelector("#status").textContent, clock: document.getElementById("clock").textContent }));
+  if (fh.clock === clk0 || fh.pc > fr.pc || Math.abs(fh.sl - fr.sl) > 2 || !/ออกจากช่วงวนซ้ำ/.test(fh.st))
+    fail.push(`${label}: นิ้วแตะหัวกริดแล้วจุดเล่นไม่ย้าย/ไม่เลิกวนซ้ำ (จอเลื่อน ${Math.round(fh.sl - fr.sl)}px · ${fh.st})`);
   const rowY = await page.evaluate(() => { const r = document.querySelector("#labels .r").getBoundingClientRect(); return r.top + r.height / 2; });
   const fg = await finger(fx1, fx0, rowY);                              // ตัวกริด = ปัดเลื่อนจอ
-  say(`นิ้วลากหัวอ่าน: ${clk0} → ${fh.clock} · นิ้วปัดตัวกริด: จอเลื่อน ${Math.round(fg.sl - fh.sl)}px`);
+  say(`นิ้วแตะหัวกริด: ${clk0} → ${fh.clock} · ${fh.st.split(" — ")[0]} · นิ้วปัดตัวกริด: จอเลื่อน ${Math.round(fg.sl - fh.sl)}px`);
   if (!(fg.sl - fh.sl > 50)) fail.push(`${label}: เครื่องมือเลื่อนปัดเลื่อนกริดด้วยนิ้วไม่ได้แล้ว (${Math.round(fg.sl - fh.sl)}px)`);
   await page.evaluate(() => { document.getElementById("gs").scrollLeft = 0; });
   await page.click('#tool button[data-v="draw"]');
@@ -552,6 +565,23 @@ async function editSuite(label, exe) {
     const back = m.querySelector('input[data-for="vol"]').value; d.value = "65"; d.dispatchEvent(new Event("input"));
     return { on, to, back }; });
   say(`แถบเสียงตอนย่อ: เห็น ${mix.on} · เลื่อนกลอง → ตัวจริง ${mix.to} · ตัวจริงเพลง 42 → สำเนา ${mix.back}`);
+  /* แถบล่างแบบย่อ: ปุ่ม ▴ ต้องตรงแถวปุ่มเล่น (เคยต่ำกว่า 10px แล้วโดนตัดครึ่งบน iPad)
+     และเนื้อไม้ต้องต่อลงไปใต้แถบ (iPad บางรุ่นมีหน้าเว็บโผล่ใต้แถบล่าง เป็นแถบสีพื้น) — จำลองแถบลอยเหนือขอบ 30px */
+  const bar = await page.evaluate(async () => { const t = document.getElementById("tpToggle").getBoundingClientRect(), pl = document.getElementById("play").getBoundingClientRect();
+    const st = document.createElement("style"); st.textContent = "#tp{bottom:30px !important}"; document.head.appendChild(st);
+    await new Promise((r) => setTimeout(r, 120)); const tb = document.getElementById("tp").getBoundingClientRect(); st.remove();
+    return { dTop: Math.round(t.top - pl.top), cut: t.bottom > document.getElementById("tp").getBoundingClientRect().bottom + 1, skirtY: tb.bottom + 15 }; });
+  await page.addStyleTag({ content: "#tp{bottom:30px !important}" }); await page.waitForTimeout(150);
+  const skirt = await page.screenshot({ clip: { x: 400, y: Math.round(bar.skirtY), width: 1, height: 1 } });
+  const rgb = await page.evaluate(async (b64) => { const im = new Image(); im.src = "data:image/png;base64," + b64; await im.decode();
+    const c = document.createElement("canvas"); c.width = c.height = 1; const g = c.getContext("2d"); g.drawImage(im, 0, 0); return Array.from(g.getImageData(0, 0, 1, 1).data.slice(0, 3)); }, skirt.toString("base64"));
+  const wood = await page.evaluate(() => { const c = document.createElement("canvas").getContext("2d"); c.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--k-wood-b").trim();
+    const h = c.fillStyle; return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); });
+  await page.evaluate(() => { [...document.querySelectorAll("style")].filter((s) => /#tp\{bottom:30px/.test(s.textContent)).forEach((s) => s.remove()); });
+  const woodOk = rgb.every((v, i) => Math.abs(v - wood[i]) <= 4);
+  say(`แถบล่าง: ปุ่ม ▴ ต่างจากปุ่มเล่น ${bar.dTop}px · ถูกตัด ${bar.cut} · ใต้แถบเป็นไม้ ${woodOk} (${rgb.join(",")})`);
+  if (Math.abs(bar.dTop) > 4 || bar.cut) fail.push(`${label}: ปุ่ม ▴ ไม่ตรงแถวปุ่มเล่นหรือถูกตัด (${bar.dTop}px)`);
+  if (!woodOk) fail.push(`${label}: ใต้แถบล่างไม่ใช่เนื้อไม้ต่อกัน (${rgb.join(",")}) — แถบสีพื้นจะโผล่บน iPad`);
   if (!mix.on || mix.to !== "31" || mix.back !== "42") fail.push(`${label}: แถบเสียงเพลง/กลองตอนย่อแถบล่างไม่ทำงาน`);
   await page.evaluate(() => { window.__hits = []; const K = window.KlongSounds, o = K.play.bind(K);
     K.play = (c, s, key, w, v) => { window.__hits.push(key); return o(c, s, key, w, v); }; });

@@ -651,11 +651,11 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
   100%{box-shadow:0 0 0 20px rgba(79,199,212,0), 0 6px 16px rgba(0,0,0,.4)}}
 @media (prefers-reduced-motion: reduce){ #npPin.pulse{animation:none} }
 
-/* หัวกริดสูงขึ้นหนึ่งแถบ: ไม้บรรทัดสำหรับลากตั้งช่วงวนซ้ำ (RULER_Y/RULER_H ในโค้ด) */
-:root{--head:74px}
+/* หัวกริดแถบเดียว (RULER_Y/RULER_H ในโค้ด): แตะ = จุดเล่น · ลาก = วนซ้ำ — บรรทัดบนเลขห้อง ล่างไม้บรรทัดจังหวะ */
+:root{--head:54px}
 #labels .h{position:relative}
-#labels .h::after{content:"ลากตั้งวนซ้ำ ⇆"; position:absolute; left:10px; top:52px;
-  font-size:12px; line-height:18px; color:var(--dim); white-space:nowrap}
+#labels .h::after{content:"แตะ = จุดเล่น\A ลาก = วนซ้ำ ⇆"; position:absolute; left:10px; top:6px;
+  font-size:12px; line-height:21px; color:var(--dim); white-space:pre}
 
 /* ชื่อแถว: ช่องกว้างขึ้นบนจอ iPad ให้ชื่อเต็มพอดี · ปุ่ม M/S สูงเต็มแถว กว้าง 30px (เดิม 23×26 / 20×26)
    ความสูงแถวคงเดิม (--rowh) เพราะเป็นความหนาแน่นของกริดที่จูนไว้แล้ว */
@@ -2358,9 +2358,10 @@ const GRID_SUBS = [[2,"rgba(104,89,82,.62)"], [4,"rgba(88,75,69,.46)"],
 const GRID_MINPX = 4.5;
 // ROWH เปลี่ยนได้: โหมดโฟกัสห้องขยายแถวให้แตะง่ายขึ้น (ทุกจุดวาดและจุดแตะอ่านค่านี้สด ๆ)
 let ROWH=27;
-// แถบไม้บรรทัดจังหวะใต้แถบเลขห้อง: ลากตรงนี้เพื่อตั้งช่วงวนซ้ำ (ข้อ 36)
-// แถบเดิม 0–26 ลากหัวอ่าน · 26–46 เลือกห้อง ยังอยู่ที่เดิมทุกพิกเซล
-const RULER_Y=46, RULER_H=28;
+// หัวกริดแถบเดียว (ข้อ 36): 0–26 เลขห้อง อัตราจังหวะ ความเร็ว · 26–54 ไม้บรรทัดจังหวะ
+// ทั้งแถบ แตะ = ตั้งจุดเล่น · ลาก = ตั้งช่วงวนซ้ำ · ลากขอบ = ปรับ · ✕ ท้ายช่วง = ยกเลิก
+// (เดิมแยกสามแถบ: ลากหัวอ่าน · เลือกห้อง · ลากวนซ้ำ ผู้ใช้ขอให้รวมไว้ที่เดียว)
+const RULER_Y=26, RULER_H=28;
 const HEAD=RULER_Y+RULER_H;
 // STAFFH/ROWTOP เปลี่ยนได้: โหมดโฟกัสขยายบรรทัด 5 เส้นด้วยสเกลเท่ากันทุกทิศ (STAFFS) หัวโน้ตจึงไม่บิดเบี้ยว
 let STAFFH=124, ROWTOP=HEAD+STAFFH, STAFFS=1, FOCUS_ON=false, PAD_ON=false;
@@ -3811,18 +3812,7 @@ cv.addEventListener("pointerdown", e=>{
   const p=hit(e);
   if(penHover){ penHover=null; drawHead(); }
 
-  if(p.head){
-    if(p.y>=RULER_Y){ loopDown(e, p); return; }  // แถบไม้บรรทัด = ลากตั้งช่วงวนซ้ำ (นิ้ว/ปากกา ทุกเครื่องมือ)
-    if(p.y<26){                                   // แถบบนสุด = ลากหัวอ่าน
-      e.preventDefault(); dragMode="scrub"; activePid=e.pointerId;
-      cv.setPointerCapture(e.pointerId); setHead(p.t); return;
-    }
-    if(!pen && tool==="pan") return;              // นิ้วเลื่อนแถบห้องได้ตามปกติ
-    const bi=barAt(p.t);
-    if(bi>=0){ S.sel={a:bi,b:bi}; dragMode="sel"; activePid=e.pointerId;
-      cv.setPointerCapture(e.pointerId); syncSel(); draw(); }
-    return;
-  }
+  if(p.head){ loopDown(e, p); return; }          // หัวกริด: แตะ = จุดเล่น · ลาก = วนซ้ำ (นิ้ว/ปากกา ทุกเครื่องมือ)
   if(p.staff) return;
   if(mode==="pan") return;                        // ปล่อยให้เลื่อนจอตามปกติ ไม่แตะโน้ต
   if(p.row<0||p.row>=ROWS.length) return;
@@ -3863,15 +3853,15 @@ cv.addEventListener("pointerdown", e=>{
   }
   afterEdit();
 });
-/* นิ้วบนแถบลากหัวอ่าน (บนสุด) และแถบไม้บรรทัดวนซ้ำ ต้องเป็นของเราทั้งท่า
+/* นิ้วบนหัวกริด (แตะ = จุดเล่น · ลาก = วนซ้ำ) ต้องเป็นของเราทั้งท่า
    เครื่องมือเลื่อนตั้ง touch-action ของทั้งผืนเป็น pan-x pan-y (syncToolTouch) Safari จึงเอานิ้วที่ลาก
-   บนสองแถบนี้ไปเลื่อนจอเอง ส่ง pointercancel มากลางทาง การลากขาด และค้างนิ้วแล้วขึ้นแว่นเลือกข้อความ
-   touch-action แยกตามพื้นที่ในผืนเดียวกันไม่ได้ จึงกัน touchstart เฉพาะนิ้วเดียวที่เริ่มในสองแถบนี้
-   แถบเลขห้องตรงกลางกับตัวกริดยังปัดเลื่อนได้ตามเดิม · สองนิ้ว (ซูม) ไม่แตะ */
+   บนหัวกริดไปเลื่อนจอเอง ส่ง pointercancel มากลางทาง การลากขาด และค้างนิ้วแล้วขึ้นแว่นเลือกข้อความ
+   touch-action แยกตามพื้นที่ในผืนเดียวกันไม่ได้ จึงกัน touchstart เฉพาะนิ้วเดียวที่เริ่มในหัวกริด
+   ตัวกริดยังปัดเลื่อนได้ตามเดิม · สองนิ้ว (ซูม) ไม่แตะ */
 cv.addEventListener("touchstart", e=>{
   if(e.touches.length!==1) return;
   const y=e.touches[0].clientY-cv.getBoundingClientRect().top;
-  if(y<26 || (y>=RULER_Y && y<HEAD)) e.preventDefault();
+  if(y<HEAD) e.preventDefault();
 }, {passive:false});
 
 cv.addEventListener("pointermove", e=>{
@@ -4792,6 +4782,14 @@ function drawLoopLane(sx, vw, b0, b1, h){
       if(isBeat && at>0 && beatPx>=24){ cx.fillStyle="#9C8B82"; cx.fillText(String(at/per+1), x+3, y0+12); }
     }
   }
+  const chip=loopChip();                       // ✕ ยกเลิกวนซ้ำ ท้ายช่วง (วาดทับขีดจังหวะ)
+  if(chip){
+    const cxp=chip.x-sx;
+    cx.fillStyle="#2E2722"; cx.beginPath(); cx.arc(cxp, chip.y, chip.r, 0, Math.PI*2); cx.fill();
+    cx.strokeStyle="#4FC7D4"; cx.lineWidth=1.5; cx.stroke();
+    cx.beginPath(); cx.moveTo(cxp-3.5, chip.y-3.5); cx.lineTo(cxp+3.5, chip.y+3.5);
+    cx.moveTo(cxp+3.5, chip.y-3.5); cx.lineTo(cxp-3.5, chip.y+3.5); cx.stroke();
+  }
   cx.restore();
 }
 function drawLoopBubble(vw){
@@ -4817,8 +4815,8 @@ function loopDown(e, p){
     if(Math.abs(p.x-xb)<=tol){ mode="end"; anchor=loopRange.a; }
     else if(Math.abs(p.x-xa)<=tol){ mode="end"; anchor=loopRange.b; }
   }
-  const inside = scope==="range" && loopRange && p.x>X0(tkSec(loopRange.a)) && p.x<X0(tkSec(loopRange.b));
-  loopDrag={mode, anchor, a:Math.min(anchor,tk), b:Math.max(anchor,tk), x0:e.clientX, px:p.x-scroller.scrollLeft, cx:e.clientX, moved:false, inside, raf:0};
+  const chip = loopChipAt(p.x, p.y);
+  loopDrag={mode, anchor, a:Math.min(anchor,tk), b:Math.max(anchor,tk), t:p.t, x0:e.clientX, px:p.x-scroller.scrollLeft, cx:e.clientX, moved:false, chip, raf:0};
   loopEdge();
 }
 function loopSet(clientX){
@@ -4845,6 +4843,27 @@ function loopEdge(){
   if(d && loopDrag.moved){ scroller.scrollLeft=Math.max(0, scroller.scrollLeft+d); loopSet(x); loopRedraw(); }
   loopDrag.raf=requestAnimationFrame(loopEdge);
 }
+// ✕ ท้ายช่วงวนซ้ำบนไม้บรรทัด (วาดใน drawLoopLane) — แตะ = ยกเลิกวนซ้ำ
+function loopChip(){
+  if(!(scope==="range" && loopRange) || (loopDrag && loopDrag.moved)) return null;
+  return {x:X0(tkSec(loopRange.b))+16, y:RULER_Y+RULER_H/2, r:9};
+}
+function loopChipAt(x, y){ const c=loopChip(); return !!c && Math.abs(x-c.x)<=12 && y>=RULER_Y-4; }
+/* แตะหัวกริด = ตั้งจุดเล่น (กำลังเล่นอยู่ก็เล่นต่อจากตรงนั้นเลย)
+   แตะนอกช่วงวนซ้ำ = ตั้งใจไปฟังที่อื่น → เลิกวนซ้ำ · ฟังทีละห้อง/จังหวะ/ช่องย่อย → ย้ายไปห้องที่แตะ */
+function tapPlayAt(t){
+  if(!S.bars.length) return;
+  t=clamp(t, S.offset, totalEnd());
+  let left=false;
+  if(scope==="range" && loopRange){
+    if(t<tkSec(loopRange.a) || t>=tkSec(loopRange.b)){ loopRange=null; setScopeTo("all"); left=true; }
+  } else if(scope!=="all"){
+    const s=snapTime(t); if(s){ cur.bi=s.bi; cur.bj=s.bj; cur.k=clamp(s.k, 0, subCount(s.bi)-1); }
+  }
+  setHead(t);
+  if(left) setStatus("ออกจากช่วงวนซ้ำแล้ว — เล่นจาก"+$("#clock").textContent.replace(/ · [\d:.]+$/, ""));
+  if(S.playing) play();
+}
 function loopClear(msg){
   loopRange=null; setScopeTo("all");
   setStatus(msg || "ยกเลิกช่วงวนซ้ำแล้ว — กลับไปฟังทั้งเพลง");
@@ -4856,17 +4875,20 @@ function loopUp(e){
   cancelAnimationFrame(d.raf);
   if(e && e.type==="pointercancel"){ loopRedraw(); return; }
   if(!d.moved){
-    if(d.inside) loopClear();
-    else { setStatus("ลากในแถบไม้บรรทัดคลุมห้อง/จังหวะที่ต้องการฟังวนซ้ำ"); loopRedraw(); }
+    if(d.chip) loopClear();
+    else tapPlayAt(d.t);
     return;
   }
   loopRange={a:d.a, b:d.b};
+  // ช่วงห้องในแผงตั้งค่า (ใช้ความเร็ว/อัตราจังหวะกับห้องที่เลือก) ตามช่วงที่ลาก — แทนแถบเลือกห้องเดิม
+  { const sa=$("#selA"), sb=$("#selB");
+    if(sa && sb){ sa.value=barAtTk(d.a)+1; sb.value=barAtTk(Math.max(d.a, d.b-1))+1; } }
   setScopeTo("range");                                 // ปุ่ม ทั้งเพลง/ทีละห้อง/… จะไม่ถูกกดสักอัน
   const lp=$("#loop"); if(lp) lp.checked=true;
   const [s0]=region();
   S.pos=s0; playAbs=X0(s0);
   const p=barBeatOf(s0); $("#clock").textContent="ห้อง "+p.b+" · จังหวะ "+p.be+" · "+fmt(s0);
-  setStatus("วนซ้ำ "+loopLabel(d.a, d.b)+" — แตะในช่วงเพื่อยกเลิก · ลากขอบเพื่อปรับ");
+  setStatus("วนซ้ำ "+loopLabel(d.a, d.b)+" — ลากขอบเพื่อปรับ · แตะ ✕ ท้ายช่วงเพื่อยกเลิก");
   if(S.playing) restartIfPlaying(); else draw();
 }
 // จำนวนช่องย่อยในหนึ่งห้อง ตามค่าโน้ตที่เลือกอยู่ (นับจากต้นห้อง)

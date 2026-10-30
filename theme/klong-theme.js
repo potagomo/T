@@ -306,17 +306,6 @@ function ready(){
       if(Math.abs(window.innerWidth-W)<=2 && d>=8 && d<=60) gap=d;
     }
     root.style.setProperty("--kt-gap", gap+"px");
-    /* iPad (iPadOS 26) เปิดจากหน้าโฮม: ตอนเปิดแอปครั้งแรก กรอบของ position:fixed เตี้ยกว่าตัวหน้าราว 30px
-       แถบล่างกับทุกอย่างที่ fixed ถูกตัดที่ขอบกรอบนั้น (เงาต่อเนื้อไม้ก็ไม่ผ่าน) ใต้แถบจึงโผล่ตัวหน้า
-       (body สูง 100dvh) เป็นแถบสีพื้น หมุนจอแล้วเครื่องคำนวณใหม่ถูก แถบหายเอง (ผู้ใช้ถ่ายภาพให้ดูครบทั้งสามขั้น)
-       วัดส่วนต่างระหว่าง body กับกรอบ fixed แล้ว CSS ทาเนื้อไม้ที่ขอบล่างของ body สูงเท่านั้นพอดี (--kt-band)
-       ปกติส่วนต่างเป็น 0 ไม่ทาอะไรเลย */
-    var band=0, bd=document.body;
-    if(bd && bd.classList.contains("shell")){
-      var dv=Math.round(bd.getBoundingClientRect().height-probe.getBoundingClientRect().height);
-      if(dv>=2 && dv<=80) band=dv;
-    }
-    root.style.setProperty("--kt-band", band+"px");
     /* ช่องว่างนี้คือความสูงแถบสถานะพอดี ถ้าเครื่องดันรายงาน safe-area ด้านบนเป็น 0
        ทั้งที่แถบสถานะทับอยู่ ใช้ค่านี้แทน แถบบนจะได้ไม่โดนเวลา/แบตทับ */
     root.style.removeProperty("--sat");
@@ -330,9 +319,6 @@ function ready(){
   };
   fitGap();
   var gapLater=function(){ fitGap(); setTimeout(fitGap, 350); };
-  window.addEventListener("load", gapLater);
-  window.addEventListener("pageshow", gapLater);
-  setTimeout(fitGap, 1200);                         // แอปที่เพิ่งเปิดจากหน้าโฮมอาจได้ขนาดจอจริงช้ากว่าหน้าโหลดเสร็จ
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitTop);   // iOS อัปเดตขนาดจอช้ากว่าอีเวนต์หมุนจอ
   window.addEventListener("resize", gapLater);
   window.addEventListener("orientationchange", gapLater);

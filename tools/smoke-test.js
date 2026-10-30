@@ -582,6 +582,15 @@ async function editSuite(label, exe) {
   say(`แถบล่าง: ปุ่ม ▴ ต่างจากปุ่มเล่น ${bar.dTop}px · ถูกตัด ${bar.cut} · ใต้แถบเป็นไม้ ${woodOk} (${rgb.join(",")})`);
   if (Math.abs(bar.dTop) > 4 || bar.cut) fail.push(`${label}: ปุ่ม ▴ ไม่ตรงแถวปุ่มเล่นหรือถูกตัด (${bar.dTop}px)`);
   if (!woodOk) fail.push(`${label}: ใต้แถบล่างไม่ใช่เนื้อไม้ต่อกัน (${rgb.join(",")}) — แถบสีพื้นจะโผล่บน iPad`);
+  /* iPad เพิ่งเปิดแอปจากหน้าโฮม: กรอบ fixed เตี้ยกว่าตัวหน้า ~30px (ทุกอย่างที่ fixed ถูกตัด) — ต้องวัดได้ แล้วทาไม้ที่ขอบล่าง body
+     จำลองด้วย body สูงกว่ากรอบ 30px · ปกติต้องเป็น 0 (ไม่ทาอะไร) */
+  const band = await page.evaluate(async () => { const v = () => getComputedStyle(document.documentElement).getPropertyValue("--kt-band").trim();
+    const b0 = v(); const st = document.createElement("style"); st.textContent = "body.shell{height:calc(100dvh + 30px) !important}"; document.head.appendChild(st);
+    dispatchEvent(new Event("resize")); await new Promise((r) => setTimeout(r, 450)); const b1 = v();
+    const bg = getComputedStyle(document.body).backgroundImage; st.remove(); dispatchEvent(new Event("resize")); await new Promise((r) => setTimeout(r, 450));
+    return { b0, b1, b2: v(), bg: /gradient/.test(bg) }; });
+  say(`ขอบล่างตอนเพิ่งเปิดแอป: ปกติ ${band.b0} · body สูงกว่ากรอบ 30px → ทาไม้ ${band.b1} · กลับปกติ ${band.b2}`);
+  if (band.b0 !== "0px" || band.b1 !== "30px" || band.b2 !== "0px" || !band.bg) fail.push(`${label}: วัด/ทาแถบใต้แถบล่างตอนเพิ่งเปิดแอปไม่ถูก (${band.b0}/${band.b1}/${band.b2})`);
   if (!mix.on || mix.to !== "31" || mix.back !== "42") fail.push(`${label}: แถบเสียงเพลง/กลองตอนย่อแถบล่างไม่ทำงาน`);
   await page.evaluate(() => { window.__hits = []; const K = window.KlongSounds, o = K.play.bind(K);
     K.play = (c, s, key, w, v) => { window.__hits.push(key); return o(c, s, key, w, v); }; });

@@ -423,3 +423,11 @@ html[data-kmode] #tp.min #tpToggle{top:10px; margin-top:0}
    หน้าตาที่เห็นจึงไม่เปลี่ยน · หน้าแรก/หน้าส่งออกมีพื้นของตัวเองอยู่แล้ว (ตอนแผ่นนั้นโผล่ที่หน้าแรกจะเห็นเป็นขอบไม้) */
 html[data-kmode], html[data-kmode] body{background-color:var(--k-wood-b)}
 html[data-kmode] body.shell main.wrap{background-color:var(--bg)}
+
+/* ---------- ใช้พื้นที่บน-ล่างให้คุ้ม (ผู้ใช้ทักจากภาพ iPad Pro 11 นิ้ว ตอนเปิด "ล็อกจอ") ----------
+   บน: ชั้นเว็บแอปเว้น --sat ให้พื้นที่ทำงานตอนล็อกจอ (สมัยยังไม่มีแถบบน) แต่แถบบนเผื่อแถบสถานะให้แล้ว
+       จึงเว้นซ้ำ ~32px ว่างเหนือกริดบน iPad
+   ล่าง: เหนือแถบล่างเหลือที่ว่าง 18px (fitBottom ใน index.html ลดเหลือ 6) · ใต้ปุ่มในแถบล่างเผื่อขีดโฮมเต็ม 6+--sab
+       ลดเป็น --sab − 10 (ไม่น้อยกว่า 6) ปุ่มยังพ้นขีดโฮม (ขีดอยู่ราว 8px จากขอบล่าง) */
+html[data-kmode] body.shell.locked main.wrap{padding-top:0}
+html[data-kmode] #tp.min{padding-bottom:max(6px, calc(var(--sab, 0px) - 10px))}

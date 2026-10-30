@@ -6302,7 +6302,7 @@ function fitBottom(){
   // มือถือแนวตั้ง: แผงเขียนโน้ตเกาะอยู่เหนือแถบล่าง เว้นที่ให้มันด้วย (แนวนอนอยู่ขวาจอ CSS เว้นให้)
   const dock=document.documentElement.getAttribute("data-kphone")==="port" && !pal.hidden
     ? pal.getBoundingClientRect().height : 0;
-  document.querySelector("main").style.paddingBottom=(hh+dock+(dock ? 6 : 18))+"px";
+  document.querySelector("main").style.paddingBottom=(hh+dock+6)+"px";   // เดิมเว้น 18px เปล่า ๆ เหนือแถบล่าง (ผู้ใช้ทักว่าเสียที่)
 }
 if(window.ResizeObserver){ new ResizeObserver(fitBottom).observe($("#tp")); new ResizeObserver(fitBottom).observe($("#npal")); }
 window.addEventListener("resize", fitBottom);

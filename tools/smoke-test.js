@@ -590,6 +590,17 @@ async function editSuite(label, exe) {
     return { html: c(document.documentElement), body: c(document.body), main: c(document.querySelector("main.wrap")), wood: css("--k-wood-b"), bg: css("--bg") }; });
   say(`พื้นของหน้า (สีแผ่นขอบล่างของ iPad): html ${pg.html} · body ${pg.body} · ไม้ ${pg.wood} · พื้นที่ทำงาน ${pg.main} (สีพื้น ${pg.bg})`);
   if (pg.html !== pg.wood || pg.body !== pg.wood || pg.main !== pg.bg) fail.push(`${label}: พื้นของหน้าไม่ใช่สีไม้ หรือพื้นที่ทำงานเปลี่ยนสี (${pg.body} / ${pg.main})`);
+  /* ใช้พื้นที่ให้คุ้ม: จำลอง iPad เปิดจากหน้าโฮม (แถบสถานะ 24 · ขีดโฮม 20) + เปิด "ล็อกจอ" (ผู้ใช้เปิดไว้)
+     เคยเว้นซ้ำเหนือกริด 40px · เหนือแถบล่าง 18px · ใต้ปุ่มในแถบล่าง 28px */
+  const sp = await page.evaluate(async () => {
+    const st = document.createElement("style"); st.textContent = ":root{--sat:24px !important; --sab:20px !important}"; document.head.appendChild(st);
+    const c = document.getElementById("lockScr"), was = c && c.checked; if (c && !was) c.click();
+    await new Promise((r) => setTimeout(r, 500));
+    const R = (q) => document.querySelector(q).getBoundingClientRect(), tb = R("#topbar"), gw = R("#gw"), sg = R("#stage"), tp = R("#tp"), pl = R("#play");
+    const out = { locked: document.body.classList.contains("locked"), top: Math.round(gw.top - tb.bottom), above: Math.round(tp.top - sg.bottom), under: Math.round(tp.bottom - pl.bottom) };
+    if (c && !was) c.click(); st.remove(); await new Promise((r) => setTimeout(r, 300)); return out; });
+  say(`พื้นที่ (แถบสถานะ 24 · ขีดโฮม 20 · ล็อกจอ ${sp.locked}): เหนือกริด ${sp.top}px · เหนือแถบล่าง ${sp.above}px · ใต้ปุ่มแถบล่าง ${sp.under}px`);
+  if (sp.top > 10 || sp.above > 8 || sp.under > 14) fail.push(`${label}: เว้นที่ว่างบน/ล่างมากเกินไป (เหนือกริด ${sp.top} · เหนือแถบ ${sp.above} · ใต้ปุ่ม ${sp.under})`);
   if (!mix.on || mix.to !== "31" || mix.back !== "42") fail.push(`${label}: แถบเสียงเพลง/กลองตอนย่อแถบล่างไม่ทำงาน`);
   await page.evaluate(() => { window.__hits = []; const K = window.KlongSounds, o = K.play.bind(K);
     K.play = (c, s, key, w, v) => { window.__hits.push(key); return o(c, s, key, w, v); }; });

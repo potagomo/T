@@ -1,0 +1,19 @@
+{
+  "name": "อัดโชว์ — อัดวิดีโอทั้งโชว์",
+  "short_name": "อัดโชว์",
+  "description": "อัดวิดีโอทั้งโชว์ มาร์กชื่อเพลงระหว่างเล่น ตัดคลิปทีละเพลง และเก็บขึ้น Google Drive แบบเรียลไทม์",
+  "lang": "th",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["music", "photo", "productivity"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

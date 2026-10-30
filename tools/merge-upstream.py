@@ -41,6 +41,8 @@ LAYER_MARKS = [
     (u"viewport-fit",          r'viewport-fit=cover'),
     (u"ธีม (CSS)",              r'theme/klong-theme.css'),
     (u"ธีม (สคริปต์)",          r'theme/klong-theme.js'),
+    (u"เสียงกลองจริง (สคริปต์)",  r'sounds/klong-sounds.js'),
+    (u"เสียงกลองจริง (ทางเข้าใน playVoice)", r'KlongSounds.play('),
 ]
 
 

@@ -204,7 +204,8 @@ html[data-kmode] body.shell #topbar{
   padding-left:calc(12px + var(--sal, 0px)); padding-right:calc(12px + var(--sar, 0px))}
 html[data-kmode] body.shell #tp{bottom:calc(-1 * var(--kt-gap, 0px))}
 html[data-kmode] body.shell main.wrap{bottom:calc(-1 * var(--kt-gap, 0px))}
-@media (max-width:900px){ html[data-kmode] body.shell #insp{bottom:calc(-1 * var(--kt-gap, 0px))} }
+/* จอแคบ: แผงตั้งค่าลอยทับกริด ให้จบที่ขอบบนของแถบล่าง (แถบล่างยื่นลงใต้จอ --kt-gap) ไม่งั้นท้ายแผงโดนบัง */
+@media (max-width:900px){ html[data-kmode] body.shell #insp{bottom:calc(var(--kt-tp, 0px) - var(--kt-gap, 0px))} }
 html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio)){background:var(--k-wood-b)}
 
 @media (min-width:600px) and (max-width:1189px){
@@ -226,3 +227,207 @@ html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio)){bac
   html[data-kmode] .seg,
   html[data-kmode] .valwrap{gap:3px; padding:3px 3px calc(3px + var(--k-depth))}
 }
+
+/* ---------- แผงเขียนโน้ตลอย (#npal) กับปุ่มกลมเรียกแผง (#npPin) ----------
+   ไม้เดียวกับแถบล่าง ขอบทองเหลือง ปุ่มข้างในเป็นปุ่มนูนชุดเดียวกับแถบล่างอยู่แล้ว
+   (กฎ .seg button / .valwrap button ด้านบนไม่ได้ผูกกับ #tp) */
+html[data-kmode] #npal{
+  background:var(--k-wood); color:var(--k-wood-ink); border:2px solid var(--k-brass);
+  box-shadow:inset 0 2px 0 -1px var(--k-brass-hi), 0 16px 36px rgba(30,15,5,.45), 0 2px 6px rgba(0,0,0,.25)}
+html[data-kmode] #npal .np-head{background:var(--k-wood); border-bottom-color:rgba(0,0,0,.28)}
+html[data-kmode] #npal .np-grip,
+html[data-kmode] #npal .np-sec h4,
+html[data-kmode] #npal .np-time{color:var(--k-wood-dim)}
+html[data-kmode] #npal .np-head b{color:var(--k-wood-ink); font-family:var(--k-display); font-weight:600}
+html[data-kmode] #npal .seg,
+html[data-kmode] #npal .valwrap{background:var(--k-tray)}
+html[data-kmode] #npal.all .np-sec + .np-sec{border-top-color:rgba(0,0,0,.25)}
+/* แถบห้องท้ายแผง (คัดลอก / วาง / ซ้ำห้องก่อนหน้า) — ตัวหนังสือบนไม้ใช้สีเดียวกับหัวข้อหมวด ไม่ใช่ --dim ที่จมไม้ */
+html[data-kmode] #npal .np-bar{background:var(--k-wood); border-top-color:rgba(0,0,0,.3); box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+html[data-kmode] #npal .np-bar-i{color:var(--k-wood-dim)}
+html[data-kmode] #npal .np-bar-i b{color:var(--k-wood-ink)}
+html[data-kmode] #npal .np-bar-i.err{color:#FFB4A8}
+html[data-kmode] #npPin{
+  background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-on-ink);
+  border:2px solid var(--k-brass);
+  box-shadow:0 var(--k-depth) 0 var(--k-key-edge), 0 10px 20px rgba(0,0,0,.35), inset 0 1px 0 var(--k-key-hi)}
+html[data-kmode] #npal .np-time select{
+  background:linear-gradient(var(--k-key-top), var(--k-key-bot)); color:var(--k-key-ink);
+  border:1px solid var(--k-key-border); border-radius:10px; opacity:1;
+  box-shadow:0 2px 0 var(--k-key-edge), inset 0 1px 0 var(--k-key-hi)}
+
+/* ---------- เป้าแตะ 44px บนจอสัมผัส: ปุ่มแถบบน (เดิม 38–40px) · ป้ายมาตรวัดเสียง 12px ---------- */
+@media (pointer:coarse){
+  html[data-kmode] #topbar .seg button,
+  html[data-kmode] #topbar .btn{min-height:44px}
+}
+html[data-kmode] #kVu > span{font-size:12px}
+
+/* ==================== มือถือ (data-kphone="port" | "land" — klong-theme.js ตั้งให้) ====================
+   ผู้ใช้เขียนโน้ตด้วยปากกาบนมือถือทั้งสองแนว (Galaxy S26 Ultra + S Pen) สิ่งที่ต้องเห็นตลอดคือกริด
+   วัดก่อนแก้ที่จอ 384×784: แถบล่างเต็มกินจอ 408px (52%) กริดเหลือแค่ 3 แถว · ย่อแล้วแผงลอยสูง 534px
+   บังกริดเกือบหมด · แนวนอน 784×352 แถบบนสองชั้นกับแถบล่างกินจนเห็นแค่ไม้บรรทัด
+   เรียงความสำคัญตามความถี่ตอนเขียน: กริด > ค่าโน้ต > เล่น/หยุด > ย้อนแก้/เครื่องมือ > ลูกเล่น/ห้อง > ที่เหลือ
+   แถบบนเหลือแถวเดียว · แผงเขียนโน้ตเกาะขอบจอแทนการลอยทับกริด (กริดหดหลบให้)
+   ใต้กริดตอนแนวตั้ง (หมวดเดียว แถวเดียว ปัดซ้ายขวา) · ขวาจอตอนแนวนอน (รวมปุ่มเล่นไว้ในคอลัมน์เดียวกัน)
+   iPad ไม่โดนกฎในส่วนนี้เลย (ไม่มี data-kphone) */
+#kTbMore{display:none}
+
+/* ---------- แถบบน: ย้อนแก้ · เครื่องมือ · ⋯ ---------- */
+html[data-kmode][data-kphone] body.shell #topbar{height:auto; min-height:calc(52px + var(--sat, 0px));
+  flex-wrap:wrap; column-gap:6px; row-gap:6px; overflow:visible;
+  padding-block:calc(5px + var(--sat, 0px)) 5px}
+html[data-kphone] #topbar > .tbL{display:none}
+html[data-kphone] #topbar > #kTbMore{display:inline-flex; align-items:center; justify-content:center;
+  min-width:44px; padding:0 10px; font-size:22px; line-height:1}
+html[data-kphone].k-tbx #topbar::after{content:""; flex-basis:100%; height:0}   /* ขึ้นแถวใหม่ */
+/* ลำดับ: แถว 1 ย้อนแก้ · เครื่องมือ · ⋯   แถว 2 (กด ⋯) นำเข้า · ส่งออก · ตั้งค่า · โหมด
+   แนวนอนปุ่มเล่น/หยุด/นาฬิกาของแถบล่างขึ้นมาอยู่ในที่ว่างของแถว 1 (ดูส่วนแนวนอนด้านล่าง) */
+html[data-kphone] #topbar > #undoBtn{order:1}
+html[data-kphone] #topbar > #tool{order:2}
+html[data-kphone] #topbar > #kTbMore{order:3; margin-left:auto}
+html[data-kphone] #topbar::after{order:4}
+html[data-kphone] #topbar > #pick{order:5}
+html[data-kphone] #topbar > #toExport{order:6}
+html[data-kphone] #topbar > #moreBtn{order:7}
+html[data-kphone] #topbar > #modeSeg{order:8}
+html[data-kphone]:not(.k-tbx) #topbar > :is(#pick, #modeSeg, #toExport, #moreBtn){display:none}
+html[data-kphone].k-tbx #topbar > #kTbMore{transform:translateY(calc(var(--k-depth) - 1px));
+  background:linear-gradient(var(--k-on-top), var(--k-on-bot)); color:var(--k-on-ink); box-shadow:0 1px 0 var(--k-key-edge), inset 0 2px 5px rgba(0,0,0,.3)}
+/* ปุ่มตื้นลง ถาดบางลงเหมือนจอแคบ (แนวนอนกว้างเกิน 599px จึงไม่โดนกฎนั้น) — แถบบนเตี้ยลงราว 8px */
+html[data-kmode][data-kphone]{--k-depth:3px; --k-r:10px}
+html[data-kmode][data-kphone] #topbar .seg{gap:3px; padding:2px 2px calc(2px + var(--k-depth))}
+/* จอมือถือ: ย้อนแก้เป็นลูกศร ชื่อเครื่องมือสั้นลง (ชื่อเต็มยังเป็นข้อความของปุ่ม ตัวอ่านหน้าจออ่านได้) */
+html[data-kphone] #topbar > #undoBtn{font-size:0; min-width:44px; padding:0 10px}
+html[data-kphone] #topbar > #undoBtn::after{content:"↶"; font-size:22px; line-height:1}
+html[data-kphone] #topbar #tool button{padding:6px 8px; font-size:0}
+html[data-kphone] #topbar #tool button::after{font-size:13.5px}
+html[data-kphone] #topbar #tool button[data-v="pan"]::after{content:"เลื่อน"}
+html[data-kphone] #topbar #tool button[data-v="draw"]::after{content:"วาง"}
+html[data-kphone] #topbar #tool button[data-v="select"]::after{content:"เลือก"}
+html[data-kphone] #topbar #tool button[data-v="erase"]::after{content:"ลบ"}
+html[data-kphone] #topbar #tool button[data-v="vel"]::after{content:"น้ำหนัก"}
+
+/* ข้อความสถานะ → ป้ายลอยใต้แถบบน (klong-theme.js ใส่ .k-show 3 วิ) ไม่รับการแตะ จึงไม่บังการเขียน */
+html[data-kmode][data-kphone] #topbar > .status{position:fixed; z-index:60; top:calc(var(--kt-top, 52px) + 8px);
+  left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box;
+  margin:0; padding:8px 14px; border-radius:12px; white-space:normal; text-align:center; font-size:13.5px; line-height:1.4;
+  background:var(--k-lcd-bg); color:var(--k-lcd-ink); box-shadow:0 6px 18px rgba(0,0,0,.35);
+  opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s, visibility 0s .18s}
+html[data-kmode][data-kphone] #topbar > .status.k-show{opacity:1; visibility:visible; transition:opacity .18s}
+html[data-kmode][data-kphone] #topbar > .status.err{color:#FFB4A8}
+
+/* ---------- แผงเขียนโน้ตเกาะขอบจอ (#npal.docked — NP ใน index.html ใส่คลาสนี้) ---------- */
+html[data-kmode][data-kphone] #npal.docked{left:0 !important; top:auto !important; right:0; width:auto; max-height:none;
+  bottom:calc(var(--kt-tp, 60px) - var(--kt-gap, 0px)); overflow:visible; z-index:11;
+  border-width:2px 0 0; border-radius:14px 14px 0 0;
+  padding:6px calc(8px + var(--sar, 0px)) 6px calc(8px + var(--sal, 0px));
+  box-shadow:inset 0 2px 0 -1px var(--k-brass-hi), 0 -4px 14px rgba(30,15,5,.25)}
+html[data-kphone] #npal.docked .np-head{display:none}
+html[data-kphone] #npal.docked .np-tabs{margin:0 0 6px}
+html[data-kphone] #npal.docked .np-tabs button{min-height:38px; font-size:13px}
+html[data-kphone] #npal.docked .np-sec h4{display:none}
+html[data-kphone] #npal.docked .np-bar-i{display:none}           /* ผลการกดขึ้นที่ป้ายลอยแทน */
+html[data-kphone] #npal.docked .np-bar:not([hidden]){position:static; margin:0; padding:0; border:0;
+  background:none; box-shadow:none; border-radius:0}
+/* แนวตั้ง: หมวดละหนึ่งแถว สูงเท่ากันทุกหมวด กริดไม่กระตุกตอนสลับหมวด · ค่าโน้ตปัดซ้ายขวา ปุ่มประจุดติดขวา */
+html[data-kphone="port"] #npal.docked .np-sec:not([hidden]),
+html[data-kphone="port"] #npal.docked .np-bar:not([hidden]){display:flex; align-items:center; gap:6px;
+  height:64px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none}
+html[data-kphone="port"] #npal.docked .np-sec::-webkit-scrollbar{display:none}
+html[data-kphone="port"] #npal.docked .np-m{flex:none}
+html[data-kphone="port"] #npal.docked .np-vals{flex:1 1 auto; min-width:0; overflow-x:auto; scrollbar-width:none}
+html[data-kphone="port"] #npal.docked .np-vals::-webkit-scrollbar{display:none}
+html[data-kphone="port"] #npal.docked .np-m .valwrap{display:flex; flex-wrap:nowrap; width:max-content}
+html[data-kphone="port"] #npal.docked .np-m .valwrap button{flex:none; min-width:62px; min-height:52px}
+html[data-kphone="port"] #npal.docked .np-m .seg{flex-wrap:nowrap; width:max-content}
+html[data-kphone="port"] #npal.docked .np-m .seg button{flex:none; min-height:48px}
+html[data-kphone="port"] #npal.docked .np-row{margin:0; flex:none}
+html[data-kphone="port"] #npal.docked .np-row .btn{min-height:52px; padding:0 10px}
+html[data-kphone="port"] #npal.docked .np-bar-b{flex:1; grid-template-columns:repeat(3, 1fr)}
+html[data-kphone="port"] #npal.docked .np-bar-b .btn{min-height:52px}
+
+/* ---------- แนวนอน: คอลัมน์ขวา = แผงเขียนโน้ต + ปุ่มเล่น · กริดได้ความสูงเต็มใต้แถบบน ---------- */
+html[data-kphone="land"]{--k-dock:232px}
+html[data-kphone="land"] body.np-docked main.wrap{right:calc(var(--k-dock) + var(--sar, 0px)); padding-bottom:6px !important}
+html[data-kmode][data-kphone="land"] #npal.docked{left:auto !important; top:var(--kt-top, 52px) !important;
+  width:calc(var(--k-dock) + var(--sar, 0px)); overflow-y:auto; overscroll-behavior:contain;
+  border-width:0 0 0 2px; border-radius:0; padding:6px calc(8px + var(--sar, 0px)) 8px 8px;
+  box-shadow:inset 2px 0 0 -1px var(--k-brass-hi), -4px 0 14px rgba(30,15,5,.25)}
+/* หมวดเป็นแถบตั้งชิดซ้ายของคอลัมน์ ปุ่มในหมวดสองคอลัมน์ทางขวา — หมวดเรียงแถวเดียวจะกินความสูงที่มีน้อยอยู่แล้ว */
+html[data-kphone="land"] #npal.docked:not([hidden]){display:grid; grid-template-columns:62px minmax(0, 1fr);
+  grid-auto-rows:min-content; column-gap:6px; align-content:start}
+html[data-kphone="land"] #npal.docked .np-tabs{grid-column:1; grid-row:1 / span 8; position:sticky; top:0; align-self:start;
+  flex-direction:column; width:auto; margin:0; gap:4px}
+html[data-kphone="land"] #npal.docked .np-tabs button{flex:none; min-height:40px; padding:2px; font-size:12.5px;
+  border-radius:var(--k-r) !important; border-left:1px solid var(--k-key-border)}
+html[data-kphone="land"] #npal.docked .np-sec,
+html[data-kphone="land"] #npal.docked .np-bar{grid-column:2}
+html[data-kphone="land"] #npal.docked .np-m .valwrap{grid-template-columns:repeat(2, 1fr); gap:5px}
+html[data-kphone="land"] #npal.docked .np-m .valwrap button{min-height:50px}
+html[data-kphone="land"] #npal.docked .np-sec h4{display:block; margin:2px 0 4px}
+html[data-kphone="land"] #npal.docked .np-sec h4:first-child{display:none}
+html[data-kphone="land"] #npal.docked .np-m .seg{display:grid; grid-template-columns:1fr 1fr; gap:4px}
+html[data-kphone="land"] #npal.docked .np-m .seg button{min-height:44px; padding:4px 2px; border-radius:var(--k-r) !important;
+  border-left:1px solid var(--k-key-border)}
+html[data-kphone="land"] #npal.docked .np-row{margin-top:6px}
+html[data-kphone="land"] #npal.docked .np-row .btn{width:100%}
+html[data-kphone="land"] #npal.docked .np-bar-b{grid-template-columns:1fr; gap:6px}
+html[data-kphone="land"] #npal.docked .np-bar-b .btn{min-height:46px; flex-direction:row; gap:8px}
+/* ป้ายสถานะลอยกลางพื้นที่กริด ไม่ทับคอลัมน์ขวา */
+html[data-kmode][data-kphone="land"] body.np-docked #topbar > .status{left:calc((100vw - var(--k-dock)) / 2); max-width:calc(100vw - var(--k-dock) - 32px)}
+/* แถบล่างแบบย่อขึ้นไปอยู่บนแถบบน ทางซ้ายของ ⋯ (ที่ว่างหลังย่อชื่อเครื่องมือ) คอลัมน์ขวาจึงเป็นแผงเขียนโน้ตทั้งความสูง
+   กดขยายแถบล่าง (▴) แล้วกลับไปเป็นแผงเต็มด้านล่างตามเดิม */
+html[data-kmode][data-kphone="land"] #npal.docked{bottom:0; padding-bottom:calc(8px + var(--sab, 0px))}
+html[data-kmode][data-kphone="land"] body.np-docked #tp.min{top:0; bottom:auto; left:auto; right:calc(62px + var(--sar, 0px));
+  width:auto; max-height:none; overflow:visible; z-index:26; padding:calc(5px + var(--sat, 0px)) 0 0;
+  background:none; border:0; box-shadow:none}
+html[data-kphone="land"] body.np-docked #tp.min #rowLive{padding:0 52px 0 0; gap:6px; flex-wrap:nowrap}
+html[data-kphone="land"] body.np-docked #tp.min .clock{font-size:12.5px; padding:0 8px}
+html[data-kphone="land"] body.np-docked #tp.min #tpToggle{top:calc(5px + var(--sat, 0px)); margin-top:0; right:0}
+/* แผงตั้งค่าเปิดอยู่: แผงเขียนโน้ตหลบไปก่อน — แผงตั้งค่าอยู่ในพื้นที่ทำงาน (ชั้นต่ำกว่า) จึงโดนแผงเขียนโน้ตบัง
+   (แนวตั้งบังท้ายแผง แนวนอนบังเกือบทั้งแผง) ปิดตั้งค่าแล้วแผงเขียนโน้ตกลับมาเอง */
+html[data-kphone] body.inspOn #npal.docked{display:none !important}
+html[data-kphone="land"] body.np-docked.inspOn main.wrap{right:0}
+html[data-kmode][data-kphone="land"] body.np-docked #insp{bottom:0}   /* แถบล่างอยู่บนแถบบนแล้ว แผงตั้งค่ายาวถึงขอบจอได้ */
+
+/* ---------- การ์ด "ติดตั้งลงมือถือ" บนหน้าแรก (klong-theme.js สร้าง) ---------- */
+#kInstall[hidden], #kInstall [hidden]{display:none !important}   /* .hcard ตั้ง display:block ไว้ ชนะ hidden */
+#kInstall{border-color:var(--ok)}
+#kInstall > b{color:var(--ok)}
+#kInstall .kinst-how{color:var(--ink); margin-top:-4px}
+#kInstall p b{display:inline; font-size:inherit; margin:0}
+
+/* ---------- แถบเสียงเพลง/กลองตอนย่อแถบล่าง (#tpMix) และหมวด "เสียง" ในแผงมือถือ ---------- */
+html[data-kmode] .tpmix label{color:var(--k-wood-dim)}
+html[data-kmode] #npal .np-mix label{color:var(--k-wood-ink)}
+html[data-kmode] #npal .np-mix input[type=range]{accent-color:var(--k-brass)}
+html[data-kphone] .tpmix{display:none !important}          /* มือถือ: แถวเล่นไม่มีที่ ใช้หมวด "เสียง" ในแผงแทน */
+html[data-kphone="port"] #npal.docked .np-mix{padding:0 6px}
+html[data-kphone="land"] #npal.docked .np-mix{flex-direction:column; align-items:stretch; gap:14px; padding-top:6px}
+html[data-kphone="land"] #npal.docked .np-mix label{flex:none}
+
+/* ---------- แถบล่างเต็มถึงขอบจอ (ผู้ใช้เจอบน iPad Pro 11 นิ้ว M4 · iPadOS 26 แบบเปิดจากหน้าโฮม) ----------
+   ใต้แถบล่างมีแถบสีพื้นหน้ากว้างราว 30px โผล่ (หน้าเว็บยาวกว่ากรอบที่แถบล่างเกาะ) และปุ่ม ▴ ถูกตัดครึ่ง
+   เพราะจัดไว้กึ่งกลางกล่องทั้งกล่องรวมขอบล่าง (ลงต่ำกว่าแถวปุ่มเล่น 10px) แล้วกล่องตัดส่วนที่ล้น
+   1) ต่อเนื้อไม้ลงไปใต้แถบ 200px ด้วยเงาทึบ (ขยาย 100 เลื่อนลง 100 จึงเริ่มที่ขอบล่างแถบพอดี) (ไม่เปลี่ยนเลย์เอาต์ ไม่ต้องวัดจอ) — ตรงไหนของหน้าโผล่ใต้แถบก็เป็นไม้ต่อกัน
+      นอกจอก็มองไม่เห็น · 2) ปุ่ม ▴ ตรงแถวปุ่มเล่น · 3) แถบแบบย่อไม่ตัดของที่ล้น (เงาปุ่ม) */
+html[data-kmode] #tp{
+  box-shadow:inset 0 3px 0 -2px var(--k-brass-hi), 0 -3px 10px rgba(30,15,5,.2), 0 100px 0 100px var(--k-wood-b)}
+html[data-kmode] #tp.min{overflow:visible}
+html[data-kmode] #tp.min #tpToggle{top:10px; margin-top:0}
+/* iPad (iPadOS 26) เพิ่งเปิดแอปจากหน้าโฮม: ระบบปิดขอบล่างของจอ ~34px ด้วยแผ่นของมันเอง ย้อมสีตามพื้นของหน้า
+   ทุกอย่างที่หน้าเว็บวาด (แถบล่าง เงาต่อเนื้อไม้ การ์ดหน้าแรก) ถูกบังที่เส้นเดียวกัน ~800 จาก 834px หมุนจอแล้วหาย
+   (ผู้ใช้ถ่ายภาพยืนยัน · วัดสีแผ่นนั้นได้ตรงกับพื้นของ body #1E1611 ทุกพิกเซล ไม่ใช่ theme-color หรือพื้นของ html)
+   จึงให้พื้นของ html/body เป็นสีไม้ของแถบล่าง แผ่นของระบบจะเป็นไม้ต่อจากแถบ · พื้นที่ทำงาน (main.wrap) ทาสีพื้นเดิมแทน
+   หน้าตาที่เห็นจึงไม่เปลี่ยน · หน้าแรก/หน้าส่งออกมีพื้นของตัวเองอยู่แล้ว (ตอนแผ่นนั้นโผล่ที่หน้าแรกจะเห็นเป็นขอบไม้) */
+html[data-kmode], html[data-kmode] body{background-color:var(--k-wood-b)}
+html[data-kmode] body.shell main.wrap{background-color:var(--bg)}
+
+/* ---------- ใช้พื้นที่บน-ล่างให้คุ้ม (ผู้ใช้ทักจากภาพ iPad Pro 11 นิ้ว ตอนเปิด "ล็อกจอ") ----------
+   บน: ชั้นเว็บแอปเว้น --sat ให้พื้นที่ทำงานตอนล็อกจอ (สมัยยังไม่มีแถบบน) แต่แถบบนเผื่อแถบสถานะให้แล้ว
+       จึงเว้นซ้ำ ~32px ว่างเหนือกริดบน iPad
+   ล่าง: เหนือแถบล่างเหลือที่ว่าง 18px (fitBottom ใน index.html ลดเหลือ 6) · ใต้ปุ่มในแถบล่างเผื่อขีดโฮมเต็ม 6+--sab
+       ลดเป็น --sab − 10 (ไม่น้อยกว่า 6) ปุ่มยังพ้นขีดโฮม (ขีดอยู่ราว 8px จากขอบล่าง) */
+html[data-kmode] body.shell.locked main.wrap{padding-top:0}
+html[data-kmode] #tp.min{padding-bottom:max(6px, calc(var(--sab, 0px) - 10px))}

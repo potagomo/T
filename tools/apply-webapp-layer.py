@@ -67,7 +67,7 @@ if(self!==top){try{top.location=self.location}catch(e){document.documentElement.
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="กลอง→MIDI">
+<meta name="apple-mobile-web-app-title" content="Klong Pro">
 <meta name="format-detection" content="telephone=no">
 <!-- ฟอนต์เก็บไว้ในโปรเจกต์เอง ไม่เรียก Google แล้ว: เปิดได้ตอนไม่มีเน็ต เร็วกว่า
      และไม่มีใครนอกเครื่องรู้ว่าเราเปิดหน้านี้ (สัญญาอนุญาต SIL OFL 1.1) -->

@@ -39,7 +39,10 @@ const server = http.createServer((req, res) => {
   if (rel === "" || rel.endsWith("/")) rel += "index.html";
   const f = path.join(ROOT, rel);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end("404"); }
-  res.writeHead(200, { "Content-Type": f.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream" });
+  const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8", ".webmanifest": "application/manifest+json", ".png": "image/png", ".woff2": "font/woff2",
+    ".wasm": "application/wasm", ".json": "application/json", ".txt": "text/plain; charset=utf-8" };
+  res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "application/octet-stream" });
   fs.createReadStream(f).pipe(res);
 });
 
@@ -148,10 +151,13 @@ async function until(fn, ms, what) {
   const browser = await chromium.launch({ executablePath: chromiumPath(),
     args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"] });
   const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, permissions: ["camera", "microphone"] });
-  await ctx.addInitScript(() => { window.__drivePiece = 256 * 1024; });
+  await ctx.addInitScript(() => { window.__drivePiece = 256 * 1024; window.__checkDur = 6000; window.__checkFast = true; });
   await ctx.route("https://www.googleapis.com/**", drive);
   await ctx.route("https://accounts.google.com/gsi/client", (r) => r.fulfill({ status: 200, contentType: "text/javascript", body: GIS }));
-  await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: "text/css", body: "" }));
+  const outside = { fonts: 0, jsdelivr: 0, model: 0 };   // ของที่ควรมาจากในแอปแล้ว ห้ามออกไปโหลดข้างนอก
+  await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => { outside.fonts++; r.fulfill({ status: 200, contentType: "text/css", body: "" }); });
+  await ctx.route(/cdn\.jsdelivr\.net/, (r) => { outside.jsdelivr++; r.abort(); });
+  await ctx.route(/storage\.googleapis\.com/, (r) => { outside.model++; r.abort(); });
   const page = await ctx.newPage();
   const errs = [];
   page.on("pageerror", (e) => errs.push(e.message));
@@ -250,6 +256,63 @@ async function until(fn, ms, what) {
   await page.waitForSelector("#home:not([hidden])");
   ok(files.has(vid1.id) && files.size >= 6, "ลบโชว์ออกจากแอปแล้ว ไฟล์บน Drive ยังอยู่");
   ok(await until(async () => /อยู่บน Drive แล้ว/.test(await page.textContent("#lib")), 6000, "ป้ายในคลัง"), "คลังวิดีโอขึ้นป้าย \"อยู่บน Drive แล้ว\"");
+  // ตรวจเครื่อง: ลองอัดทุกชนิดไฟล์ที่เครื่องรองรับ แล้วบอกว่าแบบไหนส่งข้อมูลระหว่างอัด
+  ok(await page.evaluate(() => window.__devcheck) === "ok", "ชั้นตรวจเครื่องโหลดครบ");
+  await page.click("#openCam");
+  await page.waitForSelector("#cam:not([hidden])");
+  await sleep(1000);
+  await page.click("#bSet");
+  await page.click("#chkGo");
+  ok(await until(() => page.isVisible("#chkCopy"), 200000, "ตรวจเครื่อง"), "ปุ่มตรวจเครื่องลองครบทุกชนิดไฟล์");
+  const report = await page.textContent("#chkOut");
+  console.log("    " + report.split("\n").join("\n    "));
+  ok(/^A MP4 H\.264 แบบที่แอปใช้: ต่อเนื่อง/m.test(report), "เบราว์เซอร์ทดสอบส่งข้อมูล MP4 ต่อเนื่อง (เทียบกับมือถือที่ไม่ส่ง)");
+  // อัดผ่านตัวช่วย: จำลองเครื่องที่กล้องไม่ส่งข้อมูล → แอปเปิดโหมดเอง แล้วส่วนถัดไปอัดต่อเนื่องและยังตัดเพลงได้
+  ok(await page.evaluate(() => window.__relay) === "ok", "ชั้นอัดผ่านตัวช่วยโหลดครบ");
+  ok(!(await page.evaluate(() => LS.get("as_relay", false))), "เครื่องที่อัดต่อเนื่องอยู่แล้ว ตรวจเสร็จไม่เปิดโหมดตัวช่วย");
+  await page.click("#bCloseSet");
+  await page.click("#bRec");
+  ok(await page.evaluate(() => { if (seq !== 0) return false; kick("no data for 25s (จำลอง)"); return true; }), "จำลองกล้องไม่ส่งข้อมูลก่อนก้อนแรก");
+  ok(await until(() => page.evaluate(() => !!(rec && rec.__relay && ses && ses.part === 2 && seq >= 3)), 20000, "อัดผ่านตัวช่วย"),
+     "แอปเปิดโหมดตัวช่วยเอง และส่วนถัดไปส่งข้อมูลต่อเนื่อง");
+  ok(/อัดผ่านตัวช่วย/.test(await page.textContent("#stats")), "จอกล้องบอกว่ากำลังอัดผ่านตัวช่วย");
+  await page.click("#bNext"); await sleep(3000); await page.click("#bNext"); await sleep(3000);
+  await page.click("#bStop"); await page.click("#bStop");
+  await page.waitForSelector("#detail:not([hidden])", { timeout: 15000 });
+  const frags = await page.evaluate(async () => (await getIndex()).fr.length);
+  ok(frags >= 3, "วิดีโอที่อัดผ่านตัวช่วยแบ่งเป็นท่อน (" + frags + " ท่อน)");
+  const clipBytes = await page.evaluate(async () => (await clipOf(segments(cur).filter((g) => g.m)[0])).size);
+  ok(clipBytes > 1000, "ตัดคลิปเพลงจากวิดีโอที่อัดผ่านตัวช่วยได้ (" + clipBytes + " ไบต์)");
+  // พื้นที่ใกล้เต็ม (เลือกเปิดเอง): ลบโชว์เก่าสุดที่อยู่บน Drive ครบแล้ว ไม่แตะโชว์ที่เปิดดูอยู่
+  const vid2 = await page.evaluate((id) => __drive.D.files[id] && __drive.D.files[id].vid, sid2);
+  await page.evaluate(() => { window.__realEstimate = estimate; estimate = async () => { freeBytes = 1000; }; __drive.D.autoFree = true; });
+  ok(await until(() => page.evaluate(async (id) => !(await getSession(id)), sid2), 30000, "ลบอัตโนมัติ"),
+     "พื้นที่ใกล้เต็ม แอปลบโชว์เก่าที่อยู่บน Drive ครบแล้วออกจากเครื่อง");
+  ok(vid2 && files.has(vid2), "ไฟล์ของโชว์ที่ถูกลบยังอยู่บน Drive");
+  ok(await page.evaluate(async () => !!(await getSession(cur.id))), "โชว์ที่เปิดดูอยู่ไม่ถูกลบ");
+  await page.evaluate(() => { __drive.D.autoFree = false; estimate = window.__realEstimate; });
+
+  // ติดตั้งเป็นแอป: manifest ไอคอน Service Worker ฟอนต์ในแอป ตัวอ่านนิ้วจากในแอป และเปิดได้ตอนไม่มีเน็ต
+  const man = await page.evaluate(async () => { const r = await fetch("manifest.webmanifest"); return r.ok ? r.json() : null; });
+  ok(man && man.display === "standalone" && man.icons.some((i) => i.purpose === "maskable") && man.start_url === "./", "manifest ติดตั้งเป็นแอปได้ (standalone มีไอคอน maskable)");
+  for (const ic of (man ? man.icons : [])) {
+    const ok2 = await page.evaluate(async (src) => { const r = await fetch(src); const b = await r.blob(); const im = await createImageBitmap(b); return r.ok && b.type === "image/png" ? im.width + "x" + im.height : ""; }, ic.src);
+    ok(ok2 === ic.sizes, "ไอคอน " + ic.src + " ขนาด " + ic.sizes);
+  }
+  ok(await page.evaluate(() => window.__pwa) === "ok", "ชั้นติดตั้งแอปโหลดครบ");
+  await page.goto(base);
+  ok(await until(() => page.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller)), 15000, "SW"), "Service Worker ของ /show/ คุมหน้าแอปแล้ว");
+  ok(await page.evaluate(() => navigator.serviceWorker.controller.scriptURL.endsWith("/show/sw.js")), "ใช้ Service Worker ของแอปตัวเอง ไม่ใช่ของกลอง → MIDI");
+  ok(await page.isVisible("#pwaCard") && /ติดตั้งเป็นแอป/.test(await page.textContent("#pwaCard")), "หน้าแรกมีการ์ดติดตั้งเป็นแอป");
+  ok(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('600 16px "Chakra Petch"', "อัดโชว์"); }), "ฟอนต์ Chakra Petch โหลดจากในแอป");
+  ok(await page.evaluate(async () => { await loadPose(); return !!pose; }), "ตัวอ่านนิ้วโหลดจากในแอปได้");
+  ok(outside.fonts === 0 && outside.jsdelivr === 0 && outside.model === 0, "ไม่ออกไปโหลดฟอนต์/ตัวอ่านนิ้ว/โมเดลจากข้างนอกเลย " + JSON.stringify(outside));
+  await ctx.setOffline(true);
+  await page.reload();
+  ok(await page.isVisible("#home") && /อัดโชว์/.test(await page.textContent("h1")), "ตัดเน็ตแล้วยังเปิดแอปได้");
+  ok(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('600 16px "Chakra Petch"', "อัดโชว์"); }), "ตัดเน็ตแล้วฟอนต์ยังมา");
+  ok(await page.evaluate(async () => { pose = null; await loadPose(); return !!pose; }), "ตัดเน็ตแล้วตัวอ่านนิ้วยังโหลดได้ (ใช้สำเนาที่เก็บไว้)");
+  await ctx.setOffline(false);
   ok(!errs.length, "ไม่มี error ในหน้า" + (errs.length ? ": " + errs.join(" | ") : ""));
 
   await browser.close(); server.close();

@@ -5,8 +5,12 @@
 
 ทำอะไรบ้าง (รันซ้ำกี่ครั้งก็ได้ผลเหมือนเดิม)
   1. เก็บไฟล์ดิบไว้ที่ upstream/at-show.html
-  2. ฝังชั้นเสริมทุกไฟล์ใน tools/show-layer/ ไว้ท้ายไฟล์ (เก็บขึ้น Google Drive แบบเรียลไทม์)
-  3. เขียนผลลัพธ์ลง show/index.html
+  2. ทำเป็นแอปติดตั้งได้: ลิงก์ manifest ไอคอน (show/manifest.webmanifest, show/icons/) Service Worker อยู่ที่ show/sw.js
+  3. ใช้ของที่เก็บไว้ในแอปแทนการโหลดจากข้างนอก เปิดได้ตอนไม่มีเน็ต และไม่พังเพราะของข้างนอกเปลี่ยน
+       ฟอนต์ Chakra Petch → show/fonts/   ·   ตัวอ่านนิ้ว MediaPipe 0.10.14 + โมเดลมือ → show/vendor/mediapipe/
+       (ยังถอยไปโหลดจาก jsDelivr รุ่นเดียวกันได้ถ้าของในแอปใช้ไม่ได้ แต่ตัด @latest ออก เพราะรุ่นเปลี่ยนเองได้)
+  4. ฝังชั้นเสริมทุกไฟล์ใน tools/show-layer/ ไว้ท้ายไฟล์ (Drive, ตรวจเครื่อง, อัดผ่านตัวช่วย, ติดตั้งแอป)
+  5. เขียนผลลัพธ์ลง show/index.html
 
 ตรรกะของโปรแกรม (อัด มาร์กเพลง ตัดคลิป) ไม่ถูกแตะเลย ชั้นเสริมเกาะกับฟังก์ชันที่มีอยู่แล้ว
 ถ้ารุ่นใหม่เปลี่ยนชื่อฟังก์ชันเหล่านั้น สคริปต์จะหยุดและบอกว่าขาดอะไร
@@ -46,6 +50,42 @@ def main():
 
     html = re.sub(LAYER_RE, "", src, flags=re.S)
     html = html.replace("ต้องเปิดผ่านลิงก์ https เช่น Netlify ด้วย Chrome", "ต้องเปิดผ่านลิงก์เว็บแอป (https) ด้วย Chrome")
+
+    for f in ["manifest.webmanifest", "sw.js", "icons/icon-512.png", "icons/apple-touch-icon.png", "fonts/chakra-petch.css",
+              "vendor/mediapipe/hand_landmarker.task", "vendor/mediapipe/tasks-vision-0.10.14/vision_bundle.mjs",
+              "vendor/mediapipe/tasks-vision-0.10.14/wasm/vision_wasm_internal.wasm"]:
+        if not os.path.isfile(os.path.join(OUT, f)):
+            die("ขาดไฟล์ show/" + f + " (python3 tools/make-show-icons.py สร้างไอคอนใหม่ได้)")
+
+    def swap(old, new, why):
+        nonlocal html
+        if html.count(old) != 1:
+            die("หา " + why + " ไม่เจอ (หรือเจอมากกว่าหนึ่งที่) — รุ่นนี้เปลี่ยนโครง ต้องปรับ tools/update-show.py")
+        html = html.replace(old, new)
+
+    # ฟอนต์: ใช้ไฟล์ในแอปแทน Google Fonts
+    html = re.sub(r'<link rel="preconnect" href="https://fonts\.googleapis\.com">\n?', "", html)
+    swap('<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">',
+         '<link href="fonts/chakra-petch.css" rel="stylesheet">', "ลิงก์ฟอนต์ Chakra Petch")
+    # ตัวอ่านนิ้ว: ของในแอปก่อน ถอยไป jsDelivr รุ่นเดียวกัน (ไม่ใช้ @latest)
+    swap("const model = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';",
+         "const model = new URL('vendor/mediapipe/hand_landmarker.task', location.href).href;", "ที่อยู่โมเดลมือ")
+    swap("const bases = ['https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14', 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest'];",
+         "const bases = [new URL('vendor/mediapipe/tasks-vision-0.10.14', location.href).href, 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14'];",
+         "ที่อยู่ตัวอ่านนิ้ว")
+    html = html.replace("กำลังโหลดตัวอ่านนิ้ว ต้องมีเน็ต", "กำลังโหลดตัวอ่านนิ้ว (ครั้งแรกต้องมีเน็ต)")
+    html = html.replace("เปิดใช้ครั้งแรกต้องมีเน็ต", "เปิดใช้ครั้งแรกต้องมีเน็ต ครั้งต่อไปใช้ได้แม้ไม่มีเน็ต")
+    # ติดตั้งเป็นแอป
+    swap("<title>อัดโชว์</title>",
+         '<title>อัดโชว์</title>\n<!-- ชั้นเว็บแอป: ติดตั้งลงหน้าโฮม (tools/update-show.py) -->\n'
+         '<link rel="manifest" href="manifest.webmanifest">\n'
+         '<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">\n'
+         '<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">\n'
+         '<meta name="mobile-web-app-capable" content="yes">\n'
+         '<meta name="apple-mobile-web-app-capable" content="yes">\n'
+         '<meta name="apple-mobile-web-app-status-bar-style" content="black">\n'
+         '<meta name="apple-mobile-web-app-title" content="อัดโชว์">\n'
+         '<meta name="robots" content="noindex">', "<title>")
 
     if html.count("</body>") != 1:
         die("หา </body> ไม่เจอหรือมีมากกว่าหนึ่ง — ฝังชั้นเสริมไม่ได้")

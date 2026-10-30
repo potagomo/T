@@ -30,6 +30,33 @@ function sysNight(){ return !!(mq && mq.matches); }
 var night = pref==="night" || (pref==="auto" && sysNight());
 root.setAttribute("data-kmode", night?"night":"day");
 
+/* ---------- มือถือ: data-kphone="port" (แนวตั้ง) | "land" (แนวนอน) ----------
+   จอแคบ ≤599px หรือจอเตี้ย ≤500px ที่ใช้นิ้ว (มือถือแนวนอน) — iPad ไม่เข้าเงื่อนไขทั้งสองแนว
+   กฎ CSS โหมดมือถือผูกกับแอตทริบิวต์นี้ทั้งหมด และแผงเขียนโน้ต (NP ใน index.html) อ่านค่านี้
+   เพื่อเกาะขอบจอแทนการลอยทับกริด ตั้งตั้งแต่ใน <head> ก่อนโปรแกรมวาดหน้าแรก */
+var phoneMq=window.matchMedia ? matchMedia("(max-width:599px), (max-height:500px) and (pointer:coarse) and (orientation:landscape)") : null;
+function phoneMode(){
+  var v=(phoneMq && phoneMq.matches) ? (innerWidth>innerHeight ? "land" : "port") : "";
+  if((root.getAttribute("data-kphone")||"")===v) return;
+  if(v) root.setAttribute("data-kphone", v); else root.removeAttribute("data-kphone");
+}
+phoneMode();
+window.addEventListener("resize", phoneMode);
+window.addEventListener("orientationchange", function(){ setTimeout(phoneMode, 120); });
+
+/* ---------- ติดตั้งลงมือถือ: เก็บคำเชิญติดตั้งของเบราว์เซอร์ไว้ให้ปุ่มบนหน้าแรก ----------
+   Chrome / Samsung Internet / Edge บน Android ยิง beforeinstallprompt เมื่อเว็บพร้อมติดตั้ง ต้องดักตั้งแต่ใน <head>
+   กดแล้วเบราว์เซอร์สร้างแอปจริงให้ (WebAPK): ไอคอนบนหน้าจอ เปิดเต็มจอ ใช้ได้ไม่มีเน็ต อัปเดตตามเว็บเอง
+   และใช้ที่เก็บงานชุดเดียวกับในเบราว์เซอร์ งานที่บันทึกไว้จึงอยู่ครบ */
+var instEvt=null, instHooks=[];
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault(); instEvt=e; instHooks.forEach(function(f){ f(); });
+});
+window.addEventListener("appinstalled", function(){
+  instEvt=null; try{ localStorage.setItem("klong-installed","1"); }catch(_){}
+  instHooks.forEach(function(f){ f(true); });
+});
+
 /* ---------- ตารางสี: [กลางวัน, กลางคืน] ----------
    คีย์คือสีที่โค้ดโปรแกรมเขียนไว้ (ตัวเล็ก ไม่มีช่องว่าง)
    สีเสียงกลองอยู่ใน VOICES ของโปรแกรม ไฮแฮตถูกเปลี่ยนเป็น #4FC8D4 ใน index.html
@@ -62,6 +89,7 @@ var MAP={
   "rgba(74,63,58,.34)": ["rgba(120,92,64,.22)","rgba(82,64,48,.34)"],
   "rgba(66,56,52,.26)": ["rgba(120,92,64,.14)","rgba(72,56,42,.26)"],
   "rgba(79,199,212,.09)":["rgba(31,122,116,.11)","rgba(79,179,168,.11)"],   // ห้องที่เลือก
+  "rgba(79,199,212,.32)":["rgba(31,122,116,.28)","rgba(79,179,168,.32)"],   // ช่วงวนซ้ำบนไม้บรรทัด
   "rgba(255,255,255,.016)":["rgba(91,58,36,.035)","rgba(255,240,215,.02)"], // แถวสลับ
   "rgba(0,0,0,.28)":["rgba(91,58,36,.13)","rgba(0,0,0,.32)"],              // แถวที่ปิดเสียง
   "rgba(255,255,255,.028)":["rgba(91,58,36,.045)","rgba(255,240,215,.03)"],
@@ -242,6 +270,16 @@ function ready(){
     try{ ro.observe(tb, {box:"border-box"}); }catch(_){ ro.observe(tb); }
   }
 
+  /* ความสูงจริงของแถบล่าง → --kt-tp ให้แผงตั้งค่าบนจอแคบจบเหนือแถบล่าง
+     แผงตั้งค่าอยู่ในพื้นที่ทำงาน ซึ่งวาดใต้แถบล่างเสมอ (แถบล่าง z-index 10)
+     บนมือถือส่วน "การฟัง" ท้ายแผงจึงถูกแถบล่างบังจนแตะไม่ได้ */
+  var tpEl=document.getElementById("tp");
+  if(tpEl && window.ResizeObserver){
+    var fitTp=function(){ root.style.setProperty("--kt-tp", Math.round(tpEl.getBoundingClientRect().height)+"px"); };
+    var ro2=new ResizeObserver(fitTp);
+    try{ ro2.observe(tpEl, {box:"border-box"}); }catch(_){ ro2.observe(tpEl); }
+  }
+
   /* ช่องว่างใต้แถบล่างบน iPad ที่เปิดจากหน้าโฮม
      iPadOS บางรุ่นให้พื้นที่จอของแอปเตี้ยกว่าจอจริงเท่าแถบสถานะ แต่เริ่มที่ขอบบนสุด
      ของที่ติดขอบล่าง (bottom:0) จึงลอยค้างเหนือขอบจอ เหลือแถบสีพื้นว่าง ๆ ด้านล่าง
@@ -252,8 +290,12 @@ function ready(){
   probe.setAttribute("aria-hidden","true");
   probe.style.cssText="position:fixed;top:0;bottom:0;left:0;width:0;visibility:hidden;pointer-events:none";
   document.body.appendChild(probe);
+  /* เฉพาะ iPad/iPhone: แอปที่ติดตั้งบน Android ก็เตี้ยกว่าจอจริงราว 40–60px (แถบสถานะ + แถบนำทาง)
+     ซึ่งไม่ใช่ช่องโหว่ ถ้าคิดเป็นช่องว่าง แถบบนจะมีแถบว่างเกินมา และแถวนาฬิกาหลุดใต้ขอบจอล่าง */
+  var ios=("standalone" in navigator) || /iP(ad|hone|od)/.test(navigator.userAgent)
+    || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints>1);
   var standalone=function(){
-    return navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+    return ios && (navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches));
   };
   var fitGap=function(){
     var gap=0;
@@ -281,6 +323,99 @@ function ready(){
   window.addEventListener("resize", gapLater);
   window.addEventListener("orientationchange", gapLater);
   if(window.visualViewport) visualViewport.addEventListener("resize", gapLater);
+
+  /* ---------- มือถือ: แถบบนแถวเดียว + ปุ่ม ⋯ ----------
+     แถวแรกมีแค่ของที่ใช้ระหว่างเขียน (ย้อนแก้ · เครื่องมือ) ที่เหลือ (นำเข้า โหมด ส่งออก ตั้งค่า)
+     อยู่แถวที่สอง กด ⋯ ถึงขึ้น — เดิมทั้งหมดอยู่แถวเดียวที่ต้องปัดหา และเครื่องมือหลุดขอบจอ
+     กดปุ่มในแถวที่สองแล้วแถวนั้นพับเก็บเอง */
+  if(tb && !document.getElementById("kTbMore")){
+    var more=document.createElement("button");
+    more.type="button"; more.id="kTbMore"; more.className="btn";
+    more.title="นำเข้าไฟล์ · โหมด · ส่งออก · ตั้งค่า"; more.setAttribute("aria-label","เมนูเพิ่มเติม");
+    more.setAttribute("aria-expanded","false"); more.textContent="⋯";
+    tb.appendChild(more);
+    var tbx=function(on){ root.classList.toggle("k-tbx", on); more.setAttribute("aria-expanded", String(on)); };
+    more.addEventListener("click", function(){ tbx(!root.classList.contains("k-tbx")); });
+    tb.addEventListener("click", function(e){
+      if(e.target.closest && e.target.closest("#pick, #toExport, #moreBtn, #modeSeg button")) tbx(false);
+    });
+  }
+
+  /* ---------- มือถือ: ข้อความสถานะเป็นป้ายลอยใต้แถบบน 3 วิ (ผิดพลาด 5 วิ) ----------
+     แถบบนแถวเดียวไม่มีที่ให้ข้อความ แต่ผลของการกด (คัดลอกห้อง นำเข้าไฟล์ ข้อผิดพลาด) ต้องเห็น */
+  var stEl=document.getElementById("status"), stT=0;
+  if(stEl) new MutationObserver(function(){
+    if(!root.hasAttribute("data-kphone")) return;
+    var t=(stEl.textContent||"").trim();
+    clearTimeout(stT);
+    if(!t){ stEl.classList.remove("k-show"); return; }
+    stEl.classList.add("k-show");
+    stT=setTimeout(function(){ stEl.classList.remove("k-show"); }, stEl.classList.contains("err") ? 5000 : 3000);
+  }).observe(stEl, {childList:true, characterData:true, subtree:true});
+
+  /* ---------- Android: ปัดย้อนกลับ = ถอยทีละหน้า ไม่ปิดแอป ----------
+     แอปที่ติดตั้งไม่มีประวัติหน้า ปัดขอบจอ (หรือปุ่มย้อนกลับ) จึงปิดแอปทิ้งกลางงาน
+     วางหน้ากันไว้หนึ่งชั้นเมื่อไม่ได้อยู่หน้าแรก แล้วตอนย้อนกลับ: ปิดแผงตั้งค่า → ออกจากหน้าส่งออก →
+     กลับหน้าแรก (เหมือนกดปุ่ม "หน้าแรก" ซึ่งเก็บงานค้างไว้ก่อน) · ไม่ทำบน iPad/iPhone
+     เพราะ Safari ในแท็บใช้ปัดขอบจอเป็นย้อนกลับ ถ้ามีประวัติ ปากกาที่ลากชิดขอบจะพาออกจากหน้าเขียน */
+  if(/Android/i.test(navigator.userAgent) && window.history && history.pushState){
+    var B=document.body, guard=false;
+    var deep=function(){ return !/\bathome\b/.test(B.className); };
+    var arm=function(){ if(deep() && !guard){ try{ history.pushState({klong:1}, ""); guard=true; }catch(_){} } };
+    var tap=function(id){ var b=document.getElementById(id); if(b){ b.click(); return true; } return false; };
+    window.addEventListener("popstate", function(){
+      guard=false;
+      if(B.classList.contains("inspOn") && innerWidth<=900) tap("inspClose");
+      else if(B.classList.contains("atexport")) tap("exBack");
+      else if(B.classList.contains("ataudio")) {}            // กำลังถอดเสียง: ไม่ทิ้งงานกลางทาง
+      else if(deep()) tap("toHome");
+      setTimeout(arm, 0);
+    });
+    new MutationObserver(arm).observe(B, {attributes:true, attributeFilter:["class"]});
+    arm();
+  }
+
+  /* ---------- การ์ด "ติดตั้งลงมือถือ" บนหน้าแรก ----------
+     มีคำเชิญจากเบราว์เซอร์ = ปุ่มติดตั้งปุ่มเดียว · ไม่มี (Safari, เบราว์เซอร์ที่ไม่รองรับ) = บอกวิธีตามเบราว์เซอร์นั้น
+     ไม่ขึ้นเมื่อเปิดเป็นแอปอยู่แล้ว ติดตั้งแล้ว หรือกด "ไม่ต้อง" ไว้ */
+  var hdrop=document.querySelector("#homeScreen .hdrop");
+  var inApp=navigator.standalone===true || !!(window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  if(hdrop && !inApp && !document.getElementById("kInstall")){
+    var UA=navigator.userAgent, how="";
+    if(ios) how='เปิดลิงก์นี้ใน <b>Safari</b> → แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) → <b>เพิ่มไปยังหน้าจอโฮม</b>';
+    else if(/SamsungBrowser/.test(UA)) how='แตะ <b>≡</b> มุมขวาล่าง → <b>เพิ่มหน้าไปยัง</b> → <b>หน้าจอหลัก</b>';
+    else if(/Android/.test(UA)) how='แตะ <b>⋮</b> มุมขวาบนของ Chrome → <b>ติดตั้งแอป</b> (บางรุ่นเขียนว่า <b>เพิ่มลงในหน้าจอหลัก</b>)';
+    var card=document.createElement("div");
+    card.className="hcard kinst"; card.id="kInstall"; card.hidden=true;
+    card.innerHTML='<b>ติดตั้งลงมือถือ</b>'+
+      '<p>ได้ไอคอน Klong Pro บนหน้าจอ เปิดเต็มจอเหมือนแอป ใช้ได้แม้ไม่มีเน็ต อัปเดตเองเมื่อเว็บมีรุ่นใหม่ และงานที่บันทึกไว้อยู่ครบ</p>'+
+      '<p class="kinst-how"></p>'+
+      '<div class="hbtns"><button type="button" class="btn primary" id="kInstBtn">ติดตั้งแอป</button>'+
+      '<button type="button" class="btn" id="kInstHide">ไม่ต้อง</button></div>';
+    hdrop.parentNode.insertBefore(card, hdrop.nextSibling);
+    var ibtn=card.querySelector("#kInstBtn"), ihow=card.querySelector(".kinst-how"), itxt=card.querySelector("p");
+    var off=function(k){ try{ return localStorage.getItem(k)==="1"; }catch(_){ return false; } };
+    var sync=function(done){
+      if(done){ card.hidden=false; ibtn.hidden=true; ihow.hidden=true; card.querySelector("#kInstHide").textContent="ปิด";
+        itxt.innerHTML='<b style="display:inline">ติดตั้งแล้ว ✓</b> เปิด Klong Pro จากไอคอนบนหน้าจอได้เลย'; return; }
+      if(off("klong-install-hide") || off("klong-installed")){ card.hidden=true; return; }
+      ibtn.hidden=!instEvt; ihow.hidden=!!instEvt || !how; ihow.innerHTML=how;
+      card.hidden=!instEvt && !how;
+    };
+    ibtn.addEventListener("click", function(){
+      if(!instEvt) return;
+      var ev=instEvt; instEvt=null; ev.prompt();
+      (ev.userChoice || Promise.resolve({})).then(function(c){
+        if(c && c.outcome==="accepted"){ ibtn.hidden=true; itxt.textContent="กำลังติดตั้ง — ไอคอน Klong Pro จะขึ้นบนหน้าจอในไม่กี่วินาที"; }
+        else sync();
+      });
+    });
+    card.querySelector("#kInstHide").addEventListener("click", function(){
+      try{ localStorage.setItem("klong-install-hide","1"); }catch(_){}
+      card.hidden=true;
+    });
+    instHooks.push(sync); sync();
+  }
 
   /* สวิตช์กลางวัน / กลางคืน / ตามเครื่อง ไว้ในแถบล่างแถวเดียวกับเสียงเพลง/กลอง */
   var host=document.getElementById("rowMain");

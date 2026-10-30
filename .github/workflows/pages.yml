@@ -39,7 +39,7 @@ jobs:
           python3 - "$BUILD_ID" <<'PY'
           import io, sys
           build = sys.argv[1]
-          for p in ("sw.js", "lesson/sw.js"):
+          for p in ("sw.js", "lesson/sw.js", "show/sw.js"):
               s = io.open(p, encoding="utf-8").read()
               if "__BUILD_ID__" not in s:
                   sys.exit("ไม่พบ __BUILD_ID__ ใน " + p)
@@ -54,15 +54,20 @@ jobs:
                    icons/icon-512.png icons/apple-touch-icon.png \
                    fonts/ibm-plex-sans-thai.css fonts/prompt.css \
                    theme/klong-theme.css theme/klong-theme.js \
+                   sounds/klong-sounds.js sounds/kits.json sounds/LICENSES.txt sounds/05_acoustic/SN_snare/normal_1.mp3 \
                    lesson/index.html lesson/manifest.webmanifest lesson/sw.js lesson/push-worker.js \
                    lesson/icons/icon-512.png lesson/icons/apple-touch-icon.png lesson/icons/badge-96.png lesson/vendor/mediabunny-1.59.1.js lesson/i18n/en.json \
-                   show/index.html; do
+                   show/index.html show/manifest.webmanifest show/sw.js show/icons/icon-512.png show/icons/apple-touch-icon.png \
+                   show/fonts/chakra-petch.css show/vendor/mediapipe/hand_landmarker.task \
+                   show/vendor/mediapipe/tasks-vision-0.10.14/vision_bundle.mjs show/vendor/mediapipe/tasks-vision-0.10.14/wasm/vision_wasm_internal.wasm \
+                   bip/index.html bip/sw.js bip/manifest.json bip/icon-512.png; do
             test -s "$f" || { echo "ขาดไฟล์: $f"; exit 1; }
           done
           # .nojekyll ตั้งใจให้เป็นไฟล์ว่าง จึงเช็คแค่ว่ามีอยู่ ไม่เช็คขนาด
           test -f .nojekyll || { echo "ขาดไฟล์: .nojekyll"; exit 1; }
           # กันพลาด: ไม่ควรเหลือลิงก์ไป Google Fonts อีก
           ! grep -q 'fonts.googleapis.com' index.html || { echo "index.html ยังเรียก Google Fonts อยู่"; exit 1; }
+          ! grep -q 'fonts.googleapis.com' show/index.html || { echo "show/index.html ยังเรียก Google Fonts อยู่"; exit 1; }
           echo "ครบ"
 
       # หมายเหตุ: เคยลองใส่ enablement: true ให้ action เปิด Pages ให้เองแล้ว
@@ -101,7 +106,7 @@ jobs:
           set -euo pipefail
           rm -rf _site && mkdir -p _site
           cp index.html 404.html manifest.webmanifest sw.js .nojekyll _site/
-          cp -r fonts icons theme lesson show widget _site/
+          cp -r fonts icons theme sounds lesson show widget bip _site/
           if [ -s kruta-widget.apk ]; then cp kruta-widget.apk _site/widget/; else echo "::warning::ไม่มีไฟล์ APK รุ่นใหม่ (build แอปวิดเจ็ตไม่ผ่าน)"; fi
           echo "ขนาดที่จะเผยแพร่: $(du -sh _site | cut -f1)"
           find _site -type f | sort

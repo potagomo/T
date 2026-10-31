@@ -739,6 +739,72 @@ async function mediaSuite(label, exe) {
   await browser.close();
 }
 
+/* ---- เพลงที่อัดแบบไม่มีคลิก (ความเร็วแกว่ง) ----
+   ผู้ใช้: เพลงอัดแบบแกว่ง ไม่ตรงเมโทรนอม อยากให้เที่ยงตรงและสมูส — สร้างเพลงทดสอบที่รู้ตำแหน่งจังหวะจริง (100 BPM แกว่ง ±5%)
+   · นำเข้าแล้วต้องเตือนว่าแกว่ง พร้อมปุ่มแก้ · กดแล้วเมโทรนอมต้องตรงจังหวะจริง (rms ≤ 12 ms) และดีกว่าเดิมมาก
+   · "ดึงเพลงให้ตรงความเร็วเดียว" แล้วจุดตีของเพลงต้องลงกริดคงที่ (rms ≤ 12 ms) */
+function driftSong(file) {
+  const sr = 44100, dur = 30, n = sr * dur, L = new Float32Array(n); let s = 7;
+  const r = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  const beats = []; let t = 0.8; while (t < dur - 1) { beats.push(t); t += 60 / (100 * (1 + 0.05 * Math.sin(2 * Math.PI * t / 24))); }
+  const hit = (t0, k, g) => { const i0 = Math.round(t0 * sr); for (let i = 0; i < sr * 0.2 && i0 + i < n; i++) { const tt = i / sr;
+    const v = k === "k" ? Math.sin(2 * Math.PI * (55 + 90 * Math.exp(-tt * 30)) * tt) * Math.exp(-tt * 9) * 0.9 : k === "s" ? (r() * 2 - 1) * 0.6 * Math.exp(-tt * 18) : (r() * 2 - 1) * 0.25 * Math.exp(-tt * 60);
+    L[i0 + i] += v * g; } };
+  beats.forEach((b, k) => { const j = () => (r() - 0.5) * 0.01; hit(b + j(), k % 2 ? "s" : "k", 1); hit(b + j(), "h", 1); hit((b + (beats[k + 1] || b + 0.6)) / 2 + j(), "h", 0.8); });
+  const buf = Buffer.alloc(44 + n * 2); buf.write("RIFF", 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write("WAVEfmt ", 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20);
+  buf.writeUInt16LE(1, 22); buf.writeUInt32LE(sr, 24); buf.writeUInt32LE(sr * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write("data", 36); buf.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) buf.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(L[i] * 16000))), 44 + i * 2);
+  fs.writeFileSync(file, buf); return beats;
+}
+async function tempoSuite(label, exe) {
+  const browser = await chromium.launch({ executablePath: exe });
+  const ctx = await browser.newContext({ ...devices["iPad Pro 11 landscape"], hasTouch: true, isMobile: false, acceptDownloads: true });
+  await ctx.addInitScript(() => { try { localStorage.setItem("klongpro.insp", "0"); } catch (e) {} });
+  const page = await ctx.newPage(); const errs = [];
+  page.on("pageerror", (e) => errs.push("PAGEERROR " + e.message));
+  const say = (t) => console.log(`[${label}] ${t}`);
+  const file = path.join(require("os").tmpdir(), "smoke-drift.wav"), truth = driftSong(file);
+  await page.goto(BASE, { waitUntil: "load" }); await page.waitForTimeout(500);
+  await page.click("#homeBlank"); await page.waitForTimeout(500);
+  await page.setInputFiles("#file", file); await page.waitForTimeout(800);
+  await page.evaluate(() => { document.getElementById("impBpm").value = "100"; document.getElementById("impGo").click(); });
+  await page.waitForFunction(() => +document.getElementById("bpm").value > 0, null, { timeout: 60000 });
+  const warned = await page.waitForFunction(() => /btfollow/.test(document.getElementById("impResult").innerHTML), null, { timeout: 30000 }).then(() => true).catch(() => false);
+  say(`นำเข้าเพลงที่แกว่ง: ${warned ? (await page.evaluate(() => document.getElementById("impResult").innerText)).replace(/\s+/g, " ").replace(/^.*⚠/, "⚠").slice(0, 110) : "ไม่เตือน"}`);
+  if (!warned) fail.push(`${label}: นำเข้าเพลงที่ความเร็วแกว่งแล้วไม่เตือน/ไม่มีปุ่มแก้`);
+  const set = (o) => page.evaluate((o) => { for (const id in o) { const e = document.getElementById(id); if (e.type === "checkbox") e.checked = o[id]; else e.value = o[id]; e.dispatchEvent(new Event("change", { bubbles: true })); } }, o);
+  const wav = async (o) => { await page.evaluate(() => document.getElementById("toExport").click()); await page.waitForTimeout(900);
+    await set(Object.assign({ vxFrom: "1", vxTo: "10", vxCount: "0", vxDrOn: false, vxRate: "1", vxCl: "60", vxClKind: "clave", vxDuck: false }, o)); await page.waitForTimeout(300);
+    const dl = page.waitForEvent("download", { timeout: 60000 }); await page.evaluate(() => document.getElementById("vxWav").click());
+    const d = await dl; const b = fs.readFileSync(await d.path()); await page.evaluate(() => document.getElementById("exBack").click()); await page.waitForTimeout(300); return b; };
+  const ons = (b, thr, gap) => { const n = (b.length - 44) / 6, sr = b.readUInt32LE(24), out = []; let pk = 0, last = -1e9;
+    for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(b.readIntLE(44 + i * 6, 3)));
+    for (let i = 0; i < n; i++) if (Math.abs(b.readIntLE(44 + i * 6, 3)) > thr * pk) { if (i - last > sr * gap) out.push(i / sr); last = i; } return out; };
+  const rmsTo = (xs, ref) => { const e = xs.map((x) => { let bb = 1e9; for (const y of ref) if (Math.abs(y - x) < Math.abs(bb)) bb = y - x; return bb; }).filter((v) => Math.abs(v) < 0.3);
+    return Math.sqrt(e.reduce((a, q) => a + q * q, 0) / Math.max(1, e.length)); };
+  const metro = async () => { const off = +(await page.evaluate(() => document.getElementById("offset").value));
+    return ons(await wav({ vxMuOn: false, vxClOn: true }), 0.3, 0.15).map((t) => t - 0.6 + off); };
+  const before = rmsTo(await metro(), truth);
+  await page.evaluate(() => { const b = document.querySelector('#impResult button[data-act="btfollow"]'); if (b) b.click(); }); await page.waitForTimeout(600);
+  const after = rmsTo(await metro(), truth);
+  say(`ให้กริดและเมโทรนอมตามเพลง: เมโทรนอมเทียบจังหวะจริง ก่อน rms ${(before * 1000).toFixed(0)} ms → หลัง ${(after * 1000).toFixed(1)} ms`);
+  if (!(after <= 0.012) || !(before > after * 3)) fail.push(`${label}: ให้กริดตามเพลงแล้วยังไม่ตรงจังหวะจริง (${(after * 1000).toFixed(1)} ms)`);
+  // ดึงเพลงให้ตรงความเร็วเดียว
+  await page.evaluate(() => document.getElementById("toAudio").click()); await page.waitForTimeout(400);
+  await page.evaluate(() => document.getElementById("btScan").click());
+  await page.waitForFunction(() => !document.getElementById("btWarp").disabled, null, { timeout: 60000 });
+  await page.evaluate(() => document.getElementById("btWarp").click());
+  const warpOk = await page.waitForFunction(() => /ดึงจังหวะเพลงเสร็จแล้ว/.test(document.getElementById("status").textContent), null, { timeout: 90000 }).then(() => true).catch(() => false);
+  await page.evaluate(() => document.getElementById("aeBack").click()); await page.waitForTimeout(300);
+  const grid = ons(await wav({ vxMuOn: false, vxClOn: true }), 0.3, 0.15), mus = ons(await wav({ vxMuOn: true, vxMu: "100", vxClOn: false }), 0.35, 0.3);
+  const wr = rmsTo(mus, grid), bpm = await page.evaluate(() => document.getElementById("bpm").value);
+  say(`ดึงเพลงให้ตรงความเร็วเดียว ♩ = ${bpm}: ${warpOk ? "เรนเดอร์เสร็จ" : "ไม่เสร็จ"} · จุดตีของเพลงเทียบกริดคงที่ rms ${(wr * 1000).toFixed(1)} ms (${mus.length} จุด)`);
+  if (!warpOk || !(wr <= 0.012)) fail.push(`${label}: ดึงเพลงให้ตรงความเร็วเดียวไม่สำเร็จหรือไม่ตรง (${(wr * 1000).toFixed(1)} ms)`);
+  say(`errors=${errs.join(" | ") || "ไม่มี"}`);
+  if (errs.length) fail.push(`${label}: ${errs[0]}`);
+  await browser.close();
+}
+
 /* ---- มือถือ Android + S Pen (Galaxy S26 Ultra: 384×784 แนวตั้ง · 784×352 แนวนอน ในแอปที่ติดตั้ง) ----
    ผู้ใช้เขียนโน้ตด้วย S Pen บนมือถือทั้งสองแนว ตรวจเฉพาะของมือถือ ที่เหลือชุด iPhone ตรวจแล้ว
    กริดต้องได้พื้นที่ (เดิมแนวตั้งเหลือ 40% แนวนอนไม่เห็นแถวกลอง) แผงเขียนโน้ตเกาะขอบจอไม่บังกริด
@@ -909,6 +975,7 @@ async function phoneSuite(label, exe) {
       hasTouch: true, isMobile: true, userAgent: devices["iPhone 13"].userAgent }, exe);
     await editSuite("iPad-แก้ระหว่างเล่น", exe);
     await mediaSuite("iPad-เสียงและวิดีโอ", exe);
+    await tempoSuite("iPad-เพลงแกว่ง", exe);
     await phoneSuite("Android", exe);
   } finally { server.close(); }
   console.log("\n================ RESULT ================");

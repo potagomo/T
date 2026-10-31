@@ -363,6 +363,10 @@ body.atexport header, body.atexport main.wrap, body.atexport #tp{display:none}
 #audioScreen .aerow{display:flex; gap:12px; align-items:center; min-height:44px; padding:0 14px; border-radius:10px; background:var(--panel2); font-size:15px}
 #audioScreen .aen{font-family:'IBM Plex Mono',monospace; color:var(--dim); font-size:13px; width:22px}
 #audioScreen .btn{min-height:44px}
+#audioScreen .btcard{display:flex; flex-direction:column; gap:8px; padding:14px; border-radius:12px; border:1px solid var(--line); background:var(--panel)}
+#audioScreen .bthead{display:flex; flex-direction:column; gap:4px}
+#audioScreen .bthead b{font-size:15px; color:var(--ink)}
+#audioScreen .bthead .hint{margin:0; line-height:1.6}
 body.ataudio header, body.ataudio main.wrap, body.ataudio #tp{display:none}
 #about{position:fixed; inset:0; z-index:950; background:rgba(20,17,16,.86);
   display:flex; align-items:center; justify-content:center; padding:20px}
@@ -798,6 +802,19 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
       <button class="btn" id="aeN10p">+10 มิลลิวินาที</button><button class="btn" id="aeN16p">+1/16</button>
       <div class="seg" id="aeScope"><button data-v="all" aria-pressed="true">ทั้งเพลง</button><button data-v="from" aria-pressed="false">ตั้งแต่ช่วงที่เลือกไปจนจบ</button></div>
     </div>
+    <div class="btcard" id="btCard">
+      <div class="bthead"><b>จังหวะเพลงที่แกว่ง</b>
+        <span class="hint" id="btInfo">เพลงที่วงเล่นโดยไม่มีคลิก ความเร็วจะเร่ง/หน่วงตามอารมณ์ ทำให้กริดกับเมโทรนอมค่อย ๆ หลุดจากเพลง —
+          กด "วิเคราะห์จังหวะ" ให้โปรแกรมหาจังหวะจริงทุกจังหวะ</span></div>
+      <div class="aecv"><canvas id="btGraph" data-h="130" aria-label="กราฟความเร็วของเพลงตามเวลา เทียบกับกริด"></canvas></div>
+      <div class="aerowx">
+        <button class="btn" id="btScan">วิเคราะห์จังหวะ</button>
+        <button class="btn primary" id="btFollow" disabled title="ความเร็วรายห้องตามเพลงจริง ไม่แตะเสียงเลย เมโทรนอมเร่ง/หน่วงตามวงอย่างนุ่มนวล">ให้กริดและเมโทรนอมตามเพลง</button>
+        <button class="btn" id="btWarp" disabled title="ยืดเสียงทีละจังหวะให้เพลงตรงความเร็วเดียว ยังเหลือฟีลของมือกลองจริง">ดึงเพลงให้ตรงความเร็วเดียว</button>
+        <button class="btn" id="btOff" hidden>เลิกใช้ (กลับเป็นความเร็วเดียว)</button>
+        <label class="chk" id="btRqWrap" hidden><input type="checkbox" id="btRq" checked> จัดโน้ตที่ถอดอัตโนมัติลงจังหวะใหม่ด้วย</label>
+      </div>
+    </div>
     <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start">
       <div style="flex:2 1 520px; display:flex; flex-direction:column; gap:8px">
         <b style="font-size:15px">ประวัติการแก้เสียง</b>
@@ -905,7 +922,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
         <label class="f">ตั้งแต่ห้อง<input type="number" id="vxFrom" min="1" step="1" inputmode="numeric"></label>
         <label class="f">ถึงห้อง<input type="number" id="vxTo" min="1" step="1" inputmode="numeric"></label>
         <label class="f">ความเร็ว<select id="vxRate"><option value="1">100% (ตามเพลง)</option><option value="0.9">90%</option><option value="0.8">80%</option><option value="0.75">75%</option><option value="0.7">70%</option><option value="0.6">60%</option><option value="0.5">50%</option></select></label>
-        <label class="f">นับเข้าก่อนเริ่ม<select id="vxCount"><option value="0">ไม่นับ</option><option value="1" selected>1 ห้อง</option><option value="2">2 ห้อง</option></select></label>
+        <label class="f">นับเข้าก่อนเริ่ม<select id="vxCount"><option value="auto" selected>อัตโนมัติ</option><option value="0">ไม่นับ</option><option value="1">1 ห้อง</option><option value="2">2 ห้อง</option></select></label>
         <label class="chk full"><input type="checkbox" id="vxColor"> หัวโน้ตสีตามกลอง (ไม่ติ๊ก = ดำบนขาว)</label>
       </div>
       <div class="vxmix" role="group" aria-label="เสียงในวิดีโอ — เลือกเสียงและความดังแยกกัน">
@@ -2035,11 +2052,23 @@ function bpmAt(bi){
     if(S.bars[i] && S.bars[i].bpm > 0) return S.bars[i].bpm;
   return S.bpm;
 }
-function tempoMarks(){                            // ห้องที่มีป้ายความเร็วใหม่
+function tempoChanges(){                          // ทุกห้องที่ความเร็วเปลี่ยนจริง (ไฟล์ MIDI ต้องการทุกจุด)
   const out=[]; let cur=null;
   for(let i=0;i<S.bars.length;i++){
     const v=bpmAt(i);
     if(cur===null || Math.abs(v-cur) > 1e-9){ out.push({bar:i, bpm:v}); cur=v; }
+  }
+  return out;
+}
+/* ป้ายความเร็วที่ "พิมพ์" บนโน้ต: ห้องที่ความเร็วมาจากการตามเพลง (tf) ขยับทีละนิดทุกห้อง
+   ไม่พิมพ์ทุกห้อง — พิมพ์เมื่อห่างจากป้ายล่าสุดเกิน 4% (เพลงเปลี่ยนความเร็วจริง) และปัดเป็นจำนวนเต็ม */
+function tempoMarks(){
+  const out=[]; let cur=null;
+  for(let i=0;i<S.bars.length;i++){
+    const v=bpmAt(i), tf=!!S.bars[i].tf || (!(S.bars[i].bpm>0) && out.length && out[out.length-1].tf);
+    if(cur===null){ out.push({bar:i, bpm:tf ? Math.round(v) : v, tf}); cur=v; continue; }
+    if(tf){ if(Math.abs(v/cur-1)>=0.04){ out.push({bar:i, bpm:Math.round(v), tf}); cur=v; } }
+    else if(Math.abs(v-cur) > 1e-9){ out.push({bar:i, bpm:v}); cur=v; }
   }
   return out;
 }
@@ -4611,6 +4640,20 @@ function metroBus(ctx){
   if(ctx.createStereoPanner){ pan=ctx.createStereoPanner(); click.connect(pan); pan.connect(comp); } else click.connect(comp);
   return {bed, click, pan, duckL, duckR, out:sh};
 }
+/* ความหน่วงของสายเสียงรวม (คอมเพรสเซอร์ของ Chrome หน่วง 6 ms · ลิมิตเตอร์อีก 6 · ตัวโค้งแบบ oversample ~3 → วัดได้ 14.9 ms)
+   ตอนเล่นสดทุกเสียงหน่วงเท่ากันจึงไม่มีผล แต่ในวิดีโอเสียงจะช้ากว่าภาพ — วัดจริงครั้งเดียวต่ออัตราตัวอย่าง (แต่ละเบราว์เซอร์ไม่เท่ากัน) */
+const METRO_LAT={};
+async function metroLatency(sr){
+  if(METRO_LAT[sr]!=null) return METRO_LAT[sr];
+  try{
+    const o=new OfflineAudioContext(2, Math.round(sr*0.2), sr), m=metroBus(o), src=o.createBufferSource(), b=o.createBuffer(1, Math.round(sr*0.2), sr);
+    const at=Math.round(sr*0.01); b.getChannelData(0)[at]=0.25; src.buffer=b; src.connect(m.bed); m.out.connect(o.destination); src.start();
+    const d=(await o.startRendering()).getChannelData(0); let pk=0, i0=at;
+    for(let i=0;i<d.length;i++) if(Math.abs(d[i])>pk){ pk=Math.abs(d[i]); i0=i; }
+    METRO_LAT[sr]=Math.max(0, Math.min(Math.round(sr*0.05), i0-at));
+  }catch(e){ METRO_LAT[sr]=0; }
+  return METRO_LAT[sr];
+}
 /* หลบเสียงตอนคลิกที่ when · beat = ระยะห่างของคลิก (วินาทีจริง) · db = ความลึก · pan −1…1 */
 function metroDuck(gl, gr, when, beat, db, pan){
   if(!(db>0) || !(beat>=0.12)) return;                     // คลิกถี่เกิน ไม่หลบ (ลดแล้วไม่ทันขึ้น จะกลายเป็นเบาทั้งท่อน)
@@ -5426,8 +5469,8 @@ function varLen(n){ const b=[n&0x7F]; n>>=7; while(n>0){ b.unshift((n&0x7F)|0x80
 function buildMidi(){
   const evs=[];
   retime();
-  // ป้ายความเร็ว: ใส่ที่ต้นห้องทุกจุดที่เปลี่ยน ไม่ใช่ค่าเดียวทั้งไฟล์
-  for(const m of tempoMarks()){
+  // ป้ายความเร็ว: ใส่ที่ต้นห้องทุกจุดที่เปลี่ยน ไม่ใช่ค่าเดียวทั้งไฟล์ (รวมความเร็วที่ตามเพลงรายห้อง)
+  for(const m of tempoChanges()){
     const upq=Math.round(60000000/m.bpm);
     evs.push({tick:barStartTk[m.bar]||0, order:0,
               data:[0xFF,0x51,0x03,(upq>>16)&255,(upq>>8)&255,upq&255]});
@@ -5764,6 +5807,7 @@ async function analyze(opts){
   S.pos=S.offset; playAbs=X0(S.offset);
   setProg(null); setStatus(""); showUI(); draw(); updStats(); syncLabels();
   if(rep) importReport(rep, opts);
+  BT.res=null; if(S.buf && opts) btAutoCheck();
 }
 async function redetect(){
   if(!S.buf) return;
@@ -5997,7 +6041,7 @@ function applyTo(a,b){
     S.bars[i].num=n; S.bars[i].den=d;
     // ป้ายความเร็วติดที่ห้องแรกของช่วงเท่านั้น ห้องถัดไปสืบทอดเอง
     // ถ้าติดทุกห้องจะได้ป้ายซ้ำเต็มไปหมดตอนส่งออก
-    if(bv!=null) { if(i===a) S.bars[i].bpm=bv; else delete S.bars[i].bpm; }
+    if(bv!=null) { if(i===a) S.bars[i].bpm=bv; else delete S.bars[i].bpm; delete S.bars[i].tf; }   // ตั้งเอง = ไม่ใช่ความเร็วที่ตามเพลงแล้ว
   }
   if(bv!=null && a===0) S.bpm=bv;                 // ห้องแรกของเพลง = ความเร็วฐาน
   afterTempoChange();
@@ -6291,7 +6335,7 @@ $("#applyAll").onclick=()=>applyTo(0,S.bars.length-1);
 $("#clearTempo").onclick=()=>{
   const a=clamp((parseInt($("#selA").value)||1)-1, 0, S.bars.length-1);
   const b=clamp((parseInt($("#selB").value)||1)-1, a, S.bars.length-1);
-  for(let i=a;i<=b;i++) delete S.bars[i].bpm;
+  for(let i=a;i<=b;i++){ delete S.bars[i].bpm; delete S.bars[i].tf; }
   afterTempoChange();
   setStatus("ล้างป้ายความเร็วห้อง "+(a+1)+"–"+(b+1)+" แล้ว — ช่วงนี้กลับไปสืบทอดความเร็วจากป้ายก่อนหน้า");
 };
@@ -7636,8 +7680,26 @@ function edlRender(orig, segs, ctx){
 function applyAudioEdits(){
   if(!S.bufOrig || !S.ctx) return false;
   const keepEnd = barStarts.length ? totalEnd() : 0;   // ห้องเดิมต้องไม่หาย แม้เสียงสั้นลง
-  const segs=edlApply(S.bufOrig.duration, S.audioEdits);
+  // ขั้นดึงจังหวะ (warp) อยู่ท้ายสุดเสมอ: ต้องใช้ตัวยืด (ไม่ทันในจังหวะเดียว) → เรนเดอร์เบื้องหลังแล้วเก็บไว้
+  // ระหว่างรอใช้เสียงก่อนดึงไปก่อน พอเสร็จค่อยสลับเข้ามาเอง
+  const ops=S.audioEdits||[], wop=ops.find(o=>o.k==="warp"), base=ops.filter(o=>o.k!=="warp");
+  const segs=edlApply(S.bufOrig.duration, base);
   S.buf=edlRender(S.bufOrig, segs, S.ctx);
+  if(wop){
+    const key=warpKey(base, wop);
+    if(WARP.key===key && WARP.buf) S.buf=WARP.buf;
+    else if(WARP.job!==key){
+      WARP.job=key; const src=S.buf;
+      setStatus("กำลังดึงจังหวะเพลงให้ตรงความเร็ว ♩ = "+wop.bpm+" …");
+      warpRender(src, wop, f=>setProg(f)).then(b=>{
+        if(WARP.job!==key) return;
+        WARP.key=key; WARP.buf=b; WARP.job=null; setProg(null);
+        if(S.playing) stop();
+        applyAudioEdits(); if(typeof aeRender==="function" && !$("#audioScreen").classList.contains("hidden")) aeRender();
+        setStatus("ดึงจังหวะเพลงเสร็จแล้ว — เพลงตรงความเร็ว ♩ = "+wop.bpm+" ทั้งเพลง");
+      }).catch(e=>{ console.error(e); WARP.job=null; setProg(null); setStatus("ดึงจังหวะเพลงไม่สำเร็จ: "+e.message+" — ใช้เสียงเดิมอยู่", true); });
+    }
+  }
   S.sr=S.buf.sampleRate; stretchCache.clear(); PEAKS.buf=null;
   // ห้ามตั้งความยาวเท่าท้ายห้องสุดท้ายพอดี: rebuildBars เก็บห้องจน "เลย" ความยาวไป
   // ถ้าเท่ากันพอดีจะเติมห้องว่างเพิ่มหนึ่งห้องทุกครั้งที่จัดเสียง (บั๊กที่เจอ: เลื่อน 2 ครั้ง ห้องงอก 2 ห้อง)
@@ -7648,6 +7710,11 @@ function applyAudioEdits(){
 function pushAudioEdit(op){
   if(!S.bufOrig){ setStatus("ยังไม่มีไฟล์เสียง — นำเข้าเสียงก่อน", true); return; }
   if(S.playing) stop();
+  // แก้เสียงหลังดึงจังหวะ: จุดยึดของการดึงอ้างเวลาก่อนแก้ ใช้ต่อไม่ได้ → เอาขั้นดึงออก ให้วิเคราะห์ใหม่
+  if(op.k!=="warp" && S.audioEdits.some(o=>o.k==="warp")){
+    S.audioEdits=S.audioEdits.filter(o=>o.k!=="warp");
+    setStatus("เอาขั้น \"ดึงจังหวะเพลง\" ออกแล้ว เพราะเสียงถูกแก้ต่อ — วิเคราะห์จังหวะใหม่ถ้ายังต้องการ");
+  }
   S.audioEdits.push(op);
   applyAudioEdits(); aeRender(); markDirty();
 }
@@ -7657,6 +7724,7 @@ function aeOpText(o){
   if(o.k==="shift") return (o.at>0 ? "เลื่อนตั้งแต่ "+fmt(o.at)+" " : "เลื่อนทั้งเพลง ")+s(o.d);
   if(o.k==="cut")   return "ลบช่วง "+fmt(o.a)+" – "+fmt(o.b);
   if(o.k==="gap")   return "แทรกช่วงเงียบ "+o.len.toFixed(3)+" วินาที ที่ "+fmt(o.at);
+  if(o.k==="warp")  return "ดึงจังหวะเพลงให้ตรงความเร็ว ♩ = "+o.bpm+" ("+o.s.length+" จังหวะ)";
   return "แก้เสียง";
 }
 
@@ -7704,6 +7772,183 @@ function drawAudioLane(sx, vw){
   cx.restore();
 }
 
+/* ============================================================
+   38. เพลงที่อัดแบบไม่มีคลิก — ความเร็วแกว่ง (Smart Tempo)
+
+   ผู้ใช้: เพลงที่อัดมาแบบแกว่ง ๆ ไม่ตรงเมโทรนอม อยากให้เที่ยงตรงและสมูส ฟังเป็นธรรมชาติ
+   เดิมโปรแกรมหาความเร็ว "ค่าเดียวทั้งเพลง" (fitTempoUser) เพลงที่วงเล่นเร่ง/หน่วงตามอารมณ์
+   กริด เมโทรนอม และหัวอ่านจึงค่อย ๆ หลุดจากเพลง
+
+   ขั้นที่ 1 หาตำแหน่งจังหวะจริงทุกจังหวะ (beat tracking แบบ dynamic programming ของ Ellis 2007
+             — วิธีเดียวกับ beat_track ของ librosa) ใช้ความเร็วที่หาได้ตอนนำเข้าเป็นค่าตั้งต้น
+             แล้วปล่อยให้แต่ละจังหวะขยับตามเสียงได้ โดยมีราคาของการเปลี่ยนความเร็วกะทันหัน
+   ขั้นที่ 2 เกลี่ยให้เรียบ (ถดถอยเชิงเส้นเฉพาะที่ ±4 จังหวะ) — เก็บการเร่ง/หน่วงของเพลงไว้
+             แต่ตัดความกระตุกของการตรวจจับและไมโครไทม์มิ่งรายตัวออก
+   ขั้นที่ 3 เลือกได้สองแบบ (แบบเดียวกับ Smart Tempo ของ Logic: Adapt / Keep)
+     · ให้กริดตามเพลง — ความเร็วรายห้องตามเพลงจริง ไม่แตะเสียงเลย เมโทรนอมเร่ง/หน่วงตามวงอย่างนุ่มนวล
+     · ดึงเพลงให้ตรงความเร็วเดียว — ยืดเสียงทีละจังหวะ (Signalsmith) ให้จังหวะของเพลงลงกริดคงที่
+       ยึดตามเส้นที่เกลี่ยแล้ว จึงเหลือ "ฟีล" ของมือกลองจริงไว้ ไม่แข็งเหมือนควอนไทซ์
+   ============================================================ */
+const BT={res:null, busy:false, undo:null};
+const BT_BIAS=0.004;                                  // ชดเชยเวลาของซองจุดตี (วัดจากไฟล์ทดสอบที่รู้ตำแหน่ง)
+/* ซองจุดตี: spectral flux แบบลอการิทึม ทุก 10 ms (ทั้งย่าน ไม่ใช่แค่กลอง — เพลงที่ไม่มีกลองชัดก็ยังมีจังหวะ) */
+async function btEnvelope(buf, onProg){
+  const sr=buf.sampleRate, n=buf.length, ch=buf.numberOfChannels, N=1024, hop=Math.round(sr*0.01);
+  const F=Math.max(1, Math.floor((n-N)/hop)+1), env=new Float32Array(F);
+  const fft=makeFFT(N), re=new Float32Array(N), im=new Float32Array(N), win=new Float32Array(N);
+  for(let i=0;i<N;i++) win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));
+  const kMax=Math.min(N/2, Math.round(11000/sr*N)), prev=new Float32Array(kMax), cur=new Float32Array(kMax);
+  const data=[]; for(let c=0;c<ch;c++) data.push(buf.getChannelData(c));
+  for(let f=0; f<F; f++){
+    const o=f*hop;
+    for(let i=0;i<N;i++){ let x=0; for(let c=0;c<ch;c++) x+=data[c][o+i]; re[i]=x/ch*win[i]; im[i]=0; }
+    fft(re, im);
+    let s=0;
+    for(let k=1;k<kMax;k++){ const m=Math.log(1+100*Math.sqrt(re[k]*re[k]+im[k]*im[k])); cur[k]=m; const d=m-prev[k]; if(d>0) s+=d; }
+    env[f]=s; prev.set(cur);
+    if((f&1023)===1023){ if(onProg) onProg(f/F); await yieldNow(); }
+  }
+  // ตัดพื้นที่ค่อย ๆ เปลี่ยน (ค่าเฉลี่ยเคลื่อนที่ ~0.6 วิ) แล้วปรับให้ส่วนเบี่ยงเบนเท่ากับ 1
+  const W=30, out=new Float32Array(F); let acc=0;
+  for(let i=0;i<F;i++){ acc+=env[i]; if(i>2*W) acc-=env[i-2*W-1]; }
+  let run=0; const pre=new Float64Array(F+1); for(let i=0;i<F;i++){ run+=env[i]; pre[i+1]=run; }
+  let sq=0;
+  for(let i=0;i<F;i++){ const a=Math.max(0,i-W), b=Math.min(F,i+W+1), m=(pre[b]-pre[a])/(b-a); out[i]=Math.max(0, env[i]-m); sq+=out[i]*out[i]; }
+  const sd=Math.sqrt(sq/F)||1; for(let i=0;i<F;i++) out[i]/=sd;
+  return {env:out, fs:hop/sr, t0:N/2/sr};
+}
+/* ติดตามจังหวะ (Ellis 2007): คะแนนสะสม = ความแรงจุดตีตรงนั้น + คะแนนจังหวะก่อนหน้าที่ดีที่สุด − ราคาการเปลี่ยนระยะห่าง
+   period = ระยะห่างจังหวะที่คาด (เฟรม) · tight = ความเคร่งของความเร็ว (librosa ใช้ 100) */
+function btTrack(E, period, tight){
+  tight=tight||100;
+  const n=E.env.length, ls=new Float32Array(n), sg=Math.max(1, period/32), R=Math.ceil(sg*3);
+  for(let i=0;i<n;i++){ let s=0; for(let d=-R; d<=R; d++){ const j=i+d; if(j>=0 && j<n) s+=E.env[j]*Math.exp(-0.5*(d/sg)*(d/sg)); } ls[i]=s; }
+  const cum=new Float32Array(n), back=new Int32Array(n).fill(-1);
+  const lo=Math.max(1, Math.round(period/2)), hi=Math.round(period*2);
+  let mx=0; for(let i=0;i<n;i++) if(ls[i]>mx) mx=ls[i];
+  for(let t=0;t<n;t++){
+    let best=-Infinity, bi=-1;
+    for(let tau=Math.max(0, t-hi); tau<=t-lo; tau++){
+      const d=Math.log((t-tau)/period), v=cum[tau]-tight*d*d;
+      if(v>best){ best=v; bi=tau; }
+    }
+    // ก่อนเพลงเริ่ม (จุดตีเบามาก) ไม่ต่อสาย — จังหวะแรกต้องเริ่มที่มีเสียงจริง
+    if(bi>=0 && !(back[bi]<0 && ls[bi]<0.01*mx && cum[bi]<0.01*mx)){ cum[t]=ls[t]+best; back[t]=bi; }
+    else cum[t]=ls[t];
+  }
+  // จังหวะสุดท้าย: ยอดคะแนนสะสมตัวท้ายที่สูงเกินครึ่งของค่ากลางยอดทั้งหมด
+  const peaks=[]; for(let i=1;i<n-1;i++) if(cum[i]>cum[i-1] && cum[i]>=cum[i+1]) peaks.push(i);
+  const pv=peaks.map(i=>cum[i]).sort((a,b)=>a-b), med=pv.length ? pv[pv.length>>1] : 0;
+  let end=n-1; for(let k=peaks.length-1;k>=0;k--) if(cum[peaks[k]]>=0.5*med){ end=peaks[k]; break; }
+  const beats=[]; for(let t=end; t>=0; t=back[t]){ beats.push(t); if(back[t]<0) break; }
+  beats.reverse();
+  // ตัดจังหวะหัว/ท้ายที่แทบไม่มีเสียง (ช่วงเงียบก่อน/หลังเพลง)
+  let rms=0; for(const b of beats) rms+=ls[b]*ls[b]; rms=Math.sqrt(rms/Math.max(1,beats.length));
+  let a=0, z=beats.length-1;
+  while(a<z && ls[beats[a]]<0.5*rms) a++;
+  while(z>a && ls[beats[z]]<0.5*rms) z--;
+  // ละเอียดกว่าเฟรม: ยอดพาราโบลาของความแรงจุดตีรอบตำแหน่งนั้น
+  return beats.slice(a, z+1).map(f=>{
+    let p=f; for(let d=-2; d<=2; d++){ const j=f+d; if(j>0 && j<n-1 && ls[j]>ls[p]) p=j; }
+    const y0=ls[p-1]||0, y1=ls[p], y2=ls[p+1]||0, den=y0-2*y1+y2, off=den<0 ? 0.5*(y0-y2)/den : 0;
+    return E.t0+(p+Math.max(-0.5, Math.min(0.5, off)))*E.fs+BT_BIAS;
+  });
+}
+/* เกลี่ยเส้นจังหวะ: ถดถอยเชิงเส้นถ่วงน้ำหนักสามเหลี่ยม ±W จังหวะ */
+function btSmooth(b, W){
+  const out=new Float64Array(b.length);
+  for(let i=0;i<b.length;i++){
+    const a=Math.max(0, i-W), z=Math.min(b.length-1, i+W);
+    let sw=0, sx=0, sy=0, sxx=0, sxy=0;
+    for(let j=a;j<=z;j++){ const w=1-Math.abs(j-i)/(W+1); sw+=w; sx+=w*j; sy+=w*b[j]; sxx+=w*j*j; sxy+=w*j*b[j]; }
+    const den=sw*sxx-sx*sx, m=den ? (sw*sxy-sx*sy)/den : 0, c=(sy-m*sx)/sw;
+    out[i]=m*i+c;
+  }
+  return out;
+}
+/* วิเคราะห์เพลงที่โหลดอยู่: จังหวะทุกจังหวะ (เกลี่ยแล้ว) จับคู่กับกริดตอนนี้ — คืนความคลาดรายห้องและความเร็วจริงรายห้อง */
+async function btAnalyze(onProg){
+  if(!S.buf || !S.bars.length) return null;
+  const den=S.bars[0].den, unit=beatSec(den, 0);
+  const E=await btEnvelope(S.buf, onProg);
+  const raw=btTrack(E, unit/E.fs), sm=btSmooth(raw, 3);
+  if(sm.length<8) return {ok:false, why:"จับจังหวะได้น้อยเกินไป (เพลงสั้นหรือจังหวะไม่ชัด)"};
+  let k0=0; for(let i=1;i<sm.length;i++) if(Math.abs(sm[i]-barStarts[0])<Math.abs(sm[k0]-barStarts[0])) k0=i;
+  const bars=[]; let k=k0;
+  for(let i=0;i<S.bars.length && k<sm.length;i++){
+    if(S.bars[i].den!==den) break;                       // หน่วยจังหวะเปลี่ยน: ตามได้ถึงตรงนั้น
+    bars.push({bi:i, t:sm[k], grid:barStarts[i]});
+    k+=S.bars[i].num;
+  }
+  bars.forEach((b,j)=>{ const nx=bars[j+1]; b.bpm = nx ? S.bars[b.bi].num*240/(den*(nx.t-b.t)) : null; });
+  const tem=bars.filter(b=>b.bpm).map(b=>b.bpm);
+  const dev=bars.map(b=>b.grid-b.t), worst=dev.reduce((m,v,i)=>Math.abs(v)>Math.abs(m.v) ? {v, bi:bars[i].bi} : m, {v:0, bi:0});
+  // ความเร็วเดียวที่ดีที่สุด (ใช้กับแบบดึงเพลงให้ตรง): ระยะเฉลี่ยของจังหวะช่วงที่ตามได้
+  const nBeats=k-k0-(k>sm.length ? k-sm.length : 0), last=Math.min(sm.length-1, k0+Math.max(1, nBeats));
+  const meanUnit=(sm[last]-sm[k0])/Math.max(1, last-k0);
+  return {ok:true, raw, sm, k0, bars, den, unit, phase:Math.abs(sm[k0]-barStarts[0])/unit,
+          lo:Math.min(...tem), hi:Math.max(...tem), worst, meanBpm:240/(den*meanUnit), meanUnit};
+}
+/* แบบที่ 1 — ให้กริดตามเพลง: ความเร็วรายห้องจากจังหวะจริง (ป้าย tf = ตามเพลง ไม่พิมพ์เป็นป้ายความเร็วทุกห้อง) */
+function btFollow(R){
+  if(!R || !R.ok) return false;
+  btClear(false);
+  S.offset=Math.round(R.bars[0].t*1000)/1000;
+  for(let j=0;j+1<R.bars.length;j++){
+    const b=R.bars[j], bar=S.bars[b.bi];
+    bar.bpm=Math.round(bar.num*240/(bar.den*(R.bars[j+1].t-b.t))*100)/100; bar.tf=true;
+  }
+  S.bpm=S.bars[0].bpm||S.bpm;
+  $("#bpm").value=S.bpm; $("#offset").value=S.offset;
+  afterTempoChange();
+  return true;
+}
+/* เลิกตามเพลง / เลิกดึงเพลง: ความเร็วกลับเป็นค่าเดียว (ค่าเฉลี่ยของที่ตามไว้) */
+function btClear(redraw){
+  const tf=S.bars.filter(b=>b.tf);
+  if(tf.length){
+    const avg=tf.reduce((s,b)=>s+b.bpm,0)/tf.length;
+    S.bars.forEach(b=>{ if(b.tf){ delete b.bpm; delete b.tf; } });
+    S.bpm=Math.round(avg*10)/10; $("#bpm").value=S.bpm;
+  }
+  if(redraw!==false) afterTempoChange();
+}
+/* แบบที่ 2 — ดึงเพลงให้ตรงความเร็วเดียว: จังหวะที่ k ของเพลง (เส้นที่เกลี่ยแล้ว) → ต้นห้อง 1 + k × ระยะจังหวะคงที่
+   เก็บเป็นขั้นแก้เสียง {k:"warp", s:[วินาทีเดิม], d:[วินาทีใหม่], bpm} — ต้นฉบับไม่ถูกแตะ ย้อนได้ */
+function btWarpOp(R){
+  const bpm=Math.round(R.meanBpm*10)/10, unit=240/(R.den*bpm), t0=R.sm[R.k0];
+  const s=[], d=[];
+  for(let k=0;k<R.sm.length;k++){ s.push(Math.round(R.sm[k]*1e4)/1e4); d.push(Math.round((t0+(k-R.k0)*unit)*1e4)/1e4); }
+  // ก่อนจังหวะแรกต้องไม่ติดลบ (อินโทรสั้นกว่าที่ต้องยืด) — เลื่อนทั้งชุดถ้าจำเป็น
+  const shift=Math.max(0, -(d[0]-s[0]*0.98));
+  return {k:"warp", s, d:d.map(v=>Math.round((v+shift)*1e4)/1e4), bpm, off:Math.round((t0+shift)*1000)/1000};
+}
+const WARP={key:"", buf:null, job:null};
+function warpKey(base, op){ return (S.bufOrig ? S.bufOrig.length+"|"+S.bufOrig.sampleRate : "")+"|"+JSON.stringify(base)+"|"+op.s.length+"|"+op.s[0]+"|"+op.d[op.d.length-1]; }
+/* เรนเดอร์เสียงที่ดึงแล้วด้วยตัวยืด (ออฟไลน์): ช่วง (d[i-1], d[i]] ใช้อัตรา (s[i]−s[i-1])/(d[i]−d[i-1])
+   ตัวยืดคิดย้อนหลังเป็นเส้นตรงจากจุดยึดที่ d[i] ได้เอง จึงสั่งทีละจุดยึดตอนเรนเดอร์หยุดพักก่อนถึงช่วงนั้น */
+async function warpRender(src, op, onProg){
+  await sstScript();
+  SignalsmithStretch.moduleUrl="lib/signalsmith-stretch-worklet-1.3.2.js";
+  const sr=src.sampleRate, s=op.s, d=op.d, n=s.length;
+  const outDur=d[n-1]+Math.max(0.5, src.duration-s[n-1]);
+  const oc=new OfflineAudioContext(2, Math.ceil(outDur*sr), sr);
+  const node=await SignalsmithStretch(oc);
+  node.connect(oc.destination);
+  const chs=[]; for(let c=0;c<src.numberOfChannels;c++) chs.push(src.getChannelData(c).slice());
+  await node.addBuffers(chs, chs.map(x=>x.buffer));
+  const seg=i=> i<n ? {outputTime:d[i], active:true, input:s[i], rate:(s[Math.max(1,i)]-s[Math.max(1,i)-1])/(d[Math.max(1,i)]-d[Math.max(1,i)-1])}
+                    : {outputTime:d[n-1]+1, active:true, input:s[n-1]+1, rate:1};
+  await node.schedule(seg(0));
+  const q=x=>Math.max(128/sr, Math.floor(x*sr/128)*128/sr);
+  for(let i=1;i<=n;i++){
+    const at=q(d[i-1]-0.05);
+    if(at>=outDur) break;
+    oc.suspend(at).then(async()=>{ await node.schedule(seg(i)); if(onProg && i%16===0) onProg(i/n); oc.resume(); });
+  }
+  return await oc.startRendering();
+}
+
 /* ── หน้าจัดเสียง ── */
 const AE={win:{a:0, len:8}, sel:null, tool:"sel", scope:"all", drag:null};
 function aeOpen(on){
@@ -7720,7 +7965,7 @@ function aeOpen(on){
     aeRender();
   } else draw();
 }
-function aeRender(){ aeDrawMain(); aeDrawOver(); aeList(); }
+function aeRender(){ aeDrawMain(); aeDrawOver(); aeList(); if(typeof btSync==="function") btSync(); }
 function aeSize(c){
   const dpr=Math.min(2, window.devicePixelRatio||1);
   const w=Math.max(200, (c.parentNode && c.parentNode.clientWidth) || 1000);
@@ -7820,8 +8065,131 @@ function syncAeSeg(){
   document.querySelectorAll("#aeTool button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===AE.tool)));
   document.querySelectorAll("#aeScope button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===AE.scope)));
 }
+/* ── การ์ด "จังหวะเพลงที่แกว่ง" ในหน้าจัดเสียง ── */
+const btHas = () => S.bars.some(b=>b.tf) || (S.audioEdits||[]).some(o=>o.k==="warp");
+function btMap(op){                                   // เวลาในเสียงก่อนดึง → หลังดึง (เส้นตรงทีละช่วง)
+  const s=op.s, d=op.d, n=s.length;
+  return t=>{
+    if(t<=s[0]) return d[0]+(t-s[0])*(d[1]-d[0])/(s[1]-s[0]);
+    if(t>=s[n-1]) return d[n-1]+(t-s[n-1]);
+    let lo=0, hi=n-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(s[m]<=t) lo=m; else hi=m; }
+    return d[lo]+(t-s[lo])*(d[hi]-d[lo])/(s[hi]-s[lo]);
+  };
+}
+/* โน้ตที่ถอดอัตโนมัติ: ลงช่องตามกริดใหม่ (โน้ตที่เขียนเอง/แก้เองไม่แตะ) · mapT = แปลงเวลาเมื่อเสียงถูกดึง */
+function btRequant(mapT){
+  if(!$("#btRq").checked || !S.notes.some(n=>n.auto)) return false;
+  if(mapT){ const o2={}; for(const k in S.onsets) o2[k]=(S.onsets[k]||[]).map(x=>Object.assign({}, x, {t:mapT(x.t)})); BT.onsets0=S.onsets; S.onsets=o2; }
+  pushUndo(); importDetections(); checkPlayable(); validateNotation(); draw(); updStats();
+  return true;
+}
+function btDraw(){
+  const c=$("#btGraph"); if(!c) return;
+  const {g, w, h}=aeSize(c), R=BT.res;
+  g.fillStyle="#1F1B19"; g.fillRect(0, 0, w, h);
+  g.font="500 12px 'IBM Plex Sans Thai', sans-serif"; g.textBaseline="middle";
+  if(!R || !R.ok){ g.fillStyle="#D8CFC5"; g.textAlign="center"; g.fillText(R ? R.why : "ยังไม่ได้วิเคราะห์ — กด \"วิเคราะห์จังหวะ\"", w/2, h/2); g.textAlign="left"; return; }
+  const dur=Math.max(1, S.buf ? S.buf.duration : totalEnd()), X=t=>8+(w-16)*t/dur;
+  const grid=R.bars.map(b=>bpmAt(b.bi)), all=R.bars.filter(b=>b.bpm).map(b=>b.bpm).concat(grid);
+  const lo=Math.min(...all)-1.5, hi=Math.max(...all)+1.5, Y=v=>h-20-(h-38)*(v-lo)/Math.max(0.5, hi-lo);
+  g.strokeStyle="#3A322D"; g.lineWidth=1;
+  for(const v of [Math.round(lo+1.5), Math.round((lo+hi)/2), Math.round(hi-1.5)]){ g.beginPath(); g.moveTo(8, Y(v)+0.5); g.lineTo(w-8, Y(v)+0.5); g.stroke();
+    g.fillStyle="#8A7469"; g.fillText(String(v), w-34, Y(v)-7); }
+  // กริด/เมโทรนอมตอนนี้ (เส้นประขั้นบันได)
+  g.strokeStyle="#E8A447"; g.lineWidth=1.5; g.setLineDash([5, 4]); g.beginPath();
+  R.bars.forEach((b,j)=>{ const x=X(b.grid), y=Y(grid[j]); if(j===0) g.moveTo(x, y); else g.lineTo(x, y); const nx=R.bars[j+1]; g.lineTo(nx ? X(nx.grid) : X(b.grid)+6, y); });
+  g.stroke(); g.setLineDash([]);
+  // ความเร็วจริงของเพลง
+  g.strokeStyle="#7FB8C2"; g.lineWidth=2.2; g.beginPath(); let st=false;
+  R.bars.forEach(b=>{ if(!b.bpm) return; const x=X(b.t), y=Y(b.bpm); if(!st){ g.moveTo(x, y); st=true; } else g.lineTo(x, y); });
+  g.stroke();
+  // จุดที่กริดคลาดจากเพลงเกิน 40 ms
+  g.fillStyle="#E8685C";
+  R.bars.forEach(b=>{ const dv=Math.abs(b.grid-b.t); if(dv>0.04){ g.beginPath(); g.arc(X(b.t), h-9, Math.min(6, 2+dv*20), 0, Math.PI*2); g.fill(); } });
+  g.fillStyle="#7FB8C2"; g.fillText("— ความเร็วจริงของเพลง", 12, 11);
+  g.fillStyle="#E8A447"; g.fillText("- - กริด/เมโทรนอมตอนนี้", 168, 11);
+  g.fillStyle="#E8685C"; g.fillText("● คลาดจากเพลงเกิน 40 ms", 340, 11);
+}
+function btSummary(R){
+  if(!R || !R.ok) return R ? R.why : "";
+  if(R.followed) return "✓ กริดและเมโทรนอมตามเพลงอยู่ — ความเร็วรายห้อง "+R.lo.toFixed(1)+"–"+R.hi.toFixed(1)+" BPM เปลี่ยนนุ่ม ๆ ตามวง · เสียงเพลงไม่ถูกแตะ";
+  const sw=Math.max(Math.abs(R.hi/R.meanBpm-1), Math.abs(R.lo/R.meanBpm-1))*100, ms=Math.round(Math.abs(R.worst.v)*1000);
+  let t="เพลงนี้เล่น "+R.lo.toFixed(1)+"–"+R.hi.toFixed(1)+" BPM (แกว่ง ±"+sw.toFixed(1)+"%) · กริดตอนนี้คลาดจากเพลงสูงสุด "+ms+" ms ที่ห้อง "+(R.worst.bi+1);
+  if(R.phase>0.25) t+=" · ⚠ จังหวะที่ 1 ที่ตั้งไว้อาจคลาดครึ่งจังหวะ — ตรวจ \"จุดเริ่มห้อง 1\" ก่อน";
+  else if(ms<=30) t+=" — ตรงกริดดีอยู่แล้ว ไม่ต้องแก้";
+  else t+=" — แนะนำ \"ให้กริดและเมโทรนอมตามเพลง\" (ไม่แตะเสียง)";
+  return t;
+}
+function btSync(){
+  const ok=!!(BT.res && BT.res.ok);
+  $("#btFollow").disabled=!ok || BT.busy; $("#btWarp").disabled=!ok || BT.busy; $("#btScan").disabled=BT.busy || !S.buf;
+  $("#btOff").hidden=!btHas(); $("#btRqWrap").hidden=!S.notes.some(n=>n.auto);
+  $("#btInfo").textContent = BT.res ? btSummary(BT.res) : $("#btInfo").textContent;
+  btDraw();
+}
+async function btScan(quiet){
+  if(BT.busy || !S.buf) return null;
+  BT.busy=true; if(!quiet){ btSync(); setStatus("กำลังหาจังหวะจริงทุกจังหวะของเพลง …"); }
+  try{
+    BT.res=await btAnalyze(f=>{ if(!quiet) setProg(f); });
+    if(!quiet) setStatus(BT.res && BT.res.ok ? "วิเคราะห์จังหวะเสร็จแล้ว" : (BT.res ? BT.res.why : "วิเคราะห์ไม่ได้"), !(BT.res && BT.res.ok));
+  }catch(e){ console.error(e); BT.res={ok:false, why:"วิเคราะห์จังหวะไม่สำเร็จ: "+e.message}; }
+  finally{ BT.busy=false; if(!quiet) setProg(null); if($("#btGraph")) btSync(); }
+  return BT.res;
+}
+function btDoFollow(){
+  const R=BT.res; if(!R || !R.ok) return;
+  if(S.playing) stop();
+  if((S.audioEdits||[]).some(o=>o.k==="warp")){ S.audioEdits=S.audioEdits.filter(o=>o.k!=="warp"); applyAudioEdits(); }
+  btFollow(R);
+  const rq=btRequant(null);
+  R.bars.forEach(b=>{ b.grid=barStarts[b.bi]; });               // กริดใหม่ทับเส้นเพลงพอดี
+  R.worst={v:0, bi:0}; R.followed=true; markDirty(); btSync(); if(!$("#audioScreen").classList.contains("hidden")) aeRender();
+  setStatus("กริดและเมโทรนอมตามเพลงแล้ว "+R.bars.length+" ห้อง (ความเร็ว "+R.lo.toFixed(1)+"–"+R.hi.toFixed(1)+" BPM เปลี่ยนนุ่ม ๆ ทีละห้อง) · เสียงเพลงไม่ถูกแตะ"+(rq ? " · จัดโน้ตที่ถอดอัตโนมัติลงจังหวะใหม่แล้ว" : ""));
+}
+function btDoWarp(){
+  const R=BT.res; if(!R || !R.ok || !S.bufOrig) return;
+  if(S.playing) stop();
+  const op=btWarpOp(R);
+  btClear(false);
+  S.audioEdits=(S.audioEdits||[]).filter(o=>o.k!=="warp"); S.audioEdits.push(op);
+  S.bpm=op.bpm; S.offset=op.off; $("#bpm").value=S.bpm; $("#offset").value=S.offset;
+  afterTempoChange();
+  applyAudioEdits();                                     // เริ่มเรนเดอร์เบื้องหลัง เสร็จแล้วสลับเสียงเอง
+  const rq=btRequant(btMap(op));
+  BT.res=null; markDirty(); btSync(); if(!$("#audioScreen").classList.contains("hidden")) aeRender();
+  setStatus("กำลังดึงเพลงให้ตรง ♩ = "+op.bpm+" ("+op.s.length+" จังหวะ) — เสร็จแล้วจะสลับเสียงให้เอง"+(rq ? " · จัดโน้ตที่ถอดอัตโนมัติลงจังหวะใหม่แล้ว" : ""));
+}
+function btDoOff(){
+  if(S.playing) stop();
+  const hadWarp=(S.audioEdits||[]).some(o=>o.k==="warp");
+  if(hadWarp){ S.audioEdits=S.audioEdits.filter(o=>o.k!=="warp"); applyAudioEdits(); if(BT.onsets0){ S.onsets=BT.onsets0; BT.onsets0=null; } }
+  btClear(true); BT.res=null; markDirty(); btSync(); if(!$("#audioScreen").classList.contains("hidden")) aeRender();
+  setStatus("กลับเป็นความเร็วเดียว ♩ = "+S.bpm+(hadWarp ? " · เสียงเพลงกลับเป็นแบบไม่ดึง" : ""));
+}
+/* หลังนำเข้าเพลง: ตรวจความแกว่งเบื้องหลัง ถ้ากริดหลุดจากเพลงเกิน 60 ms บอกผู้ใช้พร้อมปุ่มแก้ในแตะเดียว */
+async function btAutoCheck(){
+  await new Promise(r=>setTimeout(r, 400));
+  const R=await btScan(true);
+  if(!R || !R.ok || R.phase>0.25 || Math.abs(R.worst.v)<0.06) return;
+  const el=$("#impResult"); if(!el) return;
+  const msg='<span class="simtxt">⚠ เพลงนี้ความเร็วแกว่ง '+R.lo.toFixed(1)+'–'+R.hi.toFixed(1)+' BPM — กริดกับเมโทรนอมคลาดจากเพลงสูงสุด '+Math.round(Math.abs(R.worst.v)*1000)+' ms (ห้อง '+(R.worst.bi+1)+')</span>'+
+            '<button class="btn primary sm" data-act="btfollow">ให้กริดและเมโทรนอมตามเพลง</button><button class="btn sm" data-act="btmore">ดูกราฟ</button>';
+  if(el.classList.contains("hidden")){ el.innerHTML=msg+'<button class="btn sm" data-act="close">ปิด</button>'; el.classList.remove("hidden"); }
+  else el.insertAdjacentHTML("beforeend", '<div style="flex-basis:100%; height:0"></div>'+msg);
+  el.dataset.stamp=String(++IMP_STAMP);                    // มีคำเตือน = ค้างไว้จนกดปิด
+}
 function wireAudioEdit(){
   $("#toAudio").onclick=()=>aeOpen(true);
+  $("#btScan").onclick=()=>btScan(false);
+  $("#btFollow").onclick=()=>btDoFollow();
+  $("#btWarp").onclick=()=>btDoWarp();
+  $("#btOff").onclick=()=>btDoOff();
+  $("#impResult").addEventListener("click", e=>{
+    const b=e.target.closest("button[data-act]"); if(!b) return;
+    if(b.dataset.act==="btfollow"){ btDoFollow(); b.closest("#impResult").classList.add("hidden"); }
+    if(b.dataset.act==="btmore"){ aeOpen(true); }
+  });
   $("#aeBack").onclick=()=>aeOpen(false);
   $("#aeDone").onclick=()=>aeOpen(false);
   $("#aePlay").onclick=()=>{ if(S.playing) stop(); else play(); };
@@ -9415,6 +9783,7 @@ function snapshot(){
     bars: S.bars.map(b => {
       const o = {num:b.num, den:b.den};
       if(b.bpm > 0) o.bpm = b.bpm;
+      if(b.tf) o.tf = true;
       if(b.safe !== undefined) o.safe = Array.isArray(b.safe) ? b.safe.slice() : b.safe;
       return o;
     }),
@@ -9443,6 +9812,7 @@ function restoreSnap(sn){
     ? sn.bars.map(b => {
         const o = {num:b.num, den:b.den};
         if(b.bpm > 0) o.bpm = b.bpm;
+        if(b.bpm > 0 && b.tf) o.tf = true;
         if(b.safe !== undefined) o.safe = Array.isArray(b.safe) ? b.safe.slice() : b.safe;
         return o;
       })
@@ -9727,9 +10097,15 @@ function vxOpts(){
   const nb=S.bars.length, last=prBarCount();
   const b0=clamp(Math.round(n("vxFrom",1))-1, 0, nb-1), b1=clamp(Math.round(n("vxTo",last))-1, b0, nb-1);
   const vol=id=>clamp(n(id,50),0,100)/100;
+  /* นับเข้าอัตโนมัติ: มีเพลงก่อนต้นช่วงอย่างน้อย 1 ห้อง → นับ 1 ห้องทับอินโทรนั้น · ไม่มี (เริ่มต้นเพลงเลย) → ไม่นับ เพลงเข้าทันที
+     · ไม่มีเพลง (กลองอย่างเดียว) → นับ 1 ห้อง (ไม่งั้นไม่รู้ว่าจะเริ่มตอนไหน)
+     ผู้ใช้เจอ "เพลงดีเลย์ราว 3 วินาที" = นับเข้า 1 ห้องบนความเงียบ เพราะเพลงไม่มีอินโทรก่อนห้อง 1 */
+  const muOn=!!S.buf && $("#vxMuOn").checked;
+  let count=$("#vxCount").value;
+  if(count==="auto") count = !muOn ? 1 : (barStarts[b0] >= barSec(S.bars[b0], b0)-0.05 ? 1 : 0);
   return {
     res:+$("#vxRes").value||1080, fps:+$("#vxFps").value||60, per:+$("#vxPer").value||2, lines:+$("#vxLines").value||3,
-    b0, b1, rate:n("vxRate",1), count:n("vxCount",1), color:$("#vxColor").checked,
+    b0, b1, rate:n("vxRate",1), count:+count, countAuto:$("#vxCount").value==="auto", color:$("#vxColor").checked,
     dr:{on:$("#vxDrOn").checked, vol:vol("vxDr")},
     mu:{on:!!S.buf && $("#vxMuOn").checked, vol:vol("vxMu")},
     cl:{on:$("#vxClOn").checked, vol:vol("vxCl"), pan:clamp(n("vxPan",0),-100,100)/100,
@@ -9737,7 +10113,7 @@ function vxOpts(){
   };
 }
 function vxSave(){
-  const o=vxOpts(), st={res:o.res, fps:o.fps, per:o.per, lines:o.lines, rate:o.rate, count:o.count, color:o.color,
+  const o=vxOpts(), st={res:o.res, fps:o.fps, per:o.per, lines:o.lines, rate:o.rate, count:$("#vxCount").value, color:o.color,
     drOn:o.dr.on, dr:$("#vxDr").value, muOn:$("#vxMuOn").checked, mu:$("#vxMu").value, clOn:o.cl.on, cl:$("#vxCl").value, pan:$("#vxPan").value,
     clKind:o.cl.kind, duck:o.cl.duck};
   try{ localStorage.setItem(VX_KEY, JSON.stringify(st)); }catch(e){}
@@ -9891,7 +10267,8 @@ function vxFrame(g, W, H, o, T, LY, tv, info){
   };
   pill("ห้อง "+(bi+1)+" / "+(o.b1+1), true, C.teal);
   pill(bar.num+"/"+bar.den, false);
-  const bpm=Math.round(bpmAt(bi)*o.rate*10)/10;
+  // ความเร็วที่ตามเพลง (tf) ขยับทุกห้อง → แสดงจำนวนเต็ม ไม่ให้ตัวเลขกระพริบ
+  const bpm=S.bars[bi].tf ? Math.round(bpmAt(bi)*o.rate) : Math.round(bpmAt(bi)*o.rate*10)/10;
   const tl=pill("= "+bpm+(o.rate!==1 ? "  ("+Math.round(o.rate*100)+"%)" : ""), false, null, 22*s);
   g.save(); g.translate(tl+21*s, 57*s+8*s); g.scale(1.7*s, 1.7*s);
   g.fillStyle=C.ink; g.strokeStyle=C.ink; g.lineWidth=1.2;
@@ -10062,7 +10439,7 @@ async function vxCheck(){
   const v=await vxPickVideo(W, H, o.fps, kbps), a=await vxPickAudio(sr);
   if(id!==VX.checkId) return;
   const mb=Math.round((kbps+320)*T.total/8/1000);
-  const len=vxClock(T.total)+" นาที ("+(o.b1-o.b0+1)+" ห้อง"+(o.count ? " + นับเข้า "+o.count+" ห้อง" : "")+")";
+  const len=vxClock(T.total)+" นาที ("+(o.b1-o.b0+1)+" ห้อง"+(o.count ? " + นับเข้า "+o.count+" ห้อง"+(o.countAuto && o.mu.on ? " ทับเพลงช่วงก่อนหน้า" : "") : (o.countAuto && o.mu.on ? " · เพลงเข้าทันที" : ""))+")";
   if(!v){
     el.textContent="เครื่อง/เบราว์เซอร์นี้สร้างวิดีโอ "+W+"×"+H+" "+o.fps+" fps ไม่ได้"+
       (typeof VideoEncoder==="undefined" ? " (ต้องใช้ Safari 16.4 ขึ้นไป หรือ Chrome)" : " — ลองลดความละเอียดหรือเฟรมเรต")+" · ส่งออกเสียง .wav ได้";
@@ -10085,8 +10462,8 @@ async function vxWaitKits(){
 async function vxMix(o, T, onProg){
   ensureCtx(); stop();
   await vxWaitKits();
-  const sr=S.ctx.sampleRate, N=Math.ceil(T.total*sr);
-  const oc=new OfflineAudioContext(2, N, sr);
+  const sr=S.ctx.sampleRate, N=Math.ceil(T.total*sr), lat=await metroLatency(sr);
+  const oc=new OfflineAudioContext(2, N+lat, sr);
   // สายเสียงชุดเดียวกับตอนเล่นในแอป (คอมเพรสเซอร์ · หลบเสียงให้เมโทรนอม · ลิมิตเตอร์) เสียงในวิดีโอจึงเหมือนที่ได้ยิน
   const bus=metroBus(oc);
   bus.out.connect(oc.destination);
@@ -10102,21 +10479,27 @@ async function vxMix(o, T, onProg){
     try{ for(const e of ev) if(e.k==="n") playVoice(e.v, vxVidAt(T, o, e.t), e.vel, e.art); }
     finally { S.ctx=keep.ctx; dSink=keep.d; }
   }
-  // เพลงประกอบ: เริ่มที่ต้นช่วงพร้อมกลอง · เลยท้ายช่วงค่อย ๆ จาง 1.2 วิ
+  // เพลงประกอบ: เล่นต่อเนื่องตั้งแต่ต้นคลิป — ช่วงนับเข้าได้ยินเพลงส่วนที่อยู่ก่อนต้นช่วงพอดี (เหมือนนับเข้าทับอินโทรจริง)
+  // เดิมปิดเพลงไว้จนถึงต้นช่วง ผู้ใช้เห็นเป็น "เพลงดีเลย์ราว 3 วินาที" (0.6 วิ + นับเข้า 1 ห้อง)
+  // เริ่มกลางเพลงค่อย ๆ ดังขึ้น 0.35 วิ (ไม่กระชากเข้า) · เลยท้ายช่วงค่อย ๆ จาง 1.2 วิ
   if(o.mu.on && o.mu.vol>0 && S.buf){
     const gM=oc.createGain(); gM.connect(bed);
-    gM.gain.setValueAtTime(0, 0); gM.gain.setValueAtTime(0, T.t0); gM.gain.linearRampToValueAtTime(o.mu.vol, T.t0+0.004);
+    const in0=T.A-T.t0*o.rate;                               // ตำแหน่งในเพลง ณ วินาทีแรกของคลิป
+    const vStart=in0>=0 ? 0 : -in0/o.rate;                   // ก่อนหน้าไม่มีเสียงเพลง → เริ่มเมื่อถึงต้นไฟล์
+    const midSong=in0>0.05;
+    gM.gain.setValueAtTime(midSong ? 0 : o.mu.vol, 0);
+    if(midSong) gM.gain.linearRampToValueAtTime(o.mu.vol, 0.35);
     gM.gain.setValueAtTime(o.mu.vol, T.end); gM.gain.linearRampToValueAtTime(0, T.end+1.2);
     if(o.rate===1){
-      if(T.A<S.buf.duration){ const s=oc.createBufferSource(); s.buffer=S.buf; s.connect(gM); s.start(T.t0, T.A); }
+      if(T.A<S.buf.duration){ const s=oc.createBufferSource(); s.buffer=S.buf; s.connect(gM); s.start(vStart, Math.max(0, in0)); }
     } else {
       await sstScript();
       SignalsmithStretch.moduleUrl="lib/signalsmith-stretch-worklet-1.3.2.js";
       const node=await SignalsmithStretch(oc);
       const chs=[]; for(let c=0;c<S.buf.numberOfChannels;c++) chs.push(S.buf.getChannelData(c).slice());
       await node.addBuffers(chs, chs.map(x=>x.buffer));
-      const pr=Math.min(0.5, T.t0);                          // เริ่มก่อนครึ่งวินาที (ปิดเสียงไว้) ให้ตัวยืดนิ่งพอดีตอนถึงต้นช่วง
-      node.schedule({outputTime:T.t0-pr, active:true, input:T.A-pr*o.rate, rate:o.rate});
+      // สั่งครั้งเดียวที่ต้นช่วง: ตัวยืดคิดย้อนหลังเป็นเส้นตรงเอง (ก่อนต้นช่วง = ตำแหน่งก่อนหน้าตามความเร็วเดียวกัน)
+      node.schedule({outputTime:T.t0, active:true, input:T.A, rate:o.rate});
       node.connect(gM);
     }
   }
@@ -10133,7 +10516,12 @@ async function vxMix(o, T, onProg){
     if(o.cl.duck) metroDuck(bus.duckL.gain, bus.duckR.gain, w, beatSec(S.bars[i].den, i)/o.rate, metroDuckDb(v100), o.cl.pan);
   }
   for(let t=8;t<T.total;t+=8) oc.suspend(t).then(()=>{ onProg && onProg(t/T.total); oc.resume(); });
-  return await oc.startRendering();
+  const r=await oc.startRendering();
+  if(!lat) return r;
+  // ตัดความหน่วงของสายเสียงออก ให้เสียงตรงกับภาพ (หัวอ่าน/แสงวาบ) ถึงระดับตัวอย่างเสียง
+  const out=new AudioBuffer({length:N, numberOfChannels:2, sampleRate:sr});
+  for(let c=0;c<2;c++) out.getChannelData(c).set(r.getChannelData(c).subarray(lat, lat+N));
+  return out;
 }
 function vxWavBytes(buf){
   const n=buf.length, ch=buf.numberOfChannels, sr=buf.sampleRate, bps=3, size=n*ch*bps;

@@ -301,6 +301,10 @@ hr{border:0;border-top:1px solid var(--line); margin:13px 0}
 .vxrow output{font:600 12px 'IBM Plex Mono', monospace; color:var(--dim); text-align:right}
 .vxrow.vxpan{grid-template-columns:118px 14px minmax(0,1fr) 14px 52px; font-size:13px; color:var(--dim)}
 .vxrow.vxpan b{font:600 11px 'IBM Plex Mono', monospace; color:var(--dim); text-align:center}
+.vxrow.vxkind{grid-template-columns:118px minmax(0,1fr) auto; font-size:13px; color:var(--dim)}
+.vxrow.vxkind select{min-height:40px; min-width:0}
+.metropan b{font:600 11px 'IBM Plex Mono', monospace; color:var(--dim)}
+.metropan input[type=range]{flex:1 1 auto; min-width:60px}
 .vxrow input:disabled{opacity:.4}
 #vxPrev{display:block; width:100%; aspect-ratio:16/9; border-radius:8px; background:#17120F; cursor:pointer; touch-action:manipulation}
 .vxinfo{margin:8px 0 10px; font-size:12.5px; line-height:1.6}
@@ -909,6 +913,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
         <div class="vxrow"><label class="chk"><input type="checkbox" id="vxMuOn" checked> เพลงประกอบ</label><input type="range" id="vxMu" min="0" max="100" aria-label="ความดังเพลงประกอบในวิดีโอ"><output id="vxMuV"></output></div>
         <div class="vxrow"><label class="chk"><input type="checkbox" id="vxClOn"> เมโทรนอม</label><input type="range" id="vxCl" min="0" max="100" aria-label="ความดังเมโทรนอมในวิดีโอ"><output id="vxClV"></output></div>
         <div class="vxrow vxpan"><span>แพนเมโทรนอม</span><b>L</b><input type="range" id="vxPan" min="-100" max="100" step="5" value="0" aria-label="แพนเมโทรนอม ซ้าย ถึง ขวา"><b>R</b><output id="vxPanV"></output></div>
+        <div class="vxrow vxkind"><span>เสียงเมโทรนอม</span><select id="vxClKind" aria-label="เสียงเมโทรนอมในวิดีโอ"></select><label class="chk" title="ทุกครั้งที่คลิก กลองกับเพลงเบาลงชั่วครู่ (เฉพาะข้างที่แพน) เมโทรนอมเด่นและไม่แตก"><input type="checkbox" id="vxDuck" checked> หลบเสียงอื่น</label></div>
       </div>
       <canvas id="vxPrev" title="แตะเพื่อดูตัวอย่างแบบเคลื่อนไหว" aria-label="ตัวอย่างภาพวิดีโอ แตะเพื่อเล่นตัวอย่าง"></canvas>
       <p class="hint vxinfo" id="vxInfo"></p>
@@ -1221,7 +1226,10 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
       <label class="chk"><input type="checkbox" id="snapOn" checked> ดึงหัวอ่าน</label>
       <label class="chk"><input type="checkbox" id="hideEmpty"> ซ่อนแถวที่ยังไม่มีโน้ต</label><label class="chk"><input type="checkbox" id="lockScr"> ล็อกจอ</label></section>
     <section class="isec"><h3>การฟัง</h3><div class="mini"><span>ความเร็ว</span><input type="range" id="rate" min="25" max="125" step="5" value="100"><span id="rateV" style="color:var(--ink)">100%</span></div>
-      <div class="mini" title="วิธียืดเสียงเพลงตอนเล่นช้า/เร็วกว่าเดิม"><span>ยืดเสียง</span><select id="stretchMode" aria-label="วิธียืดเสียงเพลงตอนปรับความเร็ว"><option value="rt">ลื่น · เปลี่ยนได้ทันที</option><option value="tp">คมจุดตี · รอเตรียม</option></select></div><div class="iwrap"><button class="btn sm" id="ab">สลับ A/B</button>
+      <div class="mini" title="วิธียืดเสียงเพลงตอนเล่นช้า/เร็วกว่าเดิม"><span>ยืดเสียง</span><select id="stretchMode" aria-label="วิธียืดเสียงเพลงตอนปรับความเร็ว"><option value="rt">ลื่น · เปลี่ยนได้ทันที</option><option value="tp">คมจุดตี · รอเตรียม</option></select></div>
+      <div class="mini" title="เสียงเมโทรนอม"><span>เมโทรนอม</span><select id="metroKind" aria-label="เสียงเมโทรนอม"></select><button class="btn sm" id="metroTry" type="button">ลองฟัง</button></div>
+      <div class="mini metropan" title="แพนเมโทรนอมซ้าย–ขวา (ใส่หูฟังแล้วให้คลิกอยู่ข้างเดียว)"><span>แพน</span><b>L</b><input type="range" id="metroPan" min="-100" max="100" step="5" value="0" aria-label="แพนเมโทรนอม ซ้าย ถึง ขวา"><b>R</b><span id="metroPanV" style="color:var(--ink)">กลาง</span></div>
+      <label class="chk" title="ทุกครั้งที่คลิก กลองกับเพลงเบาลงชั่วครู่ ได้ยินเมโทรนอมชัดและเสียงไม่แตกตอนบูสต์ · แพนไปข้างไหน ลดเฉพาะข้างนั้น"><input type="checkbox" id="metroDuck"> หลบเสียงอื่นให้เมโทรนอมชัด</label><div class="iwrap"><button class="btn sm" id="ab">สลับ A/B</button>
       <button class="btn sm" id="testSnd">ทดสอบเสียง</button></div></section>
   </div>
 </aside>
@@ -1291,7 +1299,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
     <div class="mini"><span>เพลง</span><input type="range" id="vol" min="0" max="100" value="75"></div>
     <div class="mini"><span>กลอง</span><input type="range" id="dvol" min="0" max="100" value="65"></div>
     <label class="chk"><input type="checkbox" id="click"> เมโทรนอม</label>
-    <div class="mini" title="ความดังเมโทรนอม"><input type="range" id="cvol" min="0" max="100" value="50" aria-label="ความดังเมโทรนอม"></div>
+    <div class="mini" title="ความดังเมโทรนอม — ครึ่งแถบ = ระดับปกติ · ครึ่งบน = บูสต์ถึง +12 dB"><input type="range" id="cvol" min="0" max="100" value="50" aria-label="ความดังเมโทรนอม (ครึ่งบนคือบูสต์)"></div>
     <span class="sp"></span>
     
     
@@ -4083,7 +4091,15 @@ function updStats(){
 /* ============================================================
    16. เครื่องเสียง
    ============================================================ */
-let musicGain, drumGain, clickGain, dSink=null, cSink=null, noiseBuf=null;
+// ค่าของเมโทรนอม (รายละเอียดดูหัวข้อเมโทรนอมใต้ตัวเล่นเสียงกลอง) — ประกาศก่อน ensureCtx ที่ใช้มัน
+const METRO_KINDS={click:"คลิก (เดิม)", beep:"บี๊ป", wood:"ไม้ (วู้ดบล็อก)", cow:"คาวเบล", clave:"เคลฟ (ไม้ตีกัน)"};
+const METRO={kind:"click", pan:0, duck:true};
+try{ const v=JSON.parse(localStorage.getItem("klongpro.metro")); if(v && typeof v==="object") Object.assign(METRO, v); }catch(e){}
+if(!METRO_KINDS[METRO.kind]) METRO.kind="click";
+function metroSave(){ try{ localStorage.setItem("klongpro.metro", JSON.stringify(METRO)); }catch(e){} }
+const metroRel = v => (v=+v)<=0 ? 0 : v<=50 ? v/50 : Math.pow(10, (v-50)/50*12/20);   // 50 = ระดับเดิม · 100 = +12 dB
+const metroDuckDb = v => 4 + Math.max(0, (+v-50)/50*12)*0.5;                             // 4 dB → 10 dB
+let musicGain, drumGain, clickGain, dSink=null, cSink=null, noiseBuf=null, duckL=null, duckR=null, clickPan=null;
 function ensureCtx(){
   if(!S.ctx){
     const AC = window.AudioContext||window.webkitAudioContext;
@@ -4092,15 +4108,16 @@ function ensureCtx(){
   if(S.ctx.state!=="running"){ try{ S.ctx.resume(); }catch(e){} }
   if(!musicGain){
     musicGain=S.ctx.createGain(); drumGain=S.ctx.createGain(); clickGain=S.ctx.createGain();
-    const comp=S.ctx.createDynamicsCompressor();
-    comp.threshold.value=-6; comp.knee.value=12; comp.ratio.value=3; comp.attack.value=0.004; comp.release.value=0.18;
-    musicGain.connect(comp); drumGain.connect(comp); clickGain.connect(comp);
-    comp.connect(S.ctx.destination);
+    const m=metroBus(S.ctx);
+    musicGain.connect(m.bed); drumGain.connect(m.bed); clickGain.connect(m.click);
+    duckL=m.duckL; duckR=m.duckR; clickPan=m.pan;
+    m.out.connect(S.ctx.destination);
     newSinks();
   }
   musicGain.gain.value=+$("#vol").value/100;
   drumGain.gain.value=+$("#dvol").value/100;
   clickGain.gain.value=clickLevel();
+  if(clickPan) clickPan.pan.value=METRO.pan;
   return S.ctx;
 }
 // ทุกเสียงกลอง/เมโทรนอมที่ตั้งเวลาไว้ล่วงหน้าจะวิ่งผ่านบัสนี้
@@ -4112,6 +4129,7 @@ function newSinks(){
   dSink=S.ctx.createGain(); dSink.connect(drumGain);
   KIT.route(S.ctx, dSink, drumGain);           // ส่งเข้าห้องด้วย ตัดบัสเมื่อไรเสียงห้องก็หยุดตาม
   cSink=S.ctx.createGain(); cSink.connect(clickGain);
+  [duckL, duckR].forEach(d=>{ if(d){ try{ d.gain.cancelScheduledValues(t); d.gain.setValueAtTime(1, t); }catch(e){} } });
 }
 function noise(){
   if(noiseBuf) return noiseBuf;
@@ -4560,14 +4578,84 @@ function previewHit(id, vel){
     playVoice(id, S.ctx.currentTime+0.005, vel);
   }catch(e){}
 }
-function clickAt(when, strong){
+/* ============================================================
+   เมโทรนอม: เสียงให้เลือก · ดังเกินระดับเดิมได้ (บูสต์) · แพนซ้าย–ขวา · หลบเสียงอื่นให้ได้ยินชัด
+   ผู้ใช้บอกว่าเสียงเมโทรนอมเบาเกินไป อยากบูสต์ได้ และถ้าบูสต์แล้วเสียงแตกให้ลดเสียงแทร็กอื่นเอง
+   · ความดัง 0–100: ครึ่งแถบ = ระดับเดิม · ครึ่งบนบูสต์ถึง +12 dB
+   · หลบเสียง (แบบ sidechain ducking ของงานมิกซ์): ทุกครั้งที่คลิก กลอง+เพลงเบาลงชั่วครู่ (~0.1 วิ)
+     ลึก 4 dB ที่ระดับปกติ ถึง 10 dB ตอนบูสต์เต็ม — จังหวะที่คลิกชนกระเดื่อง/สแนร์คือจังหวะที่เสียงรวมล้น หลบตรงนั้นจึงไม่แตก
+     แพนไปข้างไหน ลดเฉพาะข้างนั้น (แพนเต็มซ้าย = ลดแค่ซ้าย · กลาง = ลดทั้งสองข้าง)
+   · ลิมิตเตอร์ท้ายสาย กันยอดคลื่นเกิน 0 dBFS ที่ยังเหลือ
+   ใช้ชุดเดียวกันทั้งตอนเล่นในแอปและตอนมิกซ์วิดีโอ (metroBus · metroVoice · metroDuck)
+   ============================================================ */
+/* สายเสียงรวม: bed (เพลง+กลอง) → แยกซ้าย/ขวา → ตัวหลบ → คอมเพรสเซอร์ · click → แพน → คอมเพรสเซอร์ · → ลิมิตเตอร์ */
+function metroBus(ctx){
+  const comp=ctx.createDynamicsCompressor();
+  comp.threshold.value=-6; comp.knee.value=12; comp.ratio.value=3; comp.attack.value=0.004; comp.release.value=0.18;
+  const lim=ctx.createDynamicsCompressor();
+  lim.threshold.value=-1; lim.knee.value=0; lim.ratio.value=20; lim.attack.value=0.001; lim.release.value=0.08;
+  comp.connect(lim);
+  // ลิมิตเตอร์ของ Web Audio ตามยอดคลิกที่ขึ้นเร็วกว่า 1 ms ไม่ทัน (วัดได้ 1.36 = แตก) → ปิดท้ายด้วยตัวโค้งนุ่ม:
+  // ต่ำกว่า 0.8 ผ่านตรง ๆ ไม่แตะเสียง · เกินนั้นโค้งเข้าหา 0.99 แทนการตัดยอดแข็ง (ป้อนเข้าครึ่งเดียวให้รับยอดได้ถึง 2.0)
+  const pre=ctx.createGain(); pre.gain.value=0.5;
+  const sh=ctx.createWaveShaper(), n=4096, curve=new Float32Array(n);
+  for(let i=0;i<n;i++){ const u=2*(i/(n-1)*2-1), a=Math.abs(u);
+    curve[i]=a<=0.8 ? u : Math.sign(u)*(0.8+0.19*Math.tanh((a-0.8)/0.19)); }
+  sh.curve=curve; sh.oversample="2x";
+  lim.connect(pre); pre.connect(sh);
+  // เสียงโมโนต้องกระจายเป็นสองข้างก่อนแยก (ตัวแยกช่องตีความแบบ discrete — ไม่บังคับ = ดังแค่ซ้าย)
+  const bed=ctx.createGain(); bed.channelCount=2; bed.channelCountMode="explicit"; bed.channelInterpretation="speakers";
+  const sp=ctx.createChannelSplitter(2), mg=ctx.createChannelMerger(2), duckL=ctx.createGain(), duckR=ctx.createGain();
+  bed.connect(sp); sp.connect(duckL, 0); sp.connect(duckR, 1); duckL.connect(mg, 0, 0); duckR.connect(mg, 0, 1); mg.connect(comp);
+  const click=ctx.createGain(); let pan=null;
+  if(ctx.createStereoPanner){ pan=ctx.createStereoPanner(); click.connect(pan); pan.connect(comp); } else click.connect(comp);
+  return {bed, click, pan, duckL, duckR, out:sh};
+}
+/* หลบเสียงตอนคลิกที่ when · beat = ระยะห่างของคลิก (วินาทีจริง) · db = ความลึก · pan −1…1 */
+function metroDuck(gl, gr, when, beat, db, pan){
+  if(!(db>0) || !(beat>=0.12)) return;                     // คลิกถี่เกิน ไม่หลบ (ลดแล้วไม่ทันขึ้น จะกลายเป็นเบาทั้งท่อน)
+  const rel=Math.min(0.14, 0.45*beat);
+  [[gl, pan<=0 ? 1 : 1-pan], [gr, pan>=0 ? 1 : 1+pan]].forEach(([p, f])=>{
+    if(!p || f<=0.01) return;
+    const gd=Math.pow(10, -db*f/20);
+    try{ p.setValueAtTime(1, when-0.008); p.linearRampToValueAtTime(gd, when-0.001);
+         p.setValueAtTime(gd, when+0.04); p.linearRampToValueAtTime(1, when+0.04+rel); }catch(e){}
+  });
+}
+/* เสียงคลิกหนึ่งครั้ง (สังเคราะห์ในเครื่อง ไม่ต้องโหลดไฟล์) · ยอดคลื่นใกล้กันทุกแบบ จังหวะแรกของห้องสูง/ดังกว่า */
+function metroVoice(ctx, dst, when, strong, kind, nb){
+  const part=(pk, atk, dec, hold)=>{
+    const g=ctx.createGain(); g.connect(dst); const p=g.gain;
+    p.setValueAtTime(0.0001, when); p.linearRampToValueAtTime(pk, when+atk);
+    if(hold) p.setValueAtTime(pk, when+atk+hold);
+    p.exponentialRampToValueAtTime(0.0001, when+atk+(hold||0)+dec);
+    return {g, end:when+atk+(hold||0)+dec+0.02};
+  };
+  const osc=(type, f, into, end)=>{ const o=ctx.createOscillator(); o.type=type; o.frequency.setValueAtTime(f, when); o.connect(into); o.start(when); o.stop(end); return o; };
+  if(kind==="beep"){
+    const a=part(strong?0.6:0.45, 0.002, 0.07, 0.035); osc("sine", strong?1760:1320, a.g, a.end);
+  } else if(kind==="wood"){
+    const f=strong?2100:1600;
+    const a=part(strong?0.72:0.55, 0.001, 0.065); const o=osc("sine", f*1.06, a.g, a.end); o.frequency.exponentialRampToValueAtTime(f, when+0.012);
+    const b=part(strong?0.22:0.17, 0.001, 0.025); osc("sine", f*2.73, b.g, b.end);
+    if(nb){ const c=part(0.35, 0.0005, 0.006), s=ctx.createBufferSource(), bp=ctx.createBiquadFilter();
+      s.buffer=nb; bp.type="bandpass"; bp.frequency.value=f*1.5; bp.Q.value=2; s.connect(bp); bp.connect(c.g); s.start(when, Math.random()); s.stop(c.end); }
+  } else if(kind==="cow"){
+    const a=part(strong?0.6:0.46, 0.001, 0.22), bp=ctx.createBiquadFilter();
+    bp.type="bandpass"; bp.frequency.value=strong?3000:2640; bp.Q.value=1.1; bp.connect(a.g);
+    const [f1, f2]=strong ? [810, 1200] : [540, 800];
+    osc("square", f1, bp, a.end); osc("square", f2, bp, a.end);
+  } else if(kind==="clave"){
+    const a=part(strong?0.72:0.56, 0.0005, 0.05); osc("sine", strong?3000:2500, a.g, a.end);
+  } else {
+    const a=part(strong?0.5:0.28, 0.001, 0.035); osc("square", strong?1600:1050, a.g, a.end+0.01);
+  }
+}
+function clickAt(when, strong, beat){
   if(!cSink) ensureCtx();
   if(!cSink) return;
-  const o=S.ctx.createOscillator(); o.type="square";
-  o.frequency.value=strong?1600:1050;
-  const g=S.ctx.createGain(); o.connect(g); g.connect(cSink);
-  env(g,when,strong?0.5:0.28,0.001,0.035);
-  o.start(when); o.stop(when+0.06);
+  metroVoice(S.ctx, cSink, when, strong, METRO.kind, noise());
+  if(METRO.duck && duckL && $("#click").checked) metroDuck(duckL.gain, duckR.gain, when, beat||0.5, metroDuckDb($("#cvol").value), METRO.pan);
 }
 
 /* ============================================================
@@ -5278,7 +5366,7 @@ function pump(){
     if(w>=now-0.01){
       try{
         if(e.k==="n"){ if(abMode!==2) playVoice(e.v, w, e.vel, e.art); }
-        else if(clickOn) clickAt(w, e.strong);
+        else if(clickOn){ const cb=barAtTk(secTk(e.t)); clickAt(w, e.strong, beatSec(S.bars[cb].den, cb)/playRate); }
       }catch(err){
         if(!pumpWarned){ pumpWarned=true; console.error(err);
           setStatus("เล่นเสียง "+(e.v||"เมโทรนอม")+" ไม่ได้: "+(err&&err.message), true); }
@@ -6491,8 +6579,8 @@ $("#stretchMode").onchange=()=>{
 };
 $("#vol").oninput=()=>{ if(musicGain) musicGain.gain.value=+$("#vol").value/100; };
 $("#dvol").oninput=()=>{ if(drumGain) drumGain.gain.value=+$("#dvol").value/100; };
-/* ความดังเมโทรนอม 0–100 (กลางแถบ = ระดับเดิม 0.35) · จำไว้ในเครื่อง · เลื่อนแถบขึ้นตอนปิดอยู่ = เปิดให้เอง */
-function clickLevel(){ return $("#click").checked ? (+$("#cvol").value/100)*0.7 : 0; }
+/* ความดังเมโทรนอม 0–100 (กลางแถบ = ระดับเดิม 0.35 · ครึ่งบน = บูสต์ถึง +12 dB) · จำไว้ในเครื่อง · เลื่อนแถบขึ้นตอนปิดอยู่ = เปิดให้เอง */
+function clickLevel(){ return $("#click").checked ? 0.35*metroRel($("#cvol").value) : 0; }
 try{ const v=localStorage.getItem("klongpro.cvol"); if(v!==null) $("#cvol").value=v; }catch(e){}
 $("#click").onchange=()=>{ if(clickGain) clickGain.gain.value=clickLevel(); restartIfPlaying(); };
 $("#cvol").oninput=()=>{
@@ -6501,6 +6589,26 @@ $("#cvol").oninput=()=>{
   if(clickGain) clickGain.gain.value=clickLevel();
   try{ localStorage.setItem("klongpro.cvol", $("#cvol").value); }catch(e){}
 };
+/* เมโทรนอม: เสียง · แพน · หลบเสียง (ค่าเก็บใน METRO และจำไว้ในเครื่อง) */
+function metroTry(){
+  ensureCtx();
+  const t=S.ctx.currentTime+0.06, g=S.ctx.createGain();
+  g.gain.value=0.35*metroRel(Math.max(+$("#cvol").value, 30));
+  g.connect(clickPan || S.ctx.destination);
+  const nb=noise(); for(let i=0;i<4;i++) metroVoice(S.ctx, g, t+i*0.5, i===0, METRO.kind, nb);
+  setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 2600);
+}
+(function(){
+  const k=$("#metroKind"); if(!k) return;
+  k.innerHTML=Object.keys(METRO_KINDS).map(id=>'<option value="'+id+'">'+METRO_KINDS[id]+'</option>').join("");
+  k.value=METRO.kind; $("#metroPan").value=String(Math.round(METRO.pan*100)); $("#metroDuck").checked=!!METRO.duck;
+  const panTxt=()=>{ const v=+$("#metroPan").value; $("#metroPanV").textContent = v===0 ? "กลาง" : (v<0 ? "L "+(-v) : "R "+v); };
+  panTxt();
+  k.onchange=()=>{ METRO.kind=k.value; metroSave(); metroTry(); };
+  $("#metroPan").oninput=()=>{ METRO.pan=+$("#metroPan").value/100; panTxt(); if(clickPan) clickPan.pan.value=METRO.pan; metroSave(); };
+  $("#metroDuck").onchange=()=>{ METRO.duck=$("#metroDuck").checked; metroSave(); };
+  $("#metroTry").onclick=()=>metroTry();
+})();
 $("#ab").onclick=()=>{
   abMode=(abMode+1)%3;
   $("#ab").textContent=["สลับ A/B","เฉพาะกลองที่ถอด","เฉพาะเพลงจริง"][abMode];
@@ -9624,12 +9732,14 @@ function vxOpts(){
     b0, b1, rate:n("vxRate",1), count:n("vxCount",1), color:$("#vxColor").checked,
     dr:{on:$("#vxDrOn").checked, vol:vol("vxDr")},
     mu:{on:!!S.buf && $("#vxMuOn").checked, vol:vol("vxMu")},
-    cl:{on:$("#vxClOn").checked, vol:vol("vxCl"), pan:clamp(n("vxPan",0),-100,100)/100},
+    cl:{on:$("#vxClOn").checked, vol:vol("vxCl"), pan:clamp(n("vxPan",0),-100,100)/100,
+        kind:METRO_KINDS[$("#vxClKind").value] ? $("#vxClKind").value : "click", duck:$("#vxDuck").checked},
   };
 }
 function vxSave(){
   const o=vxOpts(), st={res:o.res, fps:o.fps, per:o.per, lines:o.lines, rate:o.rate, count:o.count, color:o.color,
-    drOn:o.dr.on, dr:$("#vxDr").value, muOn:$("#vxMuOn").checked, mu:$("#vxMu").value, clOn:o.cl.on, cl:$("#vxCl").value, pan:$("#vxPan").value};
+    drOn:o.dr.on, dr:$("#vxDr").value, muOn:$("#vxMuOn").checked, mu:$("#vxMu").value, clOn:o.cl.on, cl:$("#vxCl").value, pan:$("#vxPan").value,
+    clKind:o.cl.kind, duck:o.cl.duck};
   try{ localStorage.setItem(VX_KEY, JSON.stringify(st)); }catch(e){}
 }
 /* เปิดหน้าส่งออก: ช่วงห้องเริ่มที่ทั้งเพลง · ความดังเริ่มจากที่ตั้งไว้ในแอป (ครั้งแรก) แล้วจำค่าที่ผู้ใช้แก้ */
@@ -9639,7 +9749,13 @@ function vxInit(){
   v("vxRes", st.res); v("vxFps", st.fps); v("vxPer", st.per); v("vxLines", st.lines); v("vxRate", st.rate); v("vxCount", st.count);
   c("vxColor", st.color); c("vxDrOn", st.drOn); c("vxMuOn", st.muOn); c("vxClOn", st.clOn);
   v("vxDr", st.dr!=null ? st.dr : $("#dvol").value); v("vxMu", st.mu!=null ? st.mu : $("#vol").value);
-  v("vxCl", st.cl!=null ? st.cl : $("#cvol").value); v("vxPan", st.pan);
+  v("vxCl", st.cl!=null ? st.cl : $("#cvol").value);
+  // เสียง/แพน/หลบเสียงของเมโทรนอม: ครั้งแรกเอาตามที่ตั้งไว้ในแอป แล้วจำค่าของวิดีโอแยก
+  const kk=$("#vxClKind");
+  if(!kk.options.length) kk.innerHTML=Object.keys(METRO_KINDS).map(id=>'<option value="'+id+'">'+METRO_KINDS[id]+'</option>').join("");
+  kk.value = METRO_KINDS[st.clKind] ? st.clKind : METRO.kind;
+  v("vxPan", st.pan!=null ? st.pan : Math.round(METRO.pan*100));
+  c("vxDuck", st.duck!=null ? st.duck : METRO.duck);
   const last=prBarCount();
   $("#vxFrom").max=$("#vxTo").max=String(S.bars.length);
   $("#vxFrom").value="1"; $("#vxTo").value=String(last);
@@ -9651,7 +9767,7 @@ function vxSync(){
   $("#vxMuOn").disabled=!has; $("#vxMu").disabled=!has || !$("#vxMuOn").checked;
   if(!has) $("#vxMuOn").closest(".vxrow").title="ยังไม่ได้โหลดไฟล์เพลง";
   $("#vxDr").disabled=!$("#vxDrOn").checked; $("#vxCl").disabled=!$("#vxClOn").checked;
-  $("#vxDrV").textContent=$("#vxDr").value; $("#vxMuV").textContent=has ? $("#vxMu").value : "—"; $("#vxClV").textContent=$("#vxCl").value;
+  $("#vxDrV").textContent=$("#vxDr").value; $("#vxMuV").textContent=has ? $("#vxMu").value : "—"; $("#vxClV").textContent = +$("#vxCl").value>50 ? "+"+Math.round((+$("#vxCl").value-50)/50*12)+" dB" : $("#vxCl").value;
   const p=+$("#vxPan").value;
   $("#vxPanV").textContent = p===0 ? "กลาง" : (p<0 ? "L "+(-p) : "R "+p);
   vxPreview();
@@ -9971,24 +10087,24 @@ async function vxMix(o, T, onProg){
   await vxWaitKits();
   const sr=S.ctx.sampleRate, N=Math.ceil(T.total*sr);
   const oc=new OfflineAudioContext(2, N, sr);
-  // เส้นทางเดียวกับตอนเล่นในแอป (คอมเพรสเซอร์ตัวเดียวกัน) เสียงในวิดีโอจึงเหมือนที่ได้ยิน
-  const comp=oc.createDynamicsCompressor();
-  comp.threshold.value=-6; comp.knee.value=12; comp.ratio.value=3; comp.attack.value=0.004; comp.release.value=0.18;
-  comp.connect(oc.destination);
+  // สายเสียงชุดเดียวกับตอนเล่นในแอป (คอมเพรสเซอร์ · หลบเสียงให้เมโทรนอม · ลิมิตเตอร์) เสียงในวิดีโอจึงเหมือนที่ได้ยิน
+  const bus=metroBus(oc);
+  bus.out.connect(oc.destination);
+  const bed=bus.bed;                                         // เพลง+กลอง เข้าทางที่หลบเสียงให้เมโทรนอม
   // กลอง
   if(o.dr.on && o.dr.vol>0){
-    const gD=oc.createGain(); gD.gain.value=o.dr.vol; gD.connect(comp);
-    const bus=oc.createGain(); bus.connect(gD); KIT.route(oc, bus, gD);
+    const gD=oc.createGain(); gD.gain.value=o.dr.vol; gD.connect(bed);
+    const dBus=oc.createGain(); dBus.connect(gD); KIT.route(oc, dBus, gD);
     const keep={ctx:S.ctx, d:dSink, a:regA, l:regL};
     regA=T.A; regL=Math.max(0.05, T.B-T.A);
     let ev; try{ ev=buildEvents(); } finally { regA=keep.a; regL=keep.l; }
-    S.ctx=oc; dSink=bus;                                     // ให้ตัวเล่นเสียงกลองทุกชั้นวางเสียงลงบริบทออฟไลน์
+    S.ctx=oc; dSink=dBus;                                    // ให้ตัวเล่นเสียงกลองทุกชั้นวางเสียงลงบริบทออฟไลน์
     try{ for(const e of ev) if(e.k==="n") playVoice(e.v, vxVidAt(T, o, e.t), e.vel, e.art); }
     finally { S.ctx=keep.ctx; dSink=keep.d; }
   }
   // เพลงประกอบ: เริ่มที่ต้นช่วงพร้อมกลอง · เลยท้ายช่วงค่อย ๆ จาง 1.2 วิ
   if(o.mu.on && o.mu.vol>0 && S.buf){
-    const gM=oc.createGain(); gM.connect(comp);
+    const gM=oc.createGain(); gM.connect(bed);
     gM.gain.setValueAtTime(0, 0); gM.gain.setValueAtTime(0, T.t0); gM.gain.linearRampToValueAtTime(o.mu.vol, T.t0+0.004);
     gM.gain.setValueAtTime(o.mu.vol, T.end); gM.gain.linearRampToValueAtTime(0, T.end+1.2);
     if(o.rate===1){
@@ -10004,19 +10120,18 @@ async function vxMix(o, T, onProg){
       node.connect(gM);
     }
   }
-  // เมโทรนอม (+ เสียงนับเข้า ซึ่งดังเสมอแม้ปิดเมโทรนอม — ไม่งั้นนับเข้าเงียบ)
-  const gC=oc.createGain(); gC.gain.value=0.7*(o.cl.on ? o.cl.vol : Math.max(o.cl.vol, 0.5));
-  const pan=oc.createStereoPanner(); pan.pan.value=o.cl.pan; gC.connect(pan); pan.connect(comp);
-  const click=(when, strong, lvl)=>{
-    const os=oc.createOscillator(); os.type="square"; os.frequency.value=strong?1600:1050;
-    const g=oc.createGain(); os.connect(g); g.connect(gC);
-    const pk=(strong?0.5:0.28)*lvl;
-    g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(pk, when+0.001);
-    g.gain.exponentialRampToValueAtTime(0.0001, when+0.036);
-    os.start(when); os.stop(when+0.06);
-  };
-  for(let i=0;i<o.count*T.num;i++) click(T.pre+i*T.beat, i%T.num===0, 1);
-  if(o.cl.on && o.cl.vol>0) for(let i=o.b0;i<=o.b1;i++) for(let j=0;j<S.bars[i].num;j++) click(vxVidAt(T, o, beatStart(i,j)), j===0, 1);
+  // เมโทรนอม (+ เสียงนับเข้า ซึ่งดังเสมอแม้ปิดเมโทรนอม — ไม่งั้นนับเข้าเงียบ) · ความดังแบบเดียวกับในแอป (ครึ่งบนของแถบ = บูสต์)
+  const v100=o.cl.vol*100, gC=oc.createGain();
+  gC.gain.value=0.35*metroRel(o.cl.on ? v100 : Math.max(v100, 50));
+  if(bus.pan) bus.pan.pan.value=o.cl.pan;
+  gC.connect(bus.click);
+  const nb=noise();
+  for(let i=0;i<o.count*T.num;i++) metroVoice(oc, gC, T.pre+i*T.beat, i%T.num===0, o.cl.kind, nb);
+  if(o.cl.on && o.cl.vol>0) for(let i=o.b0;i<=o.b1;i++) for(let j=0;j<S.bars[i].num;j++){
+    const w=vxVidAt(T, o, beatStart(i,j));
+    metroVoice(oc, gC, w, j===0, o.cl.kind, nb);
+    if(o.cl.duck) metroDuck(bus.duckL.gain, bus.duckR.gain, w, beatSec(S.bars[i].den, i)/o.rate, metroDuckDb(v100), o.cl.pan);
+  }
   for(let t=8;t<T.total;t+=8) oc.suspend(t).then(()=>{ onProg && onProg(t/T.total); oc.resume(); });
   return await oc.startRendering();
 }

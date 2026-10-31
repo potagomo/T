@@ -692,6 +692,18 @@ async function mediaSuite(label, exe) {
     const wok = wb.toString("latin1", 0, 4) === "RIFF" && wb.toString("latin1", 8, 12) === "WAVE" && wb.readUInt16LE(34) === 24;
     say(`เสียงไม่บีบอัด: ${w ? w.suggestedFilename() : "ไม่มีไฟล์"} · ${wok ? wb.readUInt32LE(24) + " Hz 24-bit" : "รูปแบบผิด"} · ${Math.round(wb.length / 1024)} KB`);
     if (!wok) fail.push(`${label}: ส่งออก .wav 24-bit ไม่สำเร็จ`);
+    /* เมโทรนอม: แพนเต็มซ้าย + บูสต์เต็ม (ผู้ใช้ขอให้ดังขึ้นได้โดยไม่แตก) → คลิกต้องอยู่ซ้ายเกือบทั้งหมด และยอดคลื่นไม่เกิน 0 dBFS */
+    await page.evaluate(() => { const set = (id, v) => { const e = document.getElementById(id); if (e.type === "checkbox") e.checked = v; else e.value = v; e.dispatchEvent(new Event("change", { bubbles: true })); };
+      set("vxDrOn", true); set("vxClOn", true); set("vxCl", "100"); set("vxPan", "-100"); set("vxClKind", "wood"); set("vxDuck", true); });
+    const dl4 = page.waitForEvent("download", { timeout: 60000 });
+    await page.evaluate(() => document.getElementById("vxWav").click());
+    const w4 = await dl4.catch(() => null), b4 = w4 ? fs.readFileSync(await w4.path()) : Buffer.alloc(0);
+    let eL = 0, eR = 0, pk = 0;
+    for (let i = 44; i + 5 < b4.length; i += 6) { const l = b4.readIntLE(i, 3) / 8388608, r = b4.readIntLE(i + 3, 3) / 8388608; pk = Math.max(pk, Math.abs(l), Math.abs(r));
+      const hl = l, hr = r; eL += hl * hl; eR += hr * hr; }
+    const kinds = await page.evaluate(() => [...document.getElementById("vxClKind").options].map((o) => o.value).join(","));
+    say(`เมโทรนอมในวิดีโอ: เสียงให้เลือก ${kinds} · บูสต์เต็ม แพนซ้าย → ยอดคลื่น ${pk.toFixed(3)} · ซ้าย/ขวา ${(10 * Math.log10((eL + 1e-12) / (eR + 1e-12))).toFixed(1)} dB (กลองด้วย)`);
+    if (pk > 1.0 || !(eL > eR) || kinds.split(",").length < 5) fail.push(`${label}: เมโทรนอมบูสต์/แพน/เสียงให้เลือกไม่ถูก (ยอด ${pk.toFixed(3)})`);
   }
   /* โน้ตครบทุกสัญลักษณ์ (โกสต์ เน้น เปิดไฮแฮตเร็ว/ยาว ริมช็อต ครอสสติ๊ก เบล ไฮแฮตเท้า แฟลม ดร้าก รัว แครช ไชน่า สแปลช คาวเบล)
      ต้องวาดหน้ากระดาษและวิดีโอได้ไม่มีข้อผิดพลาด — ห้องที่เปิดไฮแฮตยาวต้องได้ป้าย Open H.H. / Closed H.H. */

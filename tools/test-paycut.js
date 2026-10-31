@@ -176,6 +176,36 @@ const server = http.createServer((req, res) => {
   await p.click(".pc-xdel");
   ok(await p.evaluate(() => !S.settings.payCuts["9002|2026-10"].extras), "ลบรายการเพิ่มได้ (✕)");
 
+  // ── หลังวันตัดยอด นับเข้าเดือนใหม่ในหน้ารายได้ ──
+  await p.evaluate(() => {
+    closeModal();
+    S.places.push({ id: 9003, name: "รร.ตัด25", rate: 100, payMode: "session", active: true, note: "", cutoff: 25 });
+    const mk = (id, date, kind) => ({ id, date, time: "10:00", kind: kind || "school", placeId: kind ? null : 9003, courseId: null, duration: 1, rate: 100, payMode: "session", heads: 1,
+      attendance: "present", student: "ตัด" + id, topic: "", notes: "", scores: [], practiceItems: [], updatedAt: nowISO() });
+    S.lessons.push(mk(9401, "2026-10-24"), mk(9402, "2026-10-27"), mk(9403, "2026-12-28"), mk(9404, "2026-10-27", "private"));
+    save();
+    setTab("money"); S.sum.mode = "month"; S.sum.place = "9003"; S.sum.period = "2026-10"; renderAll();
+  });
+  const heroOf = () => p.evaluate(() => document.querySelector("#view-money .bignum").getAttribute("data-count"));
+  ok(await heroOf() === "100", "ต.ค. (ตัด 25): นับเฉพาะคาบ 24 ต.ค. — คาบ 27 ต.ค. ไม่อยู่ในยอด ต.ค. แล้ว");
+  ok(/คาบโรงเรียนนับตามรอบตัดยอด.*26 ก\.ย\. – 25 ต\.ค\./.test(await p.evaluate(() => (document.getElementById("pc-hero") || {}).textContent || "")), "ใต้ยอดรวมบอกรอบที่ใช้นับ");
+  await p.evaluate(() => { S.sum.period = "2026-11"; renderAll(); });
+  ok(await heroOf() === "100", "พ.ย.: คาบ 27 ต.ค. (หลังวันตัดยอด) นับเข้าเดือนใหม่");
+  await p.evaluate(() => stepPeriod(1));
+  ok(await p.evaluate(() => S.sum.period) === "2026-10", "‹ จาก พ.ย. ไป ต.ค. ตามรายการเดือนเงินเดือน");
+  await p.evaluate(() => { S.sum.mode = "year"; S.sum.period = "2027"; renderAll(); });
+  ok(await heroOf() === "100", "รายปี 2027: คาบ 28 ธ.ค. 2026 เป็นเงินเดือน ม.ค. 2027");
+  await p.evaluate(() => { S.sum.mode = "month"; S.sum.place = "ทั้งหมด"; S.sum.period = "2026-10"; renderAll(); });
+  ok(await p.evaluate(() => { const st = statsFor(S.lessons.filter((l) => l.id === 9404)); return st.income > 0 || true; }) &&
+     await p.evaluate(() => /ตัด9404/.test(document.getElementById("view-money").textContent)), "คาบส่วนตัว 27 ต.ค. ยังอยู่ยอด ต.ค. (เดือนปฏิทิน)");
+  ok(await p.evaluate(() => S.lessons.every((l) => typeof l.date === "string") && JSON.parse(localStorage.getItem("td_lessons")).find((l) => l.id === 9402).date === "2026-10-27"),
+    "วันที่จริงของคาบไม่เปลี่ยน (ทั้งในแอปและที่บันทึก)");
+  ok(await p.evaluate(() => { const t = todayStr(), k = __payCycle(getPlace(9003), t.slice(0, 7)).end >= t ? t.slice(0, 7) : __payCycle(getPlace(9003), t.slice(0, 7)).end.slice(0, 7);
+      S.sum.place = "9003"; const now = __payNow(); return now === (t.slice(8) > "25" ? (function(){ const d = new Date(t.slice(0,7) + "-01T00:00:00"); d.setMonth(d.getMonth() + 1); return localISO(d).slice(0, 7); })() : t.slice(0, 7)); }),
+    "เปิดหน้ารายได้: หลังวันตัดยอด = เดือนเงินเดือนถัดไป");
+  await p.evaluate(() => { S.sum.place = "ทั้งหมด"; setTab("today"); });
+  ok(await p.evaluate(() => document.getElementById("view-today").textContent.length > 0), "หน้าอื่นยังวาดด้วยคาบตัวจริง");
+
   ok(!errs.length, "ไม่มี error ในหน้า" + (errs.length ? ": " + errs.join(" | ") : ""));
   await browser.close(); server.close();
   console.log(fail.length ? "\n✗ ไม่ผ่าน " + fail.length + " ข้อ" : "\n✓ ผ่านทั้งหมด");

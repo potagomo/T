@@ -13,7 +13,11 @@
      • คาบรอยืนยันที่ผ่านวันไปแล้วในรอบ ยืนยันว่ามาเรียนได้จากหน้านี้ (ทีละคาบ หรือทั้งหมด · เลิกทำได้)
      • ข้อมูลรอบเก็บที่ S.settings.payCuts["<placeId>|<YYYY-MM ของวันตัดยอด>"]
        = { reported, units, rate, extras:[{label, amount}], adj, note, off:[id คาบ], at }
-   ตัวคาบ อัตรา และรายได้รวมของหน้ารายได้ไม่ถูกแก้ — ยอดปรับอยู่ในรอบตัดยอดเท่านั้น */
+     • หน้ารายได้ (รายเดือน · รายปี · กราฟ · PDF) นับคาบโรงเรียนที่ตั้งวันตัดยอดตาม "เดือนเงินเดือน":
+       ตัดวันที่ 25 → คาบ 26 ต.ค. ไปอยู่ยอดเดือน พ.ย. เลย (ส่วนตัวและโรงเรียนที่ไม่ได้ตั้ง นับตามเดือนปฏิทินเหมือนเดิม)
+       เปิดแท็บรายได้ = เดือนเงินเดือนปัจจุบันของโรงเรียนหลัก (ที่สอนบ่อยสุด 30 วันล่าสุด)
+       วิธีทำ: ระหว่างวาดหน้ารายได้เท่านั้น สลับ S.lessons เป็นสำเนาอ่านอย่างเดียวที่วันที่บอกเดือนเงินเดือน (วันที่จริงไม่เปลี่ยน)
+   ตัวคาบ อัตรา และยอดคาบไม่ถูกแก้ — ยอดปรับอยู่ในรอบตัดยอดเท่านั้น */
 (function () {
   "use strict";
   var NEED = ["renderMoneyView", "showModal", "getPlace", "getPlaces", "lessonIncome", "lessonHours", "attInfo", "fmtMoney", "fmtHours", "monthLabel", "save"];
@@ -127,6 +131,64 @@
     return '<span style="color:#B91C1C;font-weight:700;">' + (t.diff > 0 ? "โรงเรียนจ่ายมากกว่า " : "โรงเรียนจ่ายน้อยกว่า ") + fmtMoney(Math.abs(t.diff)) + '</span>';
   }
 
+  /* ── หน้ารายได้นับตามเดือนเงินเดือน ── */
+  function cutsMap() {
+    var m = {}, n = 0;
+    (S.places || []).forEach(function (p) { var c = cutOf(p); if (c < END) { m[String(p.id)] = c; n++; } });
+    return n ? m : null;
+  }
+  function payMonthOf(l, cuts) {
+    var c = cuts && l && l.kind === "school" && l.date && cuts[String(l.placeId)];
+    return c ? cycleOfDate(c, String(l.date)) : null;
+  }
+  window.__payMonthOf = function (l) { return payMonthOf(l, cutsMap()) || String(l.date || "").slice(0, 7); };
+  var PAYDEPTH = 0;
+  function payView(fn, self, args) {
+    if (PAYDEPTH) return fn.apply(self, args || []);
+    var cuts = cutsMap(); if (!cuts) return fn.apply(self, args || []);
+    var any = false, moved = S.lessons.map(function (l) {
+      var k = payMonthOf(l, cuts);
+      if (!k || k === l.date.slice(0, 7)) return l;
+      var x = Object.create(l), d = new String(l.date);            // วันที่จริงเหมือนเดิม (พิมพ์/เรียง) แต่บอกเดือนเงินเดือน
+      d.payMonth = k; x.date = d; any = true;
+      return x;
+    });
+    if (!any) return fn.apply(self, args || []);
+    var keep = S.lessons, mk = window.monthKeyOf, yk = window.yearKeyOf, sv = window.save;
+    PAYDEPTH++; S.lessons = moved;
+    window.monthKeyOf = function (d) { return d && d.payMonth || mk(d); };
+    window.yearKeyOf = function (d) { return d && d.payMonth ? d.payMonth.slice(0, 4) : yk(d); };
+    window.save = function () { S.lessons = keep; try { return sv.apply(this, arguments); } finally { S.lessons = moved; } };   // บันทึกตัวจริงเสมอ
+    try { return fn.apply(self, args || []); }
+    finally { S.lessons = keep; window.monthKeyOf = mk; window.yearKeyOf = yk; window.save = sv; PAYDEPTH--; }
+  }
+  // เดือนเงินเดือนปัจจุบัน: กรองโรงเรียนเดียว = ของที่นั่น · ทุกที่ = โรงเรียนที่สอนบ่อยสุด 30 วันล่าสุด
+  function currentPayMonth() {
+    var t = todayStr(), f = S.sum && S.sum.place, pid = null;
+    if (f === "ส่วนตัว") return null;
+    if (f && f !== "ทั้งหมด") pid = f;
+    else {
+      var since = localISO(new Date(Date.now() - 30 * 86400000)), cnt = {};
+      S.lessons.forEach(function (l) { if (l.kind === "school" && l.date >= since && l.date <= t) cnt[l.placeId] = (cnt[l.placeId] || 0) + 1; });
+      Object.keys(cnt).forEach(function (k) { if (pid == null || cnt[k] > cnt[pid]) pid = k; });
+    }
+    var p = pid != null && getPlace(isNaN(parseInt(pid, 10)) ? pid : parseInt(pid, 10));
+    return p && cutOf(p) < END ? cycleOfDate(cutOf(p), t) : null;
+  }
+  window.__payNow = currentPayMonth;
+  if (typeof window.printSummary === "function") {
+    var origPrint = window.printSummary;
+    window.printSummary = function () { return payView(origPrint, this, arguments); };
+  }
+  if (typeof window.stepPeriod === "function" && typeof window.allPeriodKeys === "function") {
+    // วาดทั้งแอปนอกช่วงสลับ (หน้าอื่นต้องเห็นคาบตัวจริง) — เลือกช่วงจากรายการเดือนเงินเดือน
+    window.stepPeriod = function (dir) {
+      var periods = payView(function () { return allPeriodKeys(S.sum.mode); }), i = periods.indexOf(S.sum.period) + dir;
+      if (i < 0 || i >= periods.length) return;
+      S.sum.period = periods[i]; renderAll();
+    };
+  }
+
   /* ── หน้ารายได้: ส่วนตัดยอด ── */
   function schoolPlaces() {
     var f = S.sum && S.sum.place;
@@ -164,9 +226,23 @@
   }
   var origMoney = window.renderMoneyView;
   window.renderMoneyView = function () {
-    var r = origMoney.apply(this, arguments);
+    if (S.sum && S.sum.mode === "month" && !S.sum.period) {
+      var cur = currentPayMonth();
+      if (cur && payView(function () { return allPeriodKeys("month"); }).indexOf(cur) >= 0) S.sum.period = cur;
+    }
+    var r = payView(origMoney, this, arguments);
     var host = document.getElementById("view-money");
     if (!host || !S.sum || !S.sum.period) return r;
+    // ใต้ยอดรวม: บอกว่าคาบโรงเรียนนับตามรอบตัดยอด
+    var hero = host.querySelector(".bignum"), cuts = cutsMap();
+    if (hero && cuts && S.sum.mode === "month" && S.sum.place !== "ส่วนตัว") {
+      var ps = schoolPlaces().filter(function (p) { return cuts[String(p.id)]; }).map(function (p) { return esc(p.name) + " " + esc(range(cycle(cutOf(p), S.sum.period))); });
+      if (ps.length) {
+        var note = document.createElement("div"); note.id = "pc-hero"; note.className = "hint"; note.style.marginTop = "8px";
+        note.innerHTML = '🗓 <span>คาบโรงเรียนนับตามรอบตัดยอด</span>: ' + ps.join(" · ");
+        hero.parentNode.appendChild(note);
+      }
+    }
     var rows = S.sum.mode === "month" ? monthRows(S.sum.period) : yearRows(S.sum.period);
     if (!rows) return r;
     var box = document.createElement("div");

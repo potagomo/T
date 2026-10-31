@@ -431,3 +431,6 @@ html[data-kmode] body.shell main.wrap{background-color:var(--bg)}
        ลดเป็น --sab − 10 (ไม่น้อยกว่า 6) ปุ่มยังพ้นขีดโฮม (ขีดอยู่ราว 8px จากขอบล่าง) */
 html[data-kmode] body.shell.locked main.wrap{padding-top:0}
 html[data-kmode] #tp.min{padding-bottom:max(6px, calc(var(--sab, 0px) - 10px))}
+/* หมวด "เสียง" แนวตั้ง: สามแถบ (เพลง กลอง เมโทรนอม) ป้ายอยู่บนแถบ ไม่งั้นไม่พอความกว้าง 384px */
+html[data-kphone="port"] #npal.docked .np-mix{gap:10px}
+html[data-kphone="port"] #npal.docked .np-mix label{flex-direction:column; align-items:stretch; gap:2px; font-size:12px}

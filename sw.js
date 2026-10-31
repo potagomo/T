@@ -52,7 +52,11 @@ const PRECACHE = [
   "./theme/klong-theme.css",
   "./theme/klong-theme.js",
   "./sounds/klong-sounds.js",
-  "./sounds/kits.json"
+  "./sounds/kits.json",
+  // ไลบรารีที่โหลดเฉพาะตอนใช้ (ยืดเสียงแบบเรียลไทม์ · ส่งออกวิดีโอ) — เก็บไว้ด้วยเพื่อให้ใช้ได้ตอนไม่มีเน็ต
+  "./lib/signalsmith-stretch-1.3.2.js",
+  "./lib/signalsmith-stretch-worklet-1.3.2.js",
+  "./lib/mp4-muxer-5.2.2.js"
 ];
 
 /* ไฟล์เสียงกลองจริง (.mp3 ใต้ sounds/) เก็บแยกในแคชถาวร ไม่ผูกกับรุ่นของโปรแกรม

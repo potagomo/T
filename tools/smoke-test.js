@@ -620,6 +620,84 @@ async function editSuite(label, exe) {
   await browser.close();
 }
 
+/* ---- เสียงลื่น + วิดีโอโน้ตตีตาม ----
+   ผู้ใช้ขอ: เลื่อนจุดเล่น/ปรับความเร็วให้ลื่น · ส่งออกวิดีโอโน้ตตีตาม 1080p–4K 60/90/120 fps พร้อมเสียงกลอง/เพลง/เมโทรนอม
+   · แตะจุดเล่นใหม่ระหว่างเล่น ต้องกระโดดไปจุดนั้นทันที (เดิมเล่นต่อจากที่เดิม)
+   · ตัวยืดเสียงเรียลไทม์ (lib/ Signalsmith) ต้องโหลดได้ภายใต้ CSP และวางเสียงตรงเวลา (ใช้ชื่อ outputTime)
+   · หน้าส่งออกมีส่วนวิดีโอ ตัวอย่างภาพไม่ว่าง สร้าง MP4 ได้จริง และ .wav 24-bit */
+async function mediaSuite(label, exe) {
+  const browser = await chromium.launch({ executablePath: exe, args: ["--autoplay-policy=no-user-gesture-required"] });
+  const ctx = await browser.newContext({ ...devices["iPad Pro 11 landscape"], hasTouch: true, isMobile: false, acceptDownloads: true });
+  await ctx.addInitScript(() => { try { localStorage.setItem("klongpro.tpmin", "1"); localStorage.setItem("klongpro.insp", "0"); } catch (e) {} });
+  const page = await ctx.newPage(); const errs = [];
+  page.on("pageerror", (e) => errs.push("PAGEERROR " + e.message));
+  const say = (t) => console.log(`[${label}] ${t}`);
+  await page.goto(BASE, { waitUntil: "load" }); await page.waitForTimeout(500);
+  await page.click("#homeBlank"); await page.waitForTimeout(600);
+  await page.click('#tool button[data-v="draw"]');
+  const g = await page.evaluate(() => { const lw = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--labelw"));
+    const c = document.getElementById("grid").getBoundingClientRect();
+    const row = (re) => { const r = [...document.querySelectorAll("#labels .r")].find((x) => re.test(x.textContent)).getBoundingClientRect(); return r.top + r.height / 2; };
+    return { first: c.left + lw + 28, x: c.left, y: c.top, snare: row(/สแนร์/), kick: row(/กระเดื่อง/) }; });
+  for (const dx of [0, 60, 120, 180]) await page.touchscreen.tap(g.first + dx, dx % 120 ? g.snare : g.kick);
+  await page.waitForTimeout(200);
+  const secs = (t) => { const m = /(\d+):(\d+(?:\.\d+)?)\s*$/.exec(t || ""); return m ? (+m[1]) * 60 + (+m[2]) : NaN; };
+  const clock = () => page.evaluate(() => document.getElementById("clock").textContent);
+  // แตะจุดเล่นใหม่ระหว่างเล่น
+  await page.evaluate(() => document.getElementById("play").click());
+  await page.waitForTimeout(1000);
+  const before = secs(await clock());
+  await page.mouse.click(g.x + 700, g.y + 12); await page.waitForTimeout(350);
+  const after = secs(await clock());
+  await page.evaluate(() => document.getElementById("stopb").click());
+  say(`แตะจุดเล่นใหม่ระหว่างเล่น: ${before.toFixed(2)} วิ → ${after.toFixed(2)} วิ`);
+  if (!(after > before + 1)) fail.push(`${label}: แตะจุดเล่นใหม่ระหว่างเล่นแล้วไม่กระโดดไปจุดนั้น (${before} → ${after})`);
+  // ตัวยืดเสียงเรียลไทม์: โหลดภายใต้ CSP + วางเสียงตรงเวลา (ทดสอบแบบออฟไลน์ คลิกที่รู้ตำแหน่ง)
+  const ss = await page.evaluate(async () => {
+    try {
+      await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "lib/signalsmith-stretch-1.3.2.js"; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+      SignalsmithStretch.moduleUrl = "lib/signalsmith-stretch-worklet-1.3.2.js";
+      const sr = 44100, o = new OfflineAudioContext(2, sr * 4, sr), node = await SignalsmithStretch(o); node.connect(o.destination);
+      const a = new Float32Array(sr * 3); for (const t of [1.0, 1.5, 2.0]) for (let i = 0; i < 300; i++) a[Math.round(t * sr) + i] = Math.exp(-i / 60) * (i % 2 ? 1 : -1) * 0.8;
+      await node.addBuffers([a, a.slice()]);
+      node.schedule({ outputTime: 0.5, active: true, input: 1.0, rate: 0.5 });
+      const d = (await o.startRendering()).getChannelData(0), f = []; let last = -1;
+      for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > 0.1) { if (last < 0 || i - last > sr * 0.15) f.push(i / sr); last = i; }
+      return { found: f.map((t) => +t.toFixed(4)) };
+    } catch (e) { return { err: String(e) }; } });
+  const want = [0.5, 1.5, 2.5], dev = ss.found ? Math.max(...want.map((w, i) => Math.abs((ss.found[i] || 99) - w))) : 99;
+  say(`ตัวยืดเสียงเรียลไทม์: ${ss.err || "จุดตี " + ss.found.join(", ") + " วิ (ควรเป็น 0.5, 1.5, 2.5) คลาดสูงสุด " + (dev * 1000).toFixed(1) + " ms"}`);
+  if (ss.err || dev > 0.006) fail.push(`${label}: ตัวยืดเสียงเรียลไทม์โหลดไม่ได้หรือวางเสียงไม่ตรงเวลา (${ss.err || dev})`);
+  // วิดีโอโน้ตตีตาม
+  await page.evaluate(() => document.getElementById("toExport").click()); await page.waitForTimeout(1200);
+  await page.evaluate(() => { const set = (id, v) => { const e = document.getElementById(id); if (e.type === "checkbox") e.checked = v; else e.value = v; e.dispatchEvent(new Event("change", { bubbles: true })); };
+    set("vxRes", "1080"); set("vxFps", "60"); set("vxFrom", "1"); set("vxTo", "1"); set("vxCount", "0"); set("vxClOn", true); set("vxPan", "-50"); });
+  await page.waitForTimeout(900);
+  const vx = await page.evaluate(() => { const c = document.getElementById("vxPrev"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let paper = 0; for (let i = 0; i < d.length; i += 4 * 97) if (d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 230) paper++;
+    return { w: c.width, paper, info: document.getElementById("vxInfo").textContent, go: !document.getElementById("vxGo").disabled }; });
+  say(`ส่วนวิดีโอ: ตัวอย่าง ${vx.w}px (จุดกระดาษ ${vx.paper}) · ${vx.info}`);
+  if (!vx.paper || !/MP4/.test(vx.info) || !vx.go) fail.push(`${label}: ส่วนวิดีโอในหน้าส่งออกไม่พร้อม (${vx.info})`);
+  else {
+    const t0 = Date.now(), dl = page.waitForEvent("download", { timeout: 180000 });
+    await page.evaluate(() => document.getElementById("vxGo").click());
+    const d = await dl.catch(() => null);
+    const f = d ? await d.path() : null, buf = f ? fs.readFileSync(f) : Buffer.alloc(0);
+    const ok = buf.length > 50000 && buf.toString("latin1", 4, 8) === "ftyp" && buf.includes(Buffer.from("moov"));
+    say(`สร้างวิดีโอ 1 ห้อง 1080p60: ${d ? d.suggestedFilename() : "ไม่มีไฟล์"} · ${Math.round(buf.length / 1024)} KB · ${((Date.now() - t0) / 1000).toFixed(1)} วิ · ${(await page.textContent("#status")).trim()}`);
+    if (!ok) fail.push(`${label}: สร้างวิดีโอ MP4 ไม่สำเร็จ`);
+    const dl2 = page.waitForEvent("download", { timeout: 60000 });
+    await page.evaluate(() => document.getElementById("vxWav").click());
+    const w = await dl2.catch(() => null), wb = w ? fs.readFileSync(await w.path()) : Buffer.alloc(0);
+    const wok = wb.toString("latin1", 0, 4) === "RIFF" && wb.toString("latin1", 8, 12) === "WAVE" && wb.readUInt16LE(34) === 24;
+    say(`เสียงไม่บีบอัด: ${w ? w.suggestedFilename() : "ไม่มีไฟล์"} · ${wok ? wb.readUInt32LE(24) + " Hz 24-bit" : "รูปแบบผิด"} · ${Math.round(wb.length / 1024)} KB`);
+    if (!wok) fail.push(`${label}: ส่งออก .wav 24-bit ไม่สำเร็จ`);
+  }
+  say(`errors=${errs.join(" | ") || "ไม่มี"}`);
+  if (errs.length) fail.push(`${label}: ${errs[0]}`);
+  await browser.close();
+}
+
 /* ---- มือถือ Android + S Pen (Galaxy S26 Ultra: 384×784 แนวตั้ง · 784×352 แนวนอน ในแอปที่ติดตั้ง) ----
    ผู้ใช้เขียนโน้ตด้วย S Pen บนมือถือทั้งสองแนว ตรวจเฉพาะของมือถือ ที่เหลือชุด iPhone ตรวจแล้ว
    กริดต้องได้พื้นที่ (เดิมแนวตั้งเหลือ 40% แนวนอนไม่เห็นแถวกลอง) แผงเขียนโน้ตเกาะขอบจอไม่บังกริด
@@ -789,6 +867,7 @@ async function phoneSuite(label, exe) {
     await suite("iPhone", { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3,
       hasTouch: true, isMobile: true, userAgent: devices["iPhone 13"].userAgent }, exe);
     await editSuite("iPad-แก้ระหว่างเล่น", exe);
+    await mediaSuite("iPad-เสียงและวิดีโอ", exe);
     await phoneSuite("Android", exe);
   } finally { server.close(); }
   console.log("\n================ RESULT ================");

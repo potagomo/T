@@ -293,6 +293,22 @@ hr{border:0;border-top:1px solid var(--line); margin:13px 0}
 .exf .chk{font-size:13px; color:var(--ink); min-height:32px; display:flex; align-items:center; gap:8px}
 .exf .exreset{align-self:end; min-height:40px}
 .exbtns{display:flex; flex-wrap:wrap; gap:8px; padding:0 0 14px}
+/* วิดีโอโน้ตตีตาม: เสียงแยกสามแถว + แพนเมโทรนอม · ตัวอย่างภาพ 16:9 · แถบความคืบหน้า */
+.vxmix{display:flex; flex-direction:column; gap:6px; padding:0 0 12px}
+.vxrow{display:grid; grid-template-columns:118px minmax(0,1fr) 52px; align-items:center; gap:10px; min-height:40px}
+.vxrow .chk{font-size:13px; color:var(--ink); display:flex; align-items:center; gap:8px; min-height:40px}
+.vxrow input[type=range]{width:100%; accent-color:var(--ok)}
+.vxrow output{font:600 12px 'IBM Plex Mono', monospace; color:var(--dim); text-align:right}
+.vxrow.vxpan{grid-template-columns:118px 14px minmax(0,1fr) 14px 52px; font-size:13px; color:var(--dim)}
+.vxrow.vxpan b{font:600 11px 'IBM Plex Mono', monospace; color:var(--dim); text-align:center}
+.vxrow input:disabled{opacity:.4}
+#vxPrev{display:block; width:100%; aspect-ratio:16/9; border-radius:8px; background:#17120F; cursor:pointer; touch-action:manipulation}
+.vxinfo{margin:8px 0 10px; font-size:12.5px; line-height:1.6}
+.vxprog{display:flex; align-items:center; gap:10px; padding:0 0 12px; font-size:12.5px; color:var(--ink)}
+.vxprog[hidden], #vxDone[hidden]{display:none}
+.vxbar{flex:1 1 auto; height:8px; border-radius:4px; background:var(--line); overflow:hidden; min-width:80px}
+.vxbar i{display:block; height:100%; width:0; background:var(--ok); border-radius:4px; transition:width .2s}
+#vxProgT{flex:0 1 auto; min-width:0; font-variant-numeric:tabular-nums}
 .exCustom[hidden]{display:none !important}
 @media (max-width:1000px){ .exgrid{grid-template-columns:minmax(290px, 340px) minmax(0, 1fr); gap:16px} .exf.c4{grid-template-columns:1fr 1fr} }
 @media (max-width:760px){
@@ -614,6 +630,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
 #tp.min .tpmix{display:flex}
 .tpmix label, .np-mix label{display:flex; align-items:center; gap:6px; font-size:13px; white-space:nowrap}
 .tpmix input[type=range]{width:110px}
+@media (max-width:1100px){ .tpmix{gap:8px} .tpmix label{gap:4px; font-size:12px} .tpmix input[type=range]{width:64px} }
 .np-mix{display:flex; align-items:center; gap:14px; width:100%}
 .np-mix label{flex:1 1 0; min-width:0}
 .np-mix input[type=range]{flex:1 1 auto; min-width:0; accent-color:var(--ok)}
@@ -874,6 +891,33 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
         <button class="btn" id="exXml2">ไฟล์ .musicxml</button>
         <button class="btn" id="exKlong">ไฟล์สำรอง .klong</button>
       </div>
+    </details>
+    <details class="exsec" id="exVid" open><summary>วิดีโอโน้ตตีตาม</summary>
+      <div class="exf">
+        <label class="f">ความละเอียด<select id="vxRes"><option value="1080">1080p · Full HD</option><option value="1440">1440p · 2K</option><option value="2160">2160p · 4K</option></select></label>
+        <label class="f">เฟรมต่อวินาที<select id="vxFps"><option value="60">60 fps</option><option value="90">90 fps</option><option value="120">120 fps</option></select></label>
+        <label class="f">ห้องต่อบรรทัด<select id="vxPer"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+        <label class="f">บรรทัดบนจอ<select id="vxLines"><option>2</option><option selected>3</option></select></label>
+        <label class="f">ตั้งแต่ห้อง<input type="number" id="vxFrom" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">ถึงห้อง<input type="number" id="vxTo" min="1" step="1" inputmode="numeric"></label>
+        <label class="f">ความเร็ว<select id="vxRate"><option value="1">100% (ตามเพลง)</option><option value="0.9">90%</option><option value="0.8">80%</option><option value="0.75">75%</option><option value="0.7">70%</option><option value="0.6">60%</option><option value="0.5">50%</option></select></label>
+        <label class="f">นับเข้าก่อนเริ่ม<select id="vxCount"><option value="0">ไม่นับ</option><option value="1" selected>1 ห้อง</option><option value="2">2 ห้อง</option></select></label>
+        <label class="chk full"><input type="checkbox" id="vxColor"> หัวโน้ตสีตามกลอง (ไม่ติ๊ก = ดำบนขาว)</label>
+      </div>
+      <div class="vxmix" role="group" aria-label="เสียงในวิดีโอ — เลือกเสียงและความดังแยกกัน">
+        <div class="vxrow"><label class="chk"><input type="checkbox" id="vxDrOn" checked> กลอง</label><input type="range" id="vxDr" min="0" max="100" aria-label="ความดังกลองในวิดีโอ"><output id="vxDrV"></output></div>
+        <div class="vxrow"><label class="chk"><input type="checkbox" id="vxMuOn" checked> เพลงประกอบ</label><input type="range" id="vxMu" min="0" max="100" aria-label="ความดังเพลงประกอบในวิดีโอ"><output id="vxMuV"></output></div>
+        <div class="vxrow"><label class="chk"><input type="checkbox" id="vxClOn"> เมโทรนอม</label><input type="range" id="vxCl" min="0" max="100" aria-label="ความดังเมโทรนอมในวิดีโอ"><output id="vxClV"></output></div>
+        <div class="vxrow vxpan"><span>แพนเมโทรนอม</span><b>L</b><input type="range" id="vxPan" min="-100" max="100" step="5" value="0" aria-label="แพนเมโทรนอม ซ้าย ถึง ขวา"><b>R</b><output id="vxPanV"></output></div>
+      </div>
+      <canvas id="vxPrev" title="แตะเพื่อดูตัวอย่างแบบเคลื่อนไหว" aria-label="ตัวอย่างภาพวิดีโอ แตะเพื่อเล่นตัวอย่าง"></canvas>
+      <p class="hint vxinfo" id="vxInfo"></p>
+      <div class="exbtns">
+        <button class="btn primary" id="vxGo" type="button">สร้างวิดีโอ MP4</button>
+        <button class="btn" id="vxWav" type="button">เสียงไม่บีบอัด .wav</button>
+      </div>
+      <div class="vxprog" id="vxProg" hidden><div class="vxbar"><i id="vxBarI"></i></div><span id="vxProgT"></span><button class="btn sm" id="vxStop" type="button">ยกเลิก</button></div>
+      <div class="exbtns" id="vxDone" hidden></div>
     </details>
     <p class="hint" id="exNote">ตั้งค่าแบบโปรแกรมเขียนโน้ต (Sibelius · Finale) ตัวอย่างเปลี่ยนตามทันทีที่แก้ ค่าที่ตั้งจำไว้ให้
       · PDF กับรูปภาพเป็นภาพคมชัดไม่สูญเสีย ไม่ใช่เวกเตอร์ · ถ้าต้องการไฟล์ที่แก้ต่อได้ในโปรแกรมโน้ต ใช้ .musicxml</p>
@@ -1176,7 +1220,8 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
       <label class="chk"><input type="checkbox" id="rests" checked> ตัวหยุด</label>
       <label class="chk"><input type="checkbox" id="snapOn" checked> ดึงหัวอ่าน</label>
       <label class="chk"><input type="checkbox" id="hideEmpty"> ซ่อนแถวที่ยังไม่มีโน้ต</label><label class="chk"><input type="checkbox" id="lockScr"> ล็อกจอ</label></section>
-    <section class="isec"><h3>การฟัง</h3><div class="mini"><span>ความเร็ว</span><input type="range" id="rate" min="25" max="125" step="5" value="100"><span id="rateV" style="color:var(--ink)">100%</span></div><div class="iwrap"><button class="btn sm" id="ab">สลับ A/B</button>
+    <section class="isec"><h3>การฟัง</h3><div class="mini"><span>ความเร็ว</span><input type="range" id="rate" min="25" max="125" step="5" value="100"><span id="rateV" style="color:var(--ink)">100%</span></div>
+      <div class="mini" title="วิธียืดเสียงเพลงตอนเล่นช้า/เร็วกว่าเดิม"><span>ยืดเสียง</span><select id="stretchMode" aria-label="วิธียืดเสียงเพลงตอนปรับความเร็ว"><option value="rt">ลื่น · เปลี่ยนได้ทันที</option><option value="tp">คมจุดตี · รอเตรียม</option></select></div><div class="iwrap"><button class="btn sm" id="ab">สลับ A/B</button>
       <button class="btn sm" id="testSnd">ทดสอบเสียง</button></div></section>
   </div>
 </aside>
@@ -1246,6 +1291,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
     <div class="mini"><span>เพลง</span><input type="range" id="vol" min="0" max="100" value="75"></div>
     <div class="mini"><span>กลอง</span><input type="range" id="dvol" min="0" max="100" value="65"></div>
     <label class="chk"><input type="checkbox" id="click"> เมโทรนอม</label>
+    <div class="mini" title="ความดังเมโทรนอม"><input type="range" id="cvol" min="0" max="100" value="50" aria-label="ความดังเมโทรนอม"></div>
     <span class="sp"></span>
     
     
@@ -4039,7 +4085,7 @@ function ensureCtx(){
   }
   musicGain.gain.value=+$("#vol").value/100;
   drumGain.gain.value=+$("#dvol").value/100;
-  clickGain.gain.value=$("#click").checked?0.35:0;
+  clickGain.gain.value=clickLevel();
   return S.ctx;
 }
 // ทุกเสียงกลอง/เมโทรนอมที่ตั้งเวลาไว้ล่วงหน้าจะวิ่งผ่านบัสนี้
@@ -4707,6 +4753,77 @@ function audioPlan(a, b, playFrom, rate, sr, bufDur, looping){
   regL=N*rate/sr;                                       // รอบของทุกอย่าง = ความยาวเสียงที่สร้างจริง
   return {mode:"render", A:a, L:regL, N, regL, headLen:Math.max(0.02, a+regL-playFrom), offset:(playFrom-a)/rate, loop:looping};
 }
+/* ── ยืดเสียงแบบเรียลไทม์: Signalsmith Stretch (lib/ · MIT) ──
+   ตัวยืดถนอมจุดตีข้างบนต้องสร้างเสียงทั้งช่วงก่อนเล่น: เพลงยาวต้องรอ ยืดได้ไม่เกิน 95 วินาที
+   และทุกครั้งที่เปลี่ยนความเร็วหรือแตะจุดเล่นใหม่ต้องรอสร้างใหม่ ผู้ใช้รู้สึกสะดุด
+   ตัวนี้ยืดสด ๆ ใน AudioWorklet: เปลี่ยนความเร็ว/จุดเล่นได้ทันที วนได้ทั้งเพลง
+   ตรงจังหวะกับกลอง: สั่งว่า "ที่นาฬิกา when ให้อยู่ตำแหน่ง playFrom ของเพลง" แล้วมันชดเชยความหน่วงของตัวเอง
+   (วัดแล้วคลาด ±2.5 ms ที่ 50/75/125%) จึงต้องสั่งล่วงหน้าเกินความหน่วง (~0.12 วินาที)
+   โหลดไม่ขึ้น (ไม่มี AudioWorklet ฯลฯ) หรือผู้ใช้เลือก "คมจุดตี" → ใช้ตัวยืดเดิม */
+const SST={node:null, ctx:null, buf:null, gain:null, lat:0.12, busy:null, failed:false, on:false, gen:0};
+function stretchMode(){ const s=$("#stretchMode"); return s && s.value==="tp" ? "tp" : "rt"; }
+function sstScript(){
+  if(window.SignalsmithStretch) return Promise.resolve();
+  return new Promise((ok, no)=>{
+    const s=document.createElement("script"); s.src="lib/signalsmith-stretch-1.3.2.js";
+    s.onload=ok; s.onerror=()=>no(new Error("โหลดตัวยืดเสียงไม่ได้")); document.head.appendChild(s);
+  });
+}
+function sstPrepare(){
+  if(SST.failed || !S.buf || stretchMode()!=="rt") return Promise.resolve(null);
+  const ctx=ensureCtx();
+  if(SST.node && SST.ctx===ctx && SST.buf===S.buf) return Promise.resolve(SST.node);
+  // เสียงที่ถอดรหัสด้วยนาฬิกาอื่น (อัตราตัวอย่างไม่ตรง) ตำแหน่งจะเพี้ยน → ใช้ตัวยืดเดิมกับไฟล์นั้น
+  if(!ctx.audioWorklet || S.buf.sampleRate!==ctx.sampleRate) return Promise.resolve(null);
+  if(SST.busy) return SST.busy;
+  SST.busy=(async()=>{
+    try{
+      await sstScript();
+      SignalsmithStretch.moduleUrl="lib/signalsmith-stretch-worklet-1.3.2.js";
+      if(SST.ctx!==ctx || !SST.node){
+        const node=await Promise.race([SignalsmithStretch(ctx),
+          new Promise((_, no)=>setTimeout(()=>no(new Error("ตัวยืดเสียงไม่ตอบ")), 8000))]);
+        const g=ctx.createGain(); g.gain.value=0; node.connect(g); g.connect(musicGain);
+        Object.assign(SST, {node, gain:g, ctx, buf:null, on:false});
+        const lat=await node.latency();
+        SST.lat=Math.max(0.05, Math.min(0.4, +lat || 0.12));
+      }
+      while(SST.buf!==S.buf){                        // ระหว่างคัดลอก ไฟล์อาจถูกเปลี่ยน — วนจนตรง
+        const b=S.buf; await SST.node.dropBuffers();
+        const chs=[]; for(let c=0;c<b.numberOfChannels;c++) chs.push(b.getChannelData(c).slice());
+        await SST.node.addBuffers(chs, chs.map(x=>x.buffer));
+        SST.buf=b;
+      }
+      return SST.node;
+    }catch(e){ console.warn(e); SST.failed=true; return null; }
+    finally{ SST.busy=null; }
+  })();
+  return SST.busy;
+}
+/* สั่งตัวยืดได้ทีละคำสั่งล่วงหน้า: คำสั่งที่ตั้งเวลาไว้ไกลกว่าจะลบคำสั่งที่รออยู่ก่อนหน้าทิ้ง (โค้ดของไลบรารีเป็นแบบนั้น)
+   และต้องใช้ชื่อ outputTime ไม่ใช่ output ตามเอกสาร — เคยสั่ง "เริ่ม" แล้วตามด้วย "หยุดตอนจบ" ผลคือเงียบทั้งเพลง
+   จึงสั่งแค่ "เริ่มที่ when" ครั้งเดียว ส่วนการหยุด/จบช่วงใช้ความดัง (gain) ซึ่งตั้งเวลาได้แม่นและหลายจุด
+   ระหว่างรอถึง when ตัวยืดเล่นเสียงก่อนจุดเริ่มแบบปิดเสียงไว้ พอถึง when จึงอยู่ตำแหน่งพอดีและนิ่งแล้ว */
+function sstHalt(){
+  if(!SST.node || !SST.on || SST.ctx!==S.ctx) return;
+  const t=S.ctx.currentTime, g=SST.gain.gain, gen=++SST.gen;
+  SST.on=false;
+  // ค่อย ๆ จาง 12 ms (ตัดดื้อ ๆ มีเสียงคลิกตอนแตะจุดเล่นใหม่) แล้วค่อยพักตัวยืด ถ้ายังไม่มีใครสั่งเล่นต่อ
+  try{ g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t+0.012); }catch(e){}
+  setTimeout(()=>{ if(SST.gen===gen && !SST.on && SST.node) SST.node.schedule({active:false}); }, 40);
+}
+function sstStart(when, from, rate, a, b, loop, len){
+  const g=SST.gain.gain;
+  SST.gen++;
+  SST.node.schedule(loop ? {outputTime:when, active:true, input:from, rate, loopStart:a, loopEnd:b}
+                         : {outputTime:when, active:true, input:from, rate, loopStart:0, loopEnd:0});
+  try{
+    g.cancelScheduledValues(S.ctx.currentTime); g.setValueAtTime(0, S.ctx.currentTime);
+    g.setValueAtTime(0, when); g.linearRampToValueAtTime(1, when+0.004);
+    if(!loop){ const e=when+len/rate; g.setValueAtTime(1, Math.max(when+0.004, e-0.006)); g.linearRampToValueAtTime(0, e); }
+  }catch(e){}
+  SST.on=true;
+}
 
 /* ============================================================
    18. ขอบเขตการฟัง — ทั้งเพลง / ห้อง / จังหวะ / ช่องย่อย
@@ -4993,6 +5110,13 @@ function buildEvents(){
   return list;
 }
 let evList=[], schedIter=0, schedIdx=0, playFrom=0, headLen=0, playLoop=false;
+/* ตำแหน่งที่ tick() เขียนลง S.pos ล่าสุด — ถ้า S.pos ไม่ตรงกับค่านี้ แปลว่ามีคนสั่งย้ายจุดเล่นระหว่างเล่น
+   (แตะหัวกริด · ปุ่มกลับต้น · ลากหัวอ่าน) stop() ต้องเก็บจุดใหม่ไว้ ไม่เอาตำแหน่งที่เล่นค้างอยู่ทับ
+   เดิมแตะจุดเล่นใหม่ระหว่างเล่นแล้วเพลงเล่นต่อจากที่เดิม (ทั้งเพลง) ไม่กระโดดไปจุดที่แตะ */
+let tickPos=NaN;
+/* ความเร็วที่ใช้กับรอบเล่นนี้ — แยกจาก S.rate เพราะผู้ใช้เปลี่ยนความเร็วระหว่างเล่นได้
+   เดิมคำนวณตำแหน่งที่เล่นมาแล้วด้วยความเร็วใหม่ กดเปลี่ยน 50% → 75% แล้วจุดเล่นกระโดดไปข้างหน้า */
+let playRate=1;
 /* แก้โน้ตระหว่างเล่น (วาง ลบ เปลี่ยนน้ำหนัก/ลูกเล่น ฯลฯ) มีผลทันที ไม่ต้องกดเล่นใหม่
    เดิมรายการเสียงสร้างครั้งเดียวตอนกดเล่น โน้ตที่วางระหว่างวนซ้ำห้องเดิมจึงเงียบจนกว่าจะหยุดแล้วเล่นใหม่
    afterEdit() ตั้งธงไว้ pump() รอบถัดไป (ไม่เกิน 60 ms) สร้างรายการใหม่ แล้วต่อจากจุดที่ตั้งเวลาไปแล้ว (schedHorizon)
@@ -5002,7 +5126,7 @@ function refreshEvents(){
   evDirty=false;
   evList=buildEvents();
   schedIdx=0;
-  while(schedIdx<evList.length && startedAt+elapsedOf(schedIter, evList[schedIdx].t)/S.rate <= schedHorizon+1e-4) schedIdx++;
+  while(schedIdx<evList.length && startedAt+elapsedOf(schedIter, evList[schedIdx].t)/playRate <= schedHorizon+1e-4) schedIdx++;
 }
 /* ลำดับของโน้ตประดับที่ผูกกับตัวหลักเดียวกัน (ตัวใกล้ตัวหลักที่สุด = 0) ใช้กำหนดระยะก่อนตัวหลัก */
 function graceRanks(){
@@ -5035,18 +5159,33 @@ async function play(){
     setStatus("เบราว์เซอร์ยังไม่ยอมเปิดเสียง — แตะปุ่มทดสอบเสียงหนึ่งครั้งแล้วกดเล่นใหม่", true);
     return;
   }
+  // ปรับความเร็ว: เตรียมตัวยืดเรียลไทม์ (รอแค่ครั้งแรกของแต่ละไฟล์ ระหว่างนั้นเสียงเดิมยังเล่นต่อ)
+  let sst=null;
+  if(S.buf && abMode!==1 && S.rate!==1 && stretchMode()==="rt"){
+    const pos0=S.pos, seek=!S.playing || S.pos!==tickPos, fresh=!(SST.node && SST.ctx===S.ctx && SST.buf===S.buf);
+    if(fresh) setStatus("กำลังเตรียมตัวยืดเสียงแบบเรียลไทม์ …");
+    sst=await sstPrepare();
+    if(fresh) setStatus(sst ? "" : "ใช้ตัวยืดเสียงแบบเรียลไทม์ไม่ได้ในเบราว์เซอร์นี้ — ใช้แบบคมจุดตีแทน");
+    if(seek){ S.pos=pos0; tickPos=NaN; }              // ระหว่างรอ หัวอ่านเดินทับจุดที่เพิ่งแตะ — คืนจุดนั้น
+  }
   stop(true);
   const [a,b]=region(); regA=a; regL=Math.max(0.05,b-a);
   // เริ่มจากตำแหน่งหัวอ่านปัจจุบัน ไม่ใช่ต้นเพลงเสมอ
   if(S.pos < a-1e-6 || S.pos > b-0.02) S.pos = a;
-  playFrom = S.pos;
+  playFrom = S.pos; tickPos = S.pos;
   headLen = Math.max(0.02, b - playFrom);
   playLoop = $("#loop").checked;
-  const rate=S.rate;
+  const rate=S.rate; playRate=rate;
   // ทุกอย่าง (เสียงเพลง กลองที่ถอด เมโทรนอม หัวอ่าน) เริ่มที่นาฬิกาเสียงจุดเดียวกันในอนาคตอันใกล้
-  // ไม่ใช่ "ตอนนี้" ที่แต่ละส่วนอ่านเวลาไม่พร้อมกัน
-  const when=S.ctx.currentTime+0.06;
-  if(S.buf && abMode!==1){
+  // ไม่ใช่ "ตอนนี้" ที่แต่ละส่วนอ่านเวลาไม่พร้อมกัน · ตัวยืดเรียลไทม์ต้องสั่งล่วงหน้าเกินความหน่วงของมัน
+  let when=S.ctx.currentTime+(sst ? SST.lat+0.03 : 0.06);
+  if(sst){
+    // ไม่ต้องสร้างเสียงล่วงหน้า: รอบวน = ช่วงจริงพอดี (ช่วงที่เลยท้ายไฟล์ ตัวยืดเติมความเงียบให้เอง) ยาวแค่ไหนก็วนได้
+    headLen=Math.max(0.02, b-playFrom);
+    try{ sstStart(when, playFrom, rate, a, a+regL, playLoop, headLen); }
+    catch(e){ console.error(e); setStatus("เล่นไฟล์เสียงไม่ได้ แต่เสียงกลองที่ถอดยังเล่นได้อยู่", true); }
+  }
+  else if(S.buf && abMode!==1){
     try{
       const sr=S.buf.sampleRate;
       const P=audioPlan(a, b, playFrom, rate, sr, S.buf.duration, playLoop);
@@ -5056,9 +5195,14 @@ async function play(){
         src.loop=P.loop; src.loopStart=P.A; src.loopEnd=P.A+P.L;
         src.connect(musicGain); src.start(when, playFrom, P.loop?undefined:headLen);
       } else {
-        if(!stretchCache.has("tp|"+P.A.toFixed(4)+"|"+P.L.toFixed(4)+"|"+rate.toFixed(3)+"|"+P.N))
+        if(!stretchCache.has("tp|"+P.A.toFixed(4)+"|"+P.L.toFixed(4)+"|"+rate.toFixed(3)+"|"+P.N)){
           setStatus(rate===1 ? "กำลังเตรียมเสียง …" : "กำลังยืดเสียงให้ช้าลงโดยถนอมจุดตี …");
+          await new Promise(r=>setTimeout(r, 30));           // ให้ข้อความขึ้นจอก่อน (การยืดกินเครื่องจนจอค้าง)
+        }
         const buf=tpStretch(S.buf, P.A, P.L, rate, P.N);
+        // นับเวลาเริ่มใหม่หลังยืดเสร็จ: เดิมนับก่อนยืด ถ้ายืดนาน 0.4 วินาที เสียงเพลงเริ่มช้ากว่ากลอง/เมโทรนอมเท่านั้นทั้งรอบ
+        // (ตัวเล่นเสียงที่สั่งเริ่มย้อนหลัง จะเริ่มทันทีโดยไม่ข้ามส่วนที่เลยมา)
+        when=S.ctx.currentTime+0.06;
         if(P.clipped){ playLoop=false; headLen=P.headLen;
           setStatus("ช่วงนี้ยาวเกิน 95 วินาที — ปรับความเร็วได้ 95 วินาทีจากหัวอ่าน และไม่วนซ้ำ · เลือกฟังทีละห้องจะแม่นและวนได้"); }
         else { regL=P.regL; headLen=P.headLen; setStatus(""); }
@@ -5108,12 +5252,12 @@ function pump(){
     if(schedIdx>=evList.length){
       if(!looping) break;
       schedIter++; schedIdx=0;
-      if(startedAt+elapsedOf(schedIter, regA)/S.rate > until) break;
+      if(startedAt+elapsedOf(schedIter, regA)/playRate > until) break;
       if(!evList.length) break;
       continue;
     }
     const e=evList[schedIdx];
-    const w=startedAt+elapsedOf(schedIter, e.t)/S.rate;
+    const w=startedAt+elapsedOf(schedIter, e.t)/playRate;
     if(w>until) break;
     schedHorizon=w;
     if(w>=now-0.01){
@@ -5127,26 +5271,27 @@ function pump(){
     }
     schedIdx++;
   }
-  if(!looping && (now-startedAt)*S.rate > headLen+0.4){ S.pos=regA+regL; stop(); }
+  if(!looping && (now-startedAt)*playRate > headLen+0.4){ S.pos=regA+regL; stop(); }
 }
 function stop(keep){
-  if(S.playing && S.ctx){                        // พัก = จำตำแหน่งไว้ ไม่กลับต้น
-    const el=Math.max(0, (S.ctx.currentTime-startedAt)*S.rate);
+  if(S.playing && S.ctx && S.pos===tickPos){     // พัก = จำตำแหน่งไว้ ไม่กลับต้น (ถ้าเพิ่งสั่งย้ายจุดเล่น ใช้จุดใหม่)
+    const el=Math.max(0, (S.ctx.currentTime-startedAt)*playRate);
     S.pos = el<headLen ? playFrom+el : regA+((el-headLen)%regL);
   }
   S.playing=false; $("#play").textContent="เล่น";
   clearInterval(schedTimer); cancelAnimationFrame(rafId); schedIter=0; schedIdx=0;
   if(S.ctx) newSinks();
   if(src){ try{src.stop();}catch(e){} src.disconnect(); src=null; }
+  sstHalt();
   if(!keep){ playAbs=X0(S.pos); draw(); }
 }
 function restartIfPlaying(){ if(S.playing){ play(); } else draw(); }
 function tick(){
   if(!S.playing) return;
   try{
-  const el=Math.max(0, (S.ctx.currentTime-startedAt)*S.rate);
+  const el=Math.max(0, (S.ctx.currentTime-startedAt)*playRate);
   const t = el < headLen ? playFrom+el : regA+((el-headLen)%regL);
-  S.pos=t;
+  S.pos=t; tickPos=t;
   playAbs=X0(t);
   const p=barBeatOf(t);
   $("#clock").textContent="ห้อง "+p.b+" · จังหวะ "+p.be+" · "+fmt(t);
@@ -6276,7 +6421,7 @@ const NP=(function(){
    สำเนาไว้ในแถวเล่นตอนย่อ (iPad) และหมวด "เสียง" ของแผงเขียนโน้ตบนมือถือ (แถวเล่นบนมือถือไม่มีที่)
    เลื่อนสำเนา = เลื่อนตัวจริงแล้วยิง input ให้ตัวจริงปรับเสียงเอง · ตัวจริงขยับ = สำเนาตาม */
 (function(){
-  const pairs=[["vol","เพลง","ระดับเสียงเพลง"],["dvol","กลอง","ระดับเสียงกลอง"]];
+  const pairs=[["vol","เพลง","ระดับเสียงเพลง"],["dvol","กลอง","ระดับเสียงกลอง"],["cvol","เมโทรนอม","ความดังเมโทรนอม"]];
   const copies=[];
   [$("#tpMix"), document.querySelector("#npal .np-mix")].forEach(host=>{
     if(!host) return;
@@ -6316,15 +6461,31 @@ function syncRateSeg(){
 }
 function setRate(pct){
   S.rate=pct/100;
+  if(pct!==100) sstPrepare();                          // โหลดตัวยืดไว้ก่อน กดเล่นแล้วไม่ต้องรอ
   const r=$("#rate"); if(r) r.value=String(pct);
   const rv=$("#rateV"); if(rv) rv.textContent=pct+"%";
   syncRateSeg(); restartIfPlaying();
 }
 document.querySelectorAll("#rateSeg button").forEach(b=>b.onclick=()=>setRate(+b.dataset.v));
-$("#rate").onchange=()=>restartIfPlaying();
+$("#rate").onchange=()=>{ if(S.rate!==1) sstPrepare(); restartIfPlaying(); };
+try{ const v=localStorage.getItem("klongpro.stretch"); if(v==="tp") $("#stretchMode").value="tp"; }catch(e){}
+$("#stretchMode").onchange=()=>{
+  try{ localStorage.setItem("klongpro.stretch", $("#stretchMode").value); }catch(e){}
+  if(stretchMode()==="tp") sstHalt();
+  if(S.rate!==1) restartIfPlaying();
+};
 $("#vol").oninput=()=>{ if(musicGain) musicGain.gain.value=+$("#vol").value/100; };
 $("#dvol").oninput=()=>{ if(drumGain) drumGain.gain.value=+$("#dvol").value/100; };
-$("#click").onchange=()=>{ if(clickGain) clickGain.gain.value=$("#click").checked?0.35:0; restartIfPlaying(); };
+/* ความดังเมโทรนอม 0–100 (กลางแถบ = ระดับเดิม 0.35) · จำไว้ในเครื่อง · เลื่อนแถบขึ้นตอนปิดอยู่ = เปิดให้เอง */
+function clickLevel(){ return $("#click").checked ? (+$("#cvol").value/100)*0.7 : 0; }
+try{ const v=localStorage.getItem("klongpro.cvol"); if(v!==null) $("#cvol").value=v; }catch(e){}
+$("#click").onchange=()=>{ if(clickGain) clickGain.gain.value=clickLevel(); restartIfPlaying(); };
+$("#cvol").oninput=()=>{
+  const c=$("#click");
+  if(!c.checked && +$("#cvol").value>0){ c.checked=true; c.onchange(); }
+  if(clickGain) clickGain.gain.value=clickLevel();
+  try{ localStorage.setItem("klongpro.cvol", $("#cvol").value); }catch(e){}
+};
 $("#ab").onclick=()=>{
   abMode=(abMode+1)%3;
   $("#ab").textContent=["สลับ A/B","เฉพาะกลองที่ถอด","เฉพาะเพลงจริง"][abMode];
@@ -9023,8 +9184,8 @@ function showExport(on){
   if(on && (!S.notes.length && !S.bars.length)){ setStatus("ยังไม่มีอะไรให้ส่งออก", true); return; }
   el.classList.toggle("hidden", !on);
   document.body.classList.toggle("atexport", !!on);
-  if(on){ window.scrollTo(0,0); if(typeof exFill==="function"){ exFill(exLoad()); exPreview(true); } }
-  else { const pv=$("#exPreview"); if(pv) pv.innerHTML=""; }
+  if(on){ window.scrollTo(0,0); if(typeof exFill==="function"){ exFill(exLoad()); exPreview(true); vxInit(); } }
+  else { const pv=$("#exPreview"); if(pv) pv.innerHTML=""; vxPreviewStop(); VX.cache=null; }
 }
 function openSnapshot(snap, msg){
   try{
@@ -9386,6 +9547,611 @@ function exReady(){
   if(!S.bars.length){ setStatus("ยังไม่มีอะไรให้ส่งออก", true); return false; }
   return true;
 }
+/* ============================================================
+   37. วิดีโอโน้ตตีตาม (MP4) — ภาพโน้ตแบบงานพิมพ์ เลื่อนตามเพลง ให้ตีตามได้ง่ายที่สุด
+   หน้าจอ: หัวบน (ชื่อเพลง · ♩ = ความเร็ว · จังหวะ · ห้องที่ n / ทั้งหมด · ไฟจังหวะ)
+           กระดาษขาว 2–3 บรรทัด บรรทัดที่กำลังเล่นอยู่บนสุด ห้องที่เล่นอยู่มีแถบสีจาง
+           เส้นหัวอ่านวิ่งตามโน้ตจริง (ระยะแบบเครื่องเรียงโน้ต ไม่ใช่วินาทีตรง ๆ) โน้ตที่ถึงจังหวะตีมีแสงวาบ
+           นับเข้าเป็นตัวเลขใหญ่กลางจอ · แถบเวลาด้านล่าง
+   ตัวโน้ตวาดด้วยเครื่องจัดหน้าเดียวกับ PDF (prSystem / prDrawSystem) จึงตรงกับงานพิมพ์ทุกอย่าง
+   เสียง: มิกซ์ใหม่แบบออฟไลน์ (OfflineAudioContext) ด้วยเสียงกลองชุดเดียวกับที่ฟังในแอป
+          กลอง · เพลงประกอบ · เมโทรนอม (แพนซ้าย–ขวาได้) เลือกและตั้งความดังแยกกัน
+          ปรับความเร็วใช้ตัวยืดเรียลไทม์ตัวเดียวกับตอนเล่น (ตรงจังหวะกับกลอง)
+   เข้ารหัส: WebCodecs (เครื่องเข้ารหัสในตัวของ iPad) ห่อเป็น .mp4 ด้วย mp4-muxer (lib/ · MIT)
+             ภาพ H.264 → HEVC → VP9 → AV1 (ตัวแรกที่เครื่องทำได้) · เสียง AAC 320 kbps → Opus 320 kbps
+             ไฟล์เสียงไม่บีบอัด .wav 24-bit แยกได้อีกปุ่ม
+   ============================================================ */
+const VX={busy:false, cancel:false, raf:0, cache:null, checkId:0};
+const VX_KEY="klongpro.video";
+const VX_RES={1080:[1920,1080], 1440:[2560,1440], 2160:[3840,2160]};
+// ความละเอียดภาพของเนื้อหาแบบนี้ (พื้นนิ่ง โน้ตคมตัด) — เครื่องเข้ารหัสแบบปรับตามเนื้อหามักใช้น้อยกว่านี้มาก
+const VX_KBPS={1080:[12000,15000,18000], 1440:[20000,25000,30000], 2160:[40000,50000,60000]};
+const VX_C={bg0:"#1A1411", bg1:"#241C17", ink:"#F4EADB", dim:"#B9A68F", teal:"#3FB8AC", tealD:"#1F8F84",
+  amber:"#F2A541", paper:"#FFFDF8", band:"rgba(63,184,172,.10)", bar:"rgba(63,184,172,.17)"};
+
+function vxOpts(){
+  const n=(id,d)=>{ const x=parseFloat($("#"+id).value); return isFinite(x) ? x : d; };
+  const nb=S.bars.length, last=prBarCount();
+  const b0=clamp(Math.round(n("vxFrom",1))-1, 0, nb-1), b1=clamp(Math.round(n("vxTo",last))-1, b0, nb-1);
+  const vol=id=>clamp(n(id,50),0,100)/100;
+  return {
+    res:+$("#vxRes").value||1080, fps:+$("#vxFps").value||60, per:+$("#vxPer").value||2, lines:+$("#vxLines").value||3,
+    b0, b1, rate:n("vxRate",1), count:n("vxCount",1), color:$("#vxColor").checked,
+    dr:{on:$("#vxDrOn").checked, vol:vol("vxDr")},
+    mu:{on:!!S.buf && $("#vxMuOn").checked, vol:vol("vxMu")},
+    cl:{on:$("#vxClOn").checked, vol:vol("vxCl"), pan:clamp(n("vxPan",0),-100,100)/100},
+  };
+}
+function vxSave(){
+  const o=vxOpts(), st={res:o.res, fps:o.fps, per:o.per, lines:o.lines, rate:o.rate, count:o.count, color:o.color,
+    drOn:o.dr.on, dr:$("#vxDr").value, muOn:$("#vxMuOn").checked, mu:$("#vxMu").value, clOn:o.cl.on, cl:$("#vxCl").value, pan:$("#vxPan").value};
+  try{ localStorage.setItem(VX_KEY, JSON.stringify(st)); }catch(e){}
+}
+/* เปิดหน้าส่งออก: ช่วงห้องเริ่มที่ทั้งเพลง · ความดังเริ่มจากที่ตั้งไว้ในแอป (ครั้งแรก) แล้วจำค่าที่ผู้ใช้แก้ */
+function vxInit(){
+  let st={}; try{ st=JSON.parse(localStorage.getItem(VX_KEY))||{}; }catch(e){}
+  const v=(id,x)=>{ if(x!=null) $("#"+id).value=String(x); }, c=(id,x)=>{ if(x!=null) $("#"+id).checked=!!x; };
+  v("vxRes", st.res); v("vxFps", st.fps); v("vxPer", st.per); v("vxLines", st.lines); v("vxRate", st.rate); v("vxCount", st.count);
+  c("vxColor", st.color); c("vxDrOn", st.drOn); c("vxMuOn", st.muOn); c("vxClOn", st.clOn);
+  v("vxDr", st.dr!=null ? st.dr : $("#dvol").value); v("vxMu", st.mu!=null ? st.mu : $("#vol").value);
+  v("vxCl", st.cl!=null ? st.cl : $("#cvol").value); v("vxPan", st.pan);
+  const last=prBarCount();
+  $("#vxFrom").max=$("#vxTo").max=String(S.bars.length);
+  $("#vxFrom").value="1"; $("#vxTo").value=String(last);
+  $("#vxDone").hidden=true; $("#vxDone").replaceChildren();
+  vxSync();
+}
+function vxSync(){
+  const has=!!S.buf;
+  $("#vxMuOn").disabled=!has; $("#vxMu").disabled=!has || !$("#vxMuOn").checked;
+  if(!has) $("#vxMuOn").closest(".vxrow").title="ยังไม่ได้โหลดไฟล์เพลง";
+  $("#vxDr").disabled=!$("#vxDrOn").checked; $("#vxCl").disabled=!$("#vxClOn").checked;
+  $("#vxDrV").textContent=$("#vxDr").value; $("#vxMuV").textContent=has ? $("#vxMu").value : "—"; $("#vxClV").textContent=$("#vxCl").value;
+  const p=+$("#vxPan").value;
+  $("#vxPanV").textContent = p===0 ? "กลาง" : (p<0 ? "L "+(-p) : "R "+p);
+  vxPreview();
+  vxCheck();
+}
+
+/* ── เวลา: วิดีโอเริ่มนิ่ง 0.6 วิ → นับเข้า → เพลง → ค้างท้าย 2.4 วิ ── */
+function vxTimeline(o){
+  const A=barStarts[o.b0], B=barStarts[o.b1+1], bar0=S.bars[o.b0];
+  const beat=beatSec(bar0.den, o.b0)/o.rate, pre=0.6, cin=o.count*bar0.num*beat;
+  const t0=pre+cin, end=t0+(B-A)/o.rate;
+  return {A, B, pre, cin, beat, num:bar0.num, t0, end, total:end+2.4};
+}
+const vxSongAt=(T, o, tv)=> tv<=T.t0 ? T.A : Math.min(T.B, T.A+(tv-T.t0)*o.rate);
+const vxVidAt=(T, o, t)=> T.t0+(t-T.A)/o.rate;
+
+/* ── จัดหน้า: บรรทัดละ per ห้อง ขนาดโน้ตใหญ่ที่สุดที่ lines บรรทัดพอดีกระดาษ ── */
+function vxLayout(o, W, H){
+  const key=[o.b0,o.b1,o.per,o.lines,o.color,W,H].join("|");
+  if(VX.cache && VX.cache.key===key) return VX.cache;
+  const s=W/1920;
+  const card={x:56*s, y:148*s, w:W-112*s, h:H-148*s-118*s};
+  const padX=34*s, padY=14*s, innerW=card.w-padX*2, innerH=card.h-padY*2, slotH=innerH/o.lines;
+  // เลขห้องเฉพาะต้นบรรทัด (หัวจอบอกห้องที่เล่นอยู่แล้ว · แบบทุกห้องชนเครื่องหมายเน้นที่ต้นห้อง)
+  const P=Object.assign({}, PR_DEF, {perSys:o.per, barNum:"sys", tempo:true, mono:!o.color, justifyLast:false, den:1});
+  const saved=PRO; PRO=P;
+  try{
+    const groups=[]; for(let i=o.b0;i<=o.b1;i+=o.per) groups.push([i, Math.min(o.b1, i+o.per-1)]);
+    const exts=groups.map(([a,b])=>prExtents({b0:a, b1:b}));
+    const hU=Math.max(...exts.map(e=>e.above+PR.staff+e.below));
+    let k=slotH/hU*0.94;
+    for(const [a,b] of groups){                          // ห้องแน่นเกินไป → ย่อทั้งชุดให้ระยะโน้ตไม่ต่ำกว่า 85% ของปกติ
+      const L=prSystem(a, b, 1e6, false, 0);
+      const fixed=L.bars.reduce((t,B)=>t+B.pad,0), nat=L.bars.reduce((t,B)=>t+B.nat,0);
+      k=Math.min(k, innerW/(L.prefix+fixed+nat*0.85));
+    }
+    let fRef=0;
+    const lines=groups.map(([a,b],i)=>{
+      const L=prSystem(a, b, innerW/k, i===groups.length-1 && i>0, fRef);
+      if(!L.last) fRef=L.f;
+      L.ext=exts[i];
+      const hh=(L.ext.above+PR.staff+L.ext.below)*k;
+      L.yTop=(slotH-hh)/2+L.ext.above*k;                 // เส้นบนสุดของบรรทัด (ภายในช่อง)
+      const X=prX(L);
+      L.tA=barStarts[a]; L.tB=barStarts[b+1];
+      L.barsPx=L.bars.map(B=>({bi:B.bi, x0:B.x*k, x1:(B.x+B.pad+B.nat*B.f)*k, tA:barStarts[B.bi], tB:barStarts[B.bi+1]}));
+      const seen=new Set(); L.hits=[];
+      for(let bi=a; bi<=b; bi++) for(const n of notesInBar(bi)){
+        if(n.orn==="grace" || !STAFF[n.v]) continue;
+        const key2=n.tk; if(seen.has(key2)) continue; seen.add(key2);
+        L.hits.push({t:n.t, x:X(n.t)*k});
+      }
+      L.hits.sort((p,q)=>p.t-q.t);
+      L.xOf=t=>X(t)*k;
+      L.bmp=null;
+      return L;
+    });
+    VX.cache={key, s, card, padX, padY, innerW, slotH, k, lines, P,
+      endPiece: o.b1===prBarCount()-1};
+    return VX.cache;
+  } finally { PRO=saved; }
+}
+function vxLineBmp(LY, i){
+  const L=LY.lines[i]; if(!L) return null;
+  if(L.bmp) return L.bmp;
+  const c=document.createElement("canvas");
+  c.width=Math.ceil(LY.innerW+4); c.height=Math.ceil(LY.slotH);
+  const saved=PRO; PRO=LY.P;
+  try{
+    const g=prInk(c.getContext("2d"), !LY.P.mono);
+    g.fillStyle="#000"; g.textBaseline="alphabetic";
+    prDrawSystem(g, L, 0, L.yTop, LY.k, LY.endPiece && i===LY.lines.length-1);
+  } finally { PRO=saved; }
+  // เก็บไว้ไม่เกิน 8 บรรทัด (4K บรรทัดละ ~10 MB)
+  const held=LY.lines.filter(x=>x.bmp);
+  if(held.length>=8){ const far=held.sort((p,q)=>Math.abs(LY.lines.indexOf(q)-i)-Math.abs(LY.lines.indexOf(p)-i))[0]; far.bmp.width=0; far.bmp=null; }
+  L.bmp=c;
+  return c;
+}
+const vxEase=x=> x<=0 ? 0 : x>=1 ? 1 : x*x*(3-2*x);
+function vxRound(g, x, y, w, h, r){
+  g.beginPath(); g.moveTo(x+r, y); g.arcTo(x+w, y, x+w, y+h, r); g.arcTo(x+w, y+h, x, y+h, r);
+  g.arcTo(x, y+h, x, y, r); g.arcTo(x, y, x+w, y, r); g.closePath();
+}
+function vxClock(t){ t=Math.max(0, t); const m=Math.floor(t/60), s=Math.floor(t-m*60); return m+":"+String(s).padStart(2,"0"); }
+
+/* ── วาดหนึ่งเฟรม ณ เวลาวิดีโอ tv ── */
+function vxFrame(g, W, H, o, T, LY, tv, info){
+  const s=LY.s, C=VX_C, F=PR_FONT;
+  const song=vxSongAt(T, o, tv), playing=tv>=T.t0 && tv<T.end;
+  // พื้นหลัง
+  const bgG=g.createLinearGradient(0, 0, 0, H); bgG.addColorStop(0, C.bg1); bgG.addColorStop(1, C.bg0);
+  g.fillStyle=bgG; g.fillRect(0, 0, W, H);
+
+  // บรรทัดปัจจุบัน + ตำแหน่งเลื่อน (ค่อย ๆ เลื่อนขึ้น 0.28 วิ คร่อมรอยต่อบรรทัด)
+  const nL=LY.lines.length;
+  let ci=0; while(ci<nL-1 && song>=LY.lines[ci+1].tA-1e-6) ci++;
+  let scroll=0;
+  for(let i=1;i<nL;i++){ const tb=vxVidAt(T, o, LY.lines[i].tA); scroll+=vxEase((tv-(tb-0.12))/0.28); }
+  const bi=clamp(barAtTk(secTk(Math.min(song, T.B-1e-6))), o.b0, o.b1), bar=S.bars[bi];
+
+  // หัวบน
+  const title=info.title||"", sub=info.sub||"";
+  g.textBaseline="alphabetic"; g.textAlign="left";
+  g.fillStyle=C.ink; g.font="600 "+(42*s).toFixed(1)+"px "+F;
+  g.fillText(title, 60*s, 68*s, W*0.5);
+  if(sub){ g.fillStyle=C.dim; g.font="500 "+(21*s).toFixed(1)+"px "+F; g.fillText(sub, 60*s, 106*s, W*0.5); }
+  // ขวา: ห้อง n/N · จังหวะ · ♩ = ความเร็ว
+  let x=W-60*s;
+  // lead = ที่ว่างหน้าข้อความ (ใส่ตัวโน้ตตัวดำของป้ายความเร็ว)
+  const pill=(txt, bold, fill, lead)=>{
+    g.font=(bold?"700 ":"600 ")+(25*s).toFixed(1)+"px "+F;
+    const tw=g.measureText(txt).width, w=tw+34*s+(lead||0), h=46*s, y=34*s;
+    x-=w; vxRound(g, x, y, w, h, 23*s);
+    g.fillStyle=fill||"rgba(255,255,255,.07)"; g.fill();
+    g.fillStyle=fill ? "#10201E" : C.ink; g.textAlign="left"; g.fillText(txt, x+17*s+(lead||0), y+h/2+9*s);
+    const left=x; x-=12*s; return left;
+  };
+  pill("ห้อง "+(bi+1)+" / "+(o.b1+1), true, C.teal);
+  pill(bar.num+"/"+bar.den, false);
+  const bpm=Math.round(bpmAt(bi)*o.rate*10)/10;
+  const tl=pill("= "+bpm+(o.rate!==1 ? "  ("+Math.round(o.rate*100)+"%)" : ""), false, null, 22*s);
+  { // ตัวโน้ตตัวดำของป้ายความเร็ว
+    g.save(); g.translate(tl+21*s, 57*s+9*s); g.scale(1.75*s, 1.75*s);
+    g.fillStyle=C.ink; g.strokeStyle=C.ink; g.lineWidth=1.2;
+    g.beginPath(); g.ellipse(0, 0, 3.6, 2.6, -0.35, 0, Math.PI*2); g.fill();
+    g.beginPath(); g.moveTo(3.2, -0.5); g.lineTo(3.2, -15); g.stroke(); g.restore();
+  }
+  // ไฟจังหวะ: จุดเท่าจำนวนจังหวะของห้อง จังหวะที่ 1 ใหญ่กว่า
+  let beatIx=-1, beatFrac=0, nDots=bar.num;
+  if(tv<T.t0){
+    if(tv>=T.pre){ const k=(tv-T.pre)/T.beat; beatIx=Math.floor(k)%T.num; beatFrac=k-Math.floor(k); nDots=T.num; }
+  } else if(playing){
+    const k=(song-barStarts[bi])/beatSec(bar.den, bi); beatIx=Math.min(bar.num-1, Math.floor(k)); beatFrac=k-Math.floor(k);
+  }
+  { const r=8*s, gap=30*s, y=112*s; let dx=W-60*s-r;
+    for(let j=nDots-1;j>=0;j--){
+      const on=j===beatIx, rr=(j===0 ? 1.3 : 1)*r*(on ? 1+0.35*(1-beatFrac) : 1);
+      g.beginPath(); g.arc(dx, y, rr, 0, Math.PI*2);
+      g.fillStyle = on ? (j===0 ? C.amber : C.teal) : "rgba(255,255,255,.16)"; g.fill();
+      dx-=gap;
+    }
+  }
+
+  // กระดาษ
+  const cd=LY.card;
+  g.save(); g.shadowColor="rgba(0,0,0,.45)"; g.shadowBlur=30*s; g.shadowOffsetY=8*s;
+  vxRound(g, cd.x, cd.y, cd.w, cd.h, 16*s); g.fillStyle=C.paper; g.fill(); g.restore();
+  g.save(); vxRound(g, cd.x, cd.y, cd.w, cd.h, 16*s); g.clip();
+  const x0=cd.x+LY.padX, y0=cd.y+LY.padY;
+  const first=Math.max(0, Math.floor(scroll)-1), lastI=Math.min(nL-1, Math.floor(scroll)+o.lines);
+  for(let i=first;i<=lastI;i++){
+    const L=LY.lines[i], y=y0+(i-scroll)*LY.slotH;
+    if(y>cd.y+cd.h || y+LY.slotH<cd.y) continue;
+    const fade = i<scroll ? Math.max(0, 1-(scroll-i)*1.6) : (i>scroll+o.lines-1 ? Math.max(0, 1-(i-(scroll+o.lines-1))*1.6) : 1);
+    if(fade<=0) continue;
+    const cur = i===ci && tv<T.end+0.2;
+    g.globalAlpha=fade;
+    if(cur && playing){
+      // แถบบรรทัดปัจจุบัน + ห้องที่กำลังเล่น
+      const sy=y+L.yTop-30*LY.k, sh=(PR.staff+60)*LY.k;
+      g.fillStyle=C.band; vxRound(g, x0-14*s, sy, LY.innerW+28*s, sh, 10*s); g.fill();
+      const Bp=L.barsPx.find(b=>song>=b.tA-1e-6 && song<b.tB) || L.barsPx[L.barsPx.length-1];
+      g.fillStyle=C.bar; g.fillRect(x0+Bp.x0, sy, Bp.x1-Bp.x0, sh);
+      // แสงวาบตอนถึงจังหวะตี (0.22 วิ)
+      for(const h of L.hits){
+        const d=tv-vxVidAt(T, o, h.t); if(d<0) break; if(d>0.22) continue;
+        const a=Math.pow(1-d/0.22, 1.5);
+        g.fillStyle="rgba(242,165,65,"+(0.42*a).toFixed(3)+")";
+        const w=(14+10*(1-a))*LY.k; vxRound(g, x0+h.x-w/2, sy+6*LY.k, w, sh-12*LY.k, w/2); g.fill();
+      }
+    }
+    g.drawImage(vxLineBmp(LY, i), x0, y);
+    if(cur && tv>=T.pre){
+      // หัวอ่าน: เส้นเขียวน้ำทะเล มีเงาเรือง + สามเหลี่ยมชี้ด้านบน
+      const cxp=x0+L.xOf(Math.max(L.tA, song)), top=y+L.yTop-24*LY.k, bot=y+L.yTop+(PR.staff+24)*LY.k;
+      g.save();
+      g.shadowColor="rgba(63,184,172,.85)"; g.shadowBlur=14*s;
+      g.fillStyle=C.tealD; g.globalAlpha=fade*(playing ? 0.9 : 0.55);
+      g.fillRect(cxp-2.2*s, top, 4.4*s, bot-top);
+      g.beginPath(); g.moveTo(cxp-9*s, top-12*s); g.lineTo(cxp+9*s, top-12*s); g.lineTo(cxp, top); g.closePath(); g.fill();
+      g.restore();
+    }
+    g.globalAlpha=1;
+  }
+  g.restore();
+
+  // นับเข้า: ตัวเลขใหญ่กลางกระดาษ
+  if(tv<T.t0){
+    const cxm=cd.x+cd.w/2, cym=cd.y+cd.h/2, R=118*s;
+    g.save();
+    g.fillStyle="rgba(26,20,17,.80)"; g.beginPath(); g.arc(cxm, cym, R, 0, Math.PI*2); g.fill();
+    g.textAlign="center";
+    if(beatIx<0 || T.cin===0){
+      g.fillStyle=C.ink; g.font="600 "+(30*s).toFixed(1)+"px "+F; g.fillText("เตรียมตัว", cxm, cym+10*s);
+    } else {
+      const sc=1+0.18*(1-vxEase(beatFrac*3));
+      g.fillStyle = beatIx===0 ? C.amber : C.teal;
+      g.font="700 "+(120*s*sc).toFixed(1)+"px "+PR_NUM; g.fillText(String(beatIx+1), cxm, cym+40*s*sc);
+      g.fillStyle=C.dim; g.font="500 "+(20*s).toFixed(1)+"px "+F;
+      g.fillText("นับเข้า", cxm, cym+R-26*s);
+    }
+    g.restore();
+  }
+
+  // จบ: ป้ายเล็ก ๆ ใต้บรรทัดสุดท้าย ค่อย ๆ ขึ้น
+  if(tv>T.end+0.15){
+    const a=vxEase((tv-T.end-0.15)/0.6), L=LY.lines[nL-1], yl=y0+(nL-1-scroll)*LY.slotH+LY.slotH;
+    const txt = o.b1===prBarCount()-1 && o.b0===0 ? "จบเพลง" : "จบช่วงห้อง "+(o.b0+1)+"–"+(o.b1+1);
+    g.save(); g.globalAlpha=a; g.textAlign="center"; g.font="600 "+(30*s).toFixed(1)+"px "+F;
+    const w=g.measureText(txt).width+56*s, yy=Math.min(cd.y+cd.h-80*s, yl+18*s);
+    vxRound(g, cd.x+cd.w/2-w/2, yy, w, 58*s, 29*s); g.fillStyle=C.tealD; g.fill();
+    g.fillStyle="#fff"; g.fillText(txt, cd.x+cd.w/2, yy+39*s); g.restore();
+  }
+
+  // แถบเวลาด้านล่าง
+  const py=H-66*s, px0=60*s, px1=W-60*s, ph=10*s;
+  const dur=(T.B-T.A)/o.rate, el=clamp(tv-T.t0, 0, dur);
+  vxRound(g, px0, py, px1-px0, ph, ph/2); g.fillStyle="rgba(255,255,255,.12)"; g.fill();
+  if(el>0){ vxRound(g, px0, py, Math.max(ph, (px1-px0)*el/dur), ph, ph/2); g.fillStyle=C.teal; g.fill(); }
+  // ขีดต้นบรรทัด (ดูว่าอีกกี่บรรทัดจบ)
+  g.fillStyle="rgba(255,255,255,.28)";
+  for(let i=1;i<nL;i++){ const xx=px0+(px1-px0)*((LY.lines[i].tA-T.A)/o.rate)/dur; g.fillRect(xx-1*s, py-5*s, 2*s, ph+10*s); }
+  g.font="600 "+(20*s).toFixed(1)+"px 'IBM Plex Mono', monospace"; g.fillStyle=C.dim;
+  g.textAlign="left"; g.fillText(vxClock(el), px0, py+40*s);
+  g.textAlign="right"; g.fillText(vxClock(dur), px1, py+40*s);
+  g.textAlign="center"; g.font="500 "+(17*s).toFixed(1)+"px "+F; g.fillStyle="rgba(244,234,219,.45)";
+  g.fillText(info.foot||"Klong Pro", W/2, py+40*s);
+  g.textAlign="left";
+}
+function vxInfo(){
+  const t=($("#exTitle").value||"").trim() || S.projName || "ถอดโน้ตกลอง";
+  const sub=[($("#exComp").value||"").trim(), ($("#exArr").value||"").trim() ? "ถอดโน้ต: "+$("#exArr").value.trim() : ""].filter(Boolean).join(" · ");
+  return {title:t, sub, foot:"Klong Pro"};
+}
+
+/* ── ตัวอย่างภาพในหน้าส่งออก (แตะ = เล่นภาพตัวอย่างวนไป ไม่มีเสียง) ── */
+function vxPreview(){
+  const c=$("#vxPrev"); if(!c || $("#exportScreen").classList.contains("hidden") || !S.bars.length) return;
+  const dpr=Math.min(2, window.devicePixelRatio||1), W=Math.max(320, Math.round(c.clientWidth*dpr)) || 640, H=Math.round(W*9/16);
+  if(c.width!==W || c.height!==H){ c.width=W; c.height=H; }
+  const o=vxOpts(), T=vxTimeline(o), LY=vxLayout(o, W, H), info=vxInfo();
+  // วาดลงผืนนอกหน้าแล้วค่อยแปะ: ชั้นธีมเปลี่ยนสีทุกอย่างที่วาดบนผืนในหน้า ตัวอย่างต้องเหมือนวิดีโอจริงทุกสี
+  if(!VX.buf || VX.buf.width!==W || VX.buf.height!==H){ VX.buf=document.createElement("canvas"); VX.buf.width=W; VX.buf.height=H; }
+  const bg=VX.buf.getContext("2d"), g=c.getContext("2d");
+  const show=tv=>{ vxFrame(bg, W, H, o, T, LY, tv, info); g.drawImage(VX.buf, 0, 0); };
+  if(VX.raf){
+    const t0=performance.now()-(VX.prevT||0)*1000;
+    const loop=()=>{
+      if(!VX.raf) return;
+      const tv=((performance.now()-t0)/1000)%Math.min(T.total, T.t0+24);
+      VX.prevT=tv; show(tv);
+      VX.raf=requestAnimationFrame(loop);
+    };
+    cancelAnimationFrame(VX.raf); VX.raf=requestAnimationFrame(loop);
+  } else show(T.t0+Math.min(T.end-T.t0, T.beat*1.5));
+}
+function vxPreviewStop(){ if(VX.raf){ cancelAnimationFrame(VX.raf); VX.raf=0; } }
+
+/* ── เลือกตัวเข้ารหัสที่เครื่องทำได้ ── */
+function vxVideoCands(W, H, fps){
+  const mbs=Math.ceil(W/16)*Math.ceil(H/16)*fps, lum=W*H*fps, big=W*H>2228224;
+  const avc=[mbs<=522240 && !big ? "2A" : mbs<=983040 ? "33" : mbs<=2073600 ? "34" : "3C", "3D", "3E"];
+  const hevc=[lum<=133693440 && !big ? 123 : lum<=267386880 ? 150 : lum<=534773760 ? 153 : 156, 183, 186];
+  const vp9=[lum<=160432128 ? "41" : lum<=534773760 ? "51" : "52", "61", "62"];
+  const av1=[lum<=267386880 ? "12" : lum<=534773760 ? "13" : "14", "17", "18"];
+  const out=[];
+  [...new Set(avc)].forEach(l=>out.push({codec:"avc1.6400"+l, mux:"avc", name:"H.264", avc:{format:"avc"}}));
+  [...new Set(hevc)].forEach(l=>out.push({codec:"hvc1.1.6.L"+l+".B0", mux:"hevc", name:"HEVC (H.265)"}));
+  [...new Set(vp9)].forEach(l=>out.push({codec:"vp09.00."+l+".08", mux:"vp9", name:"VP9"}));
+  [...new Set(av1)].forEach(l=>out.push({codec:"av01.0."+l+"M.08", mux:"av1", name:"AV1"}));
+  return out;
+}
+async function vxPickVideo(W, H, fps, kbps){
+  if(typeof VideoEncoder==="undefined") return null;
+  for(const c of vxVideoCands(W, H, fps)){
+    const cfg={codec:c.codec, width:W, height:H, bitrate:kbps*1000, framerate:fps, bitrateMode:"variable", latencyMode:"quality"};
+    if(c.avc) cfg.avc=c.avc;
+    try{ const r=await VideoEncoder.isConfigSupported(cfg); if(r && r.supported) return {cfg, mux:c.mux, name:c.name}; }catch(e){}
+  }
+  return null;
+}
+async function vxPickAudio(sr){
+  if(typeof AudioEncoder==="undefined") return null;
+  const C=[{codec:"mp4a.40.2", mux:"aac", name:"AAC", sr},
+           {codec:"mp4a.40.2", mux:"aac", name:"AAC", sr:48000},
+           {codec:"opus", mux:"opus", name:"Opus", sr:48000}];
+  for(const c of C){
+    const cfg={codec:c.codec, sampleRate:c.sr, numberOfChannels:2, bitrate:320000};
+    try{ const r=await AudioEncoder.isConfigSupported(cfg); if(r && r.supported) return {cfg, mux:c.mux, name:c.name, sr:c.sr}; }catch(e){}
+  }
+  return null;
+}
+async function vxCheck(){
+  const id=++VX.checkId, el=$("#vxInfo"); if(!el || !S.bars.length) return;
+  const o=vxOpts(), T=vxTimeline(o), [W,H]=VX_RES[o.res], kbps=VX_KBPS[o.res][[60,90,120].indexOf(o.fps)];
+  const sr=(S.ctx && S.ctx.sampleRate) || 44100;
+  const v=await vxPickVideo(W, H, o.fps, kbps), a=await vxPickAudio(sr);
+  if(id!==VX.checkId) return;
+  const mb=Math.round((kbps+320)*T.total/8/1000);
+  const len=vxClock(T.total)+" นาที ("+(o.b1-o.b0+1)+" ห้อง"+(o.count ? " + นับเข้า "+o.count+" ห้อง" : "")+")";
+  if(!v){
+    el.textContent="เครื่อง/เบราว์เซอร์นี้สร้างวิดีโอ "+W+"×"+H+" "+o.fps+" fps ไม่ได้"+
+      (typeof VideoEncoder==="undefined" ? " (ต้องใช้ Safari 16.4 ขึ้นไป หรือ Chrome)" : " — ลองลดความละเอียดหรือเฟรมเรต")+" · ส่งออกเสียง .wav ได้";
+    $("#vxGo").disabled=true; return;
+  }
+  $("#vxGo").disabled=false;
+  el.textContent="MP4 · "+v.name+" "+W+"×"+H+" "+o.fps+" fps · เสียง "+(a ? a.name+" 320 kbps "+(a.sr/1000)+" kHz" : "— (เครื่องนี้เข้ารหัสเสียงไม่ได้ ได้วิดีโอไม่มีเสียง ใช้ปุ่ม .wav แยก)")+
+    " · ยาว "+len+" · ไฟล์ไม่เกินราว "+mb+" MB";
+}
+
+/* ── มิกซ์เสียงออฟไลน์ ── */
+async function vxWaitKits(){
+  for(let i=0;i<200;i++){
+    const k=KIT.ready(), ks=window.KlongSounds ? window.KlongSounds.state() : {ready:true};
+    if((k.broken || k.done>=k.total) && (ks.ready || ks.error || ks.failed)) return;
+    if(i===0) vxProgress(0, "กำลังเตรียมเสียงกลอง …");
+    await new Promise(r=>setTimeout(r, 100));
+  }
+}
+async function vxMix(o, T, onProg){
+  ensureCtx(); stop();
+  await vxWaitKits();
+  const sr=S.ctx.sampleRate, N=Math.ceil(T.total*sr);
+  const oc=new OfflineAudioContext(2, N, sr);
+  // เส้นทางเดียวกับตอนเล่นในแอป (คอมเพรสเซอร์ตัวเดียวกัน) เสียงในวิดีโอจึงเหมือนที่ได้ยิน
+  const comp=oc.createDynamicsCompressor();
+  comp.threshold.value=-6; comp.knee.value=12; comp.ratio.value=3; comp.attack.value=0.004; comp.release.value=0.18;
+  comp.connect(oc.destination);
+  // กลอง
+  if(o.dr.on && o.dr.vol>0){
+    const gD=oc.createGain(); gD.gain.value=o.dr.vol; gD.connect(comp);
+    const bus=oc.createGain(); bus.connect(gD); KIT.route(oc, bus, gD);
+    const keep={ctx:S.ctx, d:dSink, a:regA, l:regL};
+    regA=T.A; regL=Math.max(0.05, T.B-T.A);
+    let ev; try{ ev=buildEvents(); } finally { regA=keep.a; regL=keep.l; }
+    S.ctx=oc; dSink=bus;                                     // ให้ตัวเล่นเสียงกลองทุกชั้นวางเสียงลงบริบทออฟไลน์
+    try{ for(const e of ev) if(e.k==="n") playVoice(e.v, vxVidAt(T, o, e.t), e.vel, e.art); }
+    finally { S.ctx=keep.ctx; dSink=keep.d; }
+  }
+  // เพลงประกอบ: เริ่มที่ต้นช่วงพร้อมกลอง · เลยท้ายช่วงค่อย ๆ จาง 1.2 วิ
+  if(o.mu.on && o.mu.vol>0 && S.buf){
+    const gM=oc.createGain(); gM.connect(comp);
+    gM.gain.setValueAtTime(0, 0); gM.gain.setValueAtTime(0, T.t0); gM.gain.linearRampToValueAtTime(o.mu.vol, T.t0+0.004);
+    gM.gain.setValueAtTime(o.mu.vol, T.end); gM.gain.linearRampToValueAtTime(0, T.end+1.2);
+    if(o.rate===1){
+      if(T.A<S.buf.duration){ const s=oc.createBufferSource(); s.buffer=S.buf; s.connect(gM); s.start(T.t0, T.A); }
+    } else {
+      await sstScript();
+      SignalsmithStretch.moduleUrl="lib/signalsmith-stretch-worklet-1.3.2.js";
+      const node=await SignalsmithStretch(oc);
+      const chs=[]; for(let c=0;c<S.buf.numberOfChannels;c++) chs.push(S.buf.getChannelData(c).slice());
+      await node.addBuffers(chs, chs.map(x=>x.buffer));
+      const pr=Math.min(0.5, T.t0);                          // เริ่มก่อนครึ่งวินาที (ปิดเสียงไว้) ให้ตัวยืดนิ่งพอดีตอนถึงต้นช่วง
+      node.schedule({outputTime:T.t0-pr, active:true, input:T.A-pr*o.rate, rate:o.rate});
+      node.connect(gM);
+    }
+  }
+  // เมโทรนอม (+ เสียงนับเข้า ซึ่งดังเสมอแม้ปิดเมโทรนอม — ไม่งั้นนับเข้าเงียบ)
+  const gC=oc.createGain(); gC.gain.value=0.7*(o.cl.on ? o.cl.vol : Math.max(o.cl.vol, 0.5));
+  const pan=oc.createStereoPanner(); pan.pan.value=o.cl.pan; gC.connect(pan); pan.connect(comp);
+  const click=(when, strong, lvl)=>{
+    const os=oc.createOscillator(); os.type="square"; os.frequency.value=strong?1600:1050;
+    const g=oc.createGain(); os.connect(g); g.connect(gC);
+    const pk=(strong?0.5:0.28)*lvl;
+    g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(pk, when+0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, when+0.036);
+    os.start(when); os.stop(when+0.06);
+  };
+  for(let i=0;i<o.count*T.num;i++) click(T.pre+i*T.beat, i%T.num===0, 1);
+  if(o.cl.on && o.cl.vol>0) for(let i=o.b0;i<=o.b1;i++) for(let j=0;j<S.bars[i].num;j++) click(vxVidAt(T, o, beatStart(i,j)), j===0, 1);
+  for(let t=8;t<T.total;t+=8) oc.suspend(t).then(()=>{ onProg && onProg(t/T.total); oc.resume(); });
+  return await oc.startRendering();
+}
+function vxWavBytes(buf){
+  const n=buf.length, ch=buf.numberOfChannels, sr=buf.sampleRate, bps=3, size=n*ch*bps;
+  const out=new Uint8Array(44+size), dv=new DataView(out.buffer);
+  const w4=(o,s)=>{ for(let i=0;i<4;i++) out[o+i]=s.charCodeAt(i); };
+  w4(0,"RIFF"); dv.setUint32(4, 36+size, true); w4(8,"WAVE"); w4(12,"fmt ");
+  dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,ch,true); dv.setUint32(24,sr,true);
+  dv.setUint32(28,sr*ch*bps,true); dv.setUint16(32,ch*bps,true); dv.setUint16(34,24,true);
+  w4(36,"data"); dv.setUint32(40,size,true);
+  const d=[]; for(let c=0;c<ch;c++) d.push(buf.getChannelData(c));
+  let p=44;
+  for(let i=0;i<n;i++) for(let c=0;c<ch;c++){
+    let v=Math.round(Math.max(-1, Math.min(1, d[c][i]))*8388607);
+    out[p++]=v&255; out[p++]=(v>>8)&255; out[p++]=(v>>16)&255;
+  }
+  return out;
+}
+async function vxResample(buf, sr){
+  if(buf.sampleRate===sr) return buf;
+  const oc=new OfflineAudioContext(buf.numberOfChannels, Math.ceil(buf.duration*sr), sr);
+  const s=oc.createBufferSource(); s.buffer=buf; s.connect(oc.destination); s.start();
+  return await oc.startRendering();
+}
+
+/* ── ความคืบหน้า ── */
+function vxProgress(f, txt){
+  const p=$("#vxProg"); if(!p) return;
+  p.hidden=f==null;
+  if(f!=null){ $("#vxBarI").style.width=(clamp(f,0,1)*100).toFixed(1)+"%"; $("#vxProgT").textContent=txt||""; }
+}
+function vxScript(){
+  if(window.Mp4Muxer) return Promise.resolve();
+  return new Promise((ok, no)=>{
+    const s=document.createElement("script"); s.src="lib/mp4-muxer-5.2.2.js";
+    s.onload=ok; s.onerror=()=>no(new Error("โหลดตัวห่อไฟล์ MP4 ไม่ได้")); document.head.appendChild(s);
+  });
+}
+function vxName(o, ext){
+  const base=(($("#exTitle").value||"").trim() || S.projName || "drums").replace(/[\\/:*?"<>|]+/g, "-");
+  return base+(o.rate!==1 ? "-"+Math.round(o.rate*100)+"pct" : "")+(ext==="mp4" ? "-"+o.res+"p"+o.fps : "")+"."+ext;
+}
+function vxOffer(blob, name){
+  const box=$("#vxDone"); box.replaceChildren(); box.hidden=false;
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.className="btn primary"; a.href=url; a.download=name; a.textContent="บันทึกไฟล์ "+name.split(".").pop().toUpperCase()+" ("+Math.max(1, Math.round(blob.size/1048576))+" MB)";
+  box.append(a);
+  try{
+    const f=new File([blob], name, {type:blob.type});
+    if(navigator.canShare && navigator.canShare({files:[f]})){
+      const b=document.createElement("button"); b.className="btn"; b.type="button"; b.textContent="แชร์ / บันทึกลงรูปภาพ";
+      b.onclick=()=>navigator.share({files:[f]}).catch(()=>{});
+      box.append(b);
+    }
+  }catch(e){}
+  a.click();
+}
+
+/* ── สร้างวิดีโอ ── */
+async function vxMake(){
+  if(VX.busy || !exReady()) return;
+  const o=vxOpts(), T=vxTimeline(o), [W,H]=VX_RES[o.res];
+  const kbps=VX_KBPS[o.res][[60,90,120].indexOf(o.fps)];
+  VX.busy=true; VX.cancel=false; vxPreviewStop();
+  $("#vxGo").disabled=true; $("#vxWav").disabled=true; $("#vxDone").hidden=true;
+  let lock=null; try{ lock=await navigator.wakeLock.request("screen"); }catch(e){}
+  let venc=null, aenc=null;
+  try{
+    await vxScript();
+    const vPick=await vxPickVideo(W, H, o.fps, kbps);
+    if(!vPick) throw new Error("เครื่องนี้เข้ารหัสวิดีโอขนาดนี้ไม่ได้ — ลองลดความละเอียดหรือเฟรมเรต");
+    const anyAudio=(o.dr.on && o.dr.vol>0) || o.mu.on || o.count>0 || o.cl.on;
+    // 1) เสียง
+    let mix=null, aPick=null;
+    if(anyAudio){
+      vxProgress(0, "กำลังมิกซ์เสียง …");
+      mix=await vxMix(o, T, f=>vxProgress(f*0.12, "กำลังมิกซ์เสียง "+Math.round(f*100)+"%"));
+      aPick=await vxPickAudio(mix.sampleRate);
+      if(aPick && aPick.sr!==mix.sampleRate) mix=await vxResample(mix, aPick.sr);
+    }
+    if(VX.cancel) throw new Error("ยกเลิก");
+    // 2) ตัวห่อไฟล์: เขียนต่อกันเป็นก้อน ๆ (ไม่จองหน่วยความจำสองเท่าตอนจบ) แล้วรวมเป็นไฟล์เดียว
+    const parts=[];
+    const target=new Mp4Muxer.StreamTarget({chunked:true, onData:(data, pos)=>{
+      for(const p of parts) if(pos>=p.pos && pos+data.length<=p.pos+p.data.length){ p.data.set(data, pos-p.pos); return; }
+      parts.push({pos, data:new Uint8Array(data)});
+    }});
+    const muxer=new Mp4Muxer.Muxer({target, fastStart:false, firstTimestampBehavior:"offset",
+      video:{codec:vPick.mux, width:W, height:H, frameRate:o.fps},
+      audio: aPick ? {codec:aPick.mux, numberOfChannels:2, sampleRate:aPick.sr} : undefined});
+    let encErr=null;
+    if(aPick && mix){
+      aenc=new AudioEncoder({output:(c, m)=>muxer.addAudioChunk(c, m), error:e=>{ encErr=e; }});
+      aenc.configure(aPick.cfg);
+      const L=mix.getChannelData(0), R=mix.getChannelData(1), n=mix.length, sr=mix.sampleRate, step=4096;
+      for(let i=0;i<n;i+=step){
+        const m=Math.min(step, n-i), d=new Float32Array(m*2); d.set(L.subarray(i, i+m), 0); d.set(R.subarray(i, i+m), m);
+        const ad=new AudioData({format:"f32-planar", sampleRate:sr, numberOfFrames:m, numberOfChannels:2, timestamp:Math.round(i/sr*1e6), data:d});
+        aenc.encode(ad); ad.close();
+      }
+      await aenc.flush(); aenc.close(); aenc=null;
+      if(encErr) throw encErr;
+    }
+    // 3) ภาพ: วาดทีละเฟรม → เข้ารหัส (รอคิวไม่ให้ค้างเกิน 6 เฟรม หน่วยความจำไม่บวม)
+    venc=new VideoEncoder({output:(c, m)=>muxer.addVideoChunk(c, m), error:e=>{ encErr=e; }});
+    venc.configure(vPick.cfg);
+    const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+    const g=cv.getContext("2d", {alpha:false});
+    VX.cache=null;
+    const LY=vxLayout(o, W, H), info=vxInfo();
+    await document.fonts.ready;
+    const nF=Math.ceil(T.total*o.fps), t0=performance.now(), us=1e6/o.fps;
+    const waitQ=()=>new Promise(r=>{ let done=false; const f=()=>{ if(!done){ done=true; r(); } };
+      try{ venc.addEventListener("dequeue", f, {once:true}); }catch(e){} setTimeout(f, 8); });
+    for(let i=0;i<nF;i++){
+      if(VX.cancel) throw new Error("ยกเลิก");
+      if(encErr) throw encErr;
+      vxFrame(g, W, H, o, T, LY, i/o.fps, info);
+      const vf=new VideoFrame(cv, {timestamp:Math.round(i*us), duration:Math.round(us)});
+      venc.encode(vf, {keyFrame: i%(o.fps*2)===0}); vf.close();
+      while(venc.encodeQueueSize>6) await waitQ();
+      if(i%12===0){
+        const el=(performance.now()-t0)/1000, left=i>30 ? el/(i+1)*(nF-i-1) : 0;
+        vxProgress(0.12+0.86*(i/nF), "กำลังสร้างภาพ "+Math.round(i/nF*100)+"% · เฟรม "+i+" / "+nF+(left ? " · เหลือราว "+vxClock(left) : ""));
+        await yieldNow();
+      }
+    }
+    await venc.flush(); venc.close(); venc=null;
+    if(encErr) throw encErr;
+    muxer.finalize();
+    parts.sort((p,q)=>p.pos-q.pos);
+    const blob=new Blob(parts.map(p=>p.data), {type:"video/mp4"});
+    vxProgress(1, "เสร็จแล้ว");
+    vxOffer(blob, vxName(o, "mp4"));
+    setStatus("สร้างวิดีโอแล้ว "+W+"×"+H+" "+o.fps+" fps · "+vPick.name+(aPick ? " · เสียง "+aPick.name+" 320 kbps" : " · ไม่มีเสียง")+
+      " · ยาว "+vxClock(T.total)+" · "+Math.max(1, Math.round(blob.size/1048576))+" MB");
+  }catch(e){
+    const stopped=VX.cancel || e.message==="ยกเลิก";
+    if(!stopped) console.error(e);
+    setStatus(stopped ? "ยกเลิกการสร้างวิดีโอแล้ว" : "สร้างวิดีโอไม่สำเร็จ: "+(e && e.message || e), !stopped);
+  }finally{
+    try{ if(venc && venc.state!=="closed") venc.close(); }catch(e){}
+    try{ if(aenc && aenc.state!=="closed") aenc.close(); }catch(e){}
+    try{ lock && lock.release(); }catch(e){}
+    VX.busy=false; VX.cache=null; vxProgress(null);
+    $("#vxWav").disabled=false; vxCheck(); vxPreview();
+  }
+}
+async function vxWav(){
+  if(VX.busy || !exReady()) return;
+  VX.busy=true; $("#vxGo").disabled=true; $("#vxWav").disabled=true;
+  try{
+    const o=vxOpts(), T=vxTimeline(o);
+    vxProgress(0, "กำลังมิกซ์เสียง …");
+    const mix=await vxMix(o, T, f=>vxProgress(f, "กำลังมิกซ์เสียง "+Math.round(f*100)+"%"));
+    const bytes=vxWavBytes(mix);
+    vxOffer(new Blob([bytes], {type:"audio/wav"}), vxName(o, "wav"));
+    setStatus("ส่งออกเสียง WAV 24-bit "+(mix.sampleRate/1000)+" kHz ไม่บีบอัด · ยาว "+vxClock(T.total)+" — ตรงกับเสียงในวิดีโอทุกตัวอย่าง (วางเทียบในโปรแกรมตัดต่อได้)");
+  }catch(e){ console.error(e); setStatus("ส่งออกเสียงไม่สำเร็จ: "+e.message, true); }
+  finally{ VX.busy=false; vxProgress(null); $("#vxWav").disabled=false; vxCheck(); }
+}
+function vxWire(){
+  const box=$("#exVid"); if(!box) return;
+  box.addEventListener("input", e=>{ if(e.target.type==="range"){ vxSync(); vxSave(); } });
+  box.addEventListener("change", ()=>{ vxSync(); vxSave(); });
+  $("#vxPrev").onclick=()=>{ if(VX.raf) vxPreviewStop(); else { VX.raf=1; vxPreview(); } };
+  $("#vxGo").onclick=()=>vxMake();
+  $("#vxWav").onclick=()=>vxWav();
+  $("#vxStop").onclick=()=>{ VX.cancel=true; };
+  // ชื่อเพลง/ผู้แต่งในหัวกระดาษใช้เป็นหัววิดีโอด้วย
+  ["exTitle","exComp","exArr"].forEach(id=>{ const e=$("#"+id); if(e) e.addEventListener("input", ()=>{ vxPreview(); }); });
+  if(window.ResizeObserver) new ResizeObserver(()=>{ if(!VX.raf) vxPreview(); }).observe($("#vxPrev"));
+}
 function wireExport(){
   $("#exPaper").innerHTML = Object.keys(PAPERS)
     .map(k => '<option value="' + k + '">' + PAPERS[k].th + ' (' + PAPERS[k].w + '×' + PAPERS[k].h + ' มม.)</option>').join("") +
@@ -9394,8 +10160,9 @@ function wireExport(){
     .map(d => '<option value="' + d.v + '">' + d.th + '</option>').join("");
   exFill(exLoad());
   const set=$("#pExport .exset");
-  set.addEventListener("input", e=>{ if(e.target.id==="exStaff" || e.target.id==="exPaper") exSyncUI(); exPreview(); });
-  set.addEventListener("change", e=>{ exSyncUI(); exPreview(); });
+  // ช่องของวิดีโอไม่เกี่ยวกับหน้ากระดาษ ไม่ต้องวาดตัวอย่างหน้าใหม่
+  set.addEventListener("input", e=>{ if(e.target.closest("#exVid")) return; if(e.target.id==="exStaff" || e.target.id==="exPaper") exSyncUI(); exPreview(); });
+  set.addEventListener("change", e=>{ if(e.target.closest("#exVid")) return; exSyncUI(); exPreview(); });
   set.querySelector(".expre").addEventListener("click", e=>{
     const b=e.target.closest("button[data-preset]"); if(!b) return;
     exFill(Object.assign(exOpts(), EX_PRESETS[b.dataset.preset]));
@@ -9453,6 +10220,7 @@ function wireExport(){
   $("#exKlong").onclick = () => $("#sFile").onclick();
   const tb=$("#toExport"); if(tb) tb.onclick = () => showExport(true);
   const bk=$("#exBack");   if(bk) bk.onclick = () => showExport(false);
+  vxWire();
 }
 
 function dlBytes(bytes, name, mime){

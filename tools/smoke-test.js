@@ -693,6 +693,35 @@ async function mediaSuite(label, exe) {
     say(`เสียงไม่บีบอัด: ${w ? w.suggestedFilename() : "ไม่มีไฟล์"} · ${wok ? wb.readUInt32LE(24) + " Hz 24-bit" : "รูปแบบผิด"} · ${Math.round(wb.length / 1024)} KB`);
     if (!wok) fail.push(`${label}: ส่งออก .wav 24-bit ไม่สำเร็จ`);
   }
+  /* โน้ตครบทุกสัญลักษณ์ (โกสต์ เน้น เปิดไฮแฮตเร็ว/ยาว ริมช็อต ครอสสติ๊ก เบล ไฮแฮตเท้า แฟลม ดร้าก รัว แครช ไชน่า สแปลช คาวเบล)
+     ต้องวาดหน้ากระดาษและวิดีโอได้ไม่มีข้อผิดพลาด — ห้องที่เปิดไฮแฮตยาวต้องได้ป้าย Open H.H. / Closed H.H. */
+  const Q = 5040, E8 = 2520, S16 = 1260, BAR = 4 * Q, sym = [];
+  const N = (bar, pos, v, o = {}) => sym.push(Object.assign({ tk: bar * BAR + pos, dk: E8, v, art: "", orn: "", trem: 0, dyn: "", vel: 100, bm: 1, tp: 0, dot: false }, o));
+  const hats = (bar, open) => { for (let i = 0; i < 8; i++) N(bar, i * E8, "hihat", { art: open && open(i) ? "open" : "" }); };
+  const kb = (bar, o) => { N(bar, 0, "kick"); N(bar, 2 * Q, "kick"); N(bar, Q, "snare", o || {}); N(bar, 3 * Q, "snare", Object.assign({ dyn: "accent", vel: 118 }, o || {})); };
+  hats(0); kb(0); N(0, Q + 3 * S16, "snare", { dyn: "ghost", vel: 42, dk: S16, bm: 2 });
+  hats(1, (i) => i === 7); kb(1); hats(2, (i) => i >= 4); kb(2); hats(3, () => true); kb(3); hats(4); kb(4, { art: "rim" });
+  for (let i = 0; i < 8; i++) N(5, i * E8, i % 2 ? "ride" : "bell");
+  N(5, 0, "kick"); N(5, Q, "snare", { art: "cross" }); N(5, Q, "hhf", { dk: Q, bm: 0 });
+  N(6, 0, "snare", { orn: "flam", dk: Q, bm: 0 }); N(6, Q, "snare", { orn: "drag", dk: Q, bm: 0 });
+  [0, 1, 2, 3].forEach((i) => N(6, 2 * Q + i * S16, i < 2 ? "tom1" : "tom2", { dk: S16, bm: 2 }));
+  N(6, 3 * Q, "floor"); N(6, 3 * Q + E8, "snare", { trem: 3, dyn: "accent", vel: 118 });
+  N(7, 0, "crash", { dk: Q, bm: 0 }); N(7, Q, "cow", { dk: Q, bm: 0 }); N(7, 2 * Q, "china", { dk: Q, bm: 0 }); N(7, 3 * Q, "splash", { dk: Q, bm: 0 });
+  const symFile = path.join(require("os").tmpdir(), "smoke-symbols.klong");
+  fs.writeFileSync(symFile, JSON.stringify({ app: "klong-pro", data: { v: 1, name: "สัญลักษณ์", bpm: 100, offset: 0, swing: 50, dur: 24, genre: "rock", rate: 1,
+    bars: Array.from({ length: 8 }, () => ({ num: 4, den: 4 })), notes: sym, view: { valId: "e" } } }));
+  await page.evaluate(() => document.getElementById("exBack").click()); await page.waitForTimeout(400);
+  await page.setInputFiles("#file", symFile); await page.waitForTimeout(1200);
+  await page.evaluate(() => document.getElementById("toExport").click()); await page.waitForTimeout(1500);
+  const pages = await page.evaluate(() => document.querySelectorAll("#exPreview img").length);
+  await page.evaluate(() => { const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event("change", { bubbles: true })); };
+    set("vxFrom", "3"); set("vxTo", "8"); set("vxPer", "2"); set("vxLines", "2"); set("vxCount", "0"); });
+  await page.waitForTimeout(700);
+  const t1 = Date.now(), dl3 = page.waitForEvent("download", { timeout: 180000 });
+  await page.evaluate(() => document.getElementById("vxGo").click());
+  const v3 = await dl3.catch(() => null), v3b = v3 ? fs.readFileSync(await v3.path()) : Buffer.alloc(0);
+  say(`โน้ตครบทุกสัญลักษณ์: ตัวอย่างหน้ากระดาษ ${pages} หน้า · วิดีโอห้อง 3–8 (พลิกครึ่งหน้า 2 บรรทัด) ${Math.round(v3b.length / 1024)} KB · ${((Date.now() - t1) / 1000).toFixed(1)} วิ`);
+  if (!pages || v3b.length < 50000) fail.push(`${label}: โน้ตที่มีทุกสัญลักษณ์วาดหน้ากระดาษ/วิดีโอไม่สำเร็จ`);
   say(`errors=${errs.join(" | ") || "ไม่มี"}`);
   if (errs.length) fail.push(`${label}: ${errs[0]}`);
   await browser.close();

@@ -1400,7 +1400,7 @@ const ARTS = {
   ""      : {th:"ปกติ"},
   open    : {th:"เปิด"},
   cross   : {th:"ครอสสติ๊ก", head:"x"},
-  rim     : {th:"ริมช็อต",    lb:"R"},
+  rim     : {th:"ริมช็อต",    head:"rs"},     // หัวโน้ตมีขีดเฉียงทับ ตามมาตรฐาน PAS (Weinberg) — เดิมใช้ตัว R เล็ก ๆ ซึ่งไม่ใช่สัญลักษณ์มาตรฐาน
   flam    : {th:"ฟลาม",      grace:1},
   drag    : {th:"ดร้าก",     grace:2},
 };
@@ -3029,6 +3029,10 @@ function headShape(sh, x, y, r, col, ghost, hollow){
   } else {
     cx.beginPath(); cx.ellipse(x,y,r+1.1,r-0.2,-0.32,0,Math.PI*2);
     if(hollow){ cx.lineWidth=1.6; cx.stroke(); } else cx.fill();   // ตัวขาว/ตัวกลม = หัวโปร่ง
+    if(sh==="rs"){                                                 // ริมช็อต: ขีดเฉียงยาวเลยหัวโน้ตทั้งสองข้าง
+      cx.lineWidth=1.35; cx.lineCap="round";
+      cx.beginPath(); cx.moveTo(x-r-3.4, y+r+2.4); cx.lineTo(x+r+3.4, y-r-2.4); cx.stroke();
+    }
   }
   if(ghost){                               // โกสต์โน้ต = หัวโน้ตในวงเล็บ
     cx.lineWidth=1.1;
@@ -3724,8 +3728,19 @@ function drawStaff(X, vw, b0, b1){
           if(lb && si===0){ cx.fillStyle="#9C8B82"; cx.font="500 8px 'IBM Plex Sans Thai', sans-serif";
             cx.fillText(lb, x+6, y-4); }
           // โน้ตประดับ: ฟลาม 1 ตัว · ดร้าก 2 ตัว หัวเล็ก ก้านมีขีดทับ
-          if(si===0 && n.orn){
-            const cnt = n.orn==="drag" ? 2 : 1, gcol="#B8ADA4";
+          if(si===0 && n.orn==="drag"){
+            // ดร้าก: โน้ตประดับสองตัวต่อกันด้วยคานคู่ (แบบตารางรูดิเมนต์ของ PAS) — เดิมเป็นสองตัวแยก หางกับขีดทับกันอ่านยาก
+            const gcol="#B8ADA4", gr=HR*0.6, gxs=[x-17.5, x-10];
+            cx.save(); cx.strokeStyle=gcol; cx.fillStyle=gcol; cx.lineWidth=1;
+            const sxs=gxs.map(gx=>(up ? gx+gr+0.5 : gx-gr-0.5)+0.5), gy=up ? y-13 : y+13;
+            gxs.forEach((gx,k2)=>{ headShape(headOf(n), gx, y, gr, gcol, false);
+              cx.beginPath(); cx.moveTo(sxs[k2],y); cx.lineTo(sxs[k2],gy); cx.stroke(); });
+            for(let k2=0;k2<2;k2++){ const by=gy+(up?k2*2.6:-k2*2.6);
+              cx.beginPath(); cx.moveTo(sxs[0]-0.5, by); cx.lineTo(sxs[1]+0.5, by); cx.lineWidth=1.5; cx.stroke(); }
+            cx.restore();
+          }
+          else if(si===0 && n.orn){
+            const cnt = 1, gcol="#B8ADA4";
             cx.save(); cx.strokeStyle=gcol; cx.lineWidth=1;
             for(let k2=0;k2<cnt;k2++){
               const gx=x-9.5-k2*6, gr=HR*0.6;
@@ -6532,7 +6547,7 @@ function xmlType(len, tp, dot){
   for(const t of XML_TYPES) if(Math.abs(q - t[0]) < Math.abs(q - best[0])) best = t;
   return best[1];
 }
-const XML_HEADS = {x:"x", n:"normal", d:"diamond", tri:"triangle", xo:"circle-x"};
+const XML_HEADS = {x:"x", n:"normal", d:"diamond", tri:"triangle", xo:"circle-x", rs:"slashed"};
 /* ชื่อเครื่องดนตรีต้องเป็นชื่อมาตรฐานภาษาอังกฤษ ไม่ใช่ชื่อไทย
    โปรแกรมปลายทางใช้ชื่อกับ instrument-sound หาว่านี่คือกลองชุด
    ถ้าจับไม่ได้มันจะเดาเป็นเครื่องอื่น ซึ่งบางตัวเป็นเครื่องที่ต้องทดเสียง
@@ -6994,7 +7009,7 @@ function drawSystemInto(ctx, b0, b1, x, y, w){
    หน่วย: "หน่วยหน้า" = จุดภาพจอ 96 dpi (1 มม. = 3.78) ใช้กับกระดาษ ขอบ ตัวหนังสือหัวกระดาษ
           "หน่วยบรรทัด" = หน่วยของ drawStaff (เส้นบรรทัดห่าง 8 · บรรทัดสูง 32)
           ขนาดบรรทัด (มม.) คือความสูงบรรทัด 5 เส้น — k = หน่วยหน้าต่อหน่วยบรรทัด */
-const PR = {padL:11, base:15.5, exp:0.55, minGap:12, clefW:22, tsW:21, staff:32, tempoH:24, numH:12};
+const PR = {padL:11, base:15.5, exp:0.55, minGap:12, clefW:22, tsW:21, staff:32, tempoH:24, numH:12, cueH:15};
 const PR_STAFF_MM = 32/96*25.4;                       // 8.47 มม. = ขนาดบรรทัดที่ k = 1
 const PR_DEF = {                                      // ค่าเริ่มต้นของการตั้งค่าหน้ากระดาษ
   paper:"a4", pw:210, ph:297, landscape:false, mT:14, mB:14, mL:14, mR:14,
@@ -7054,6 +7069,29 @@ function prBreaks(nBars, availOf){
   }
   return out;
 }
+/* ป้ายไฮแฮตเปิด/ปิดแบบต่อเนื่อง — ข้อความภาษาอังกฤษเหนือห้องตรงตัวที่เปลี่ยน ให้ผู้เล่นเตรียมตัวทัน (ผู้ใช้ขอ)
+   "Open H.H."   = เริ่มเปิดยาว: เปิดติดกัน ≥ 3 ครั้ง และยาวตั้งแต่ 1 จังหวะขึ้นไป
+   "Closed H.H." = กลับมาปิดหลังช่วงเปิดยาว
+   เปิด-ปิดเร็ว (เปิดตัวเดียว · สลับทีละตัวแบบดิสโก้) ไม่มีป้าย ใช้ o / + บนตัวโน้ตตามเดิม */
+function hhCues(){
+  const arr=S.notes.filter(n=>n.v==="hihat").sort((a,b)=>a.tk-b.tk), out=new Map();
+  let i=0, longOpen=false;
+  while(i<arr.length){
+    const open=arr[i].art==="open"; let j=i;
+    while(j+1<arr.length && (arr[j+1].art==="open")===open) j++;
+    if(open){
+      const beat=tpb(S.bars[barAtTk(arr[i].tk)].den);
+      longOpen = j-i+1>=3 && arr[j].tk-arr[i].tk>=beat;
+      if(longOpen) out.set(arr[i], "Open H.H.");
+    } else {
+      if(longOpen) out.set(arr[i], "Closed H.H.");
+      longOpen=false;
+    }
+    i=j+1;
+  }
+  return out;
+}
+const prCuesIn=(b0, b1)=>[...hhCues()].filter(([n])=>n.tk>=barStartTk[b0] && n.tk<barStartTk[b1+1]);
 /* ของที่ยื่นเหนือ/ใต้บรรทัดจริง ๆ (หัวโน้ต ก้าน คาน เครื่องหมายเน้น เลขพยางค์ เลขห้อง ป้ายความเร็ว)
    หน่วยบรรทัด วัดจากเส้นบนสุด / เส้นล่างสุด — ใช้จัดระยะแนวตั้ง ไม่มีอะไรชนกัน */
 function prExtents(L){
@@ -7067,8 +7105,9 @@ function prExtents(L){
   }
   const nums = PRO.barNum==="every" || PRO.barNum==="n5" || PRO.barNum==="n10";
   const tempo = PRO.tempo && tempoMarks().some(m=>m.bar>=L.b0 && m.bar<=L.b1);
-  const notes = above + (nums ? PR.numH : 0);              // ระดับบนสุดของโน้ต (+ แถวเลขห้อง)
-  return {above: notes+(tempo?PR.tempoH:0), notes, noteTop:above, below, tempo};
+  const cue = prCuesIn(L.b0, L.b1).length>0;               // แถวป้าย Open/Closed H.H. อยู่เหนือโน้ต ใต้ป้ายความเร็ว
+  const notes = above + (nums ? PR.numH : 0) + (cue ? PR.cueH : 0);   // ระดับบนสุดของโน้ต (+ แถวเลขห้อง + แถวป้าย)
+  return {above: notes+(tempo?PR.tempoH:0), notes, noteTop:above, below, tempo, cue, nums};
 }
 function prX(L){
   return t=>{
@@ -7138,6 +7177,12 @@ function prDrawSystem(g, L, x0, yTop, k, endPiece){
         const no=B.bi+1; if(no===1 || no%nEvery!==0 && !(nEvery===1)) continue;
         g.fillText(String(no), B===L.bars[0] ? 2 : B.x+1, yN);
       }
+    }
+    // ป้าย Open H.H. / Closed H.H. ตรงตัวโน้ตที่เปลี่ยน
+    if(L.ext.cue){
+      const X=prX(L), yC=py(8)-L.ext.noteTop-(L.ext.nums ? PR.numH : 0)-4;
+      g.font="italic 600 10.5px "+PR_FONT; g.textAlign="left"; g.textBaseline="alphabetic";
+      for(const [n, txt] of prCuesIn(L.b0, L.b1)) g.fillText(txt, Math.max(2, X(n.t)-4), yC);
     }
     // ป้ายความเร็ว ♩ = n ที่ห้องแรกและห้องที่เปลี่ยน
     if(PRO.tempo) for(const m of tempoMarks()){
@@ -9694,145 +9739,139 @@ function vxRound(g, x, y, w, h, r){
 function vxClock(t){ t=Math.max(0, t); const m=Math.floor(t/60), s=Math.floor(t-m*60); return m+":"+String(s).padStart(2,"0"); }
 
 /* ── วาดหนึ่งเฟรม ณ เวลาวิดีโอ tv ── */
+/* ── วาดหนึ่งเฟรม ณ เวลาวิดีโอ tv ──
+   แบบที่ใช้ (อิงแอปอ่านโน้ตตอนเล่นจริงและโปรแกรมเขียนโน้ต):
+   · พลิกครึ่งหน้า (half-page turn แบบ forScore): บรรทัดอยู่กับที่ ไม่เลื่อนทั้งหน้า
+     เข้าบรรทัดใหม่แล้ว ช่องของบรรทัดที่เพิ่งเล่นจบค่อย ๆ เปลี่ยนเป็นบรรทัดถัดไป — ตัวที่กำลังอ่านไม่ขยับเลย
+   · หัวอ่านอยู่ "หลัง" ตัวโน้ต (แบบ MuseScore · Sibelius · Soundslice) ไม่ทับหัวโน้ต
+     (รุ่นแรกเส้นหัวอ่านทับหัวโน้ตตัวที่กำลังตี ผู้ใช้เห็นหัวโน้ตขาด)
+   · นับเข้า / จบเพลง อยู่บนหัวจอ ไม่บังโน้ต */
 function vxFrame(g, W, H, o, T, LY, tv, info){
-  const s=LY.s, C=VX_C, F=PR_FONT;
-  const song=vxSongAt(T, o, tv), playing=tv>=T.t0 && tv<T.end;
-  // พื้นหลัง
+  const s=LY.s, C=VX_C, F=PR_FONT, k=LY.k;
+  const song=vxSongAt(T, o, tv), playing=tv>=T.t0 && tv<T.end, done=tv>=T.end;
   const bgG=g.createLinearGradient(0, 0, 0, H); bgG.addColorStop(0, C.bg1); bgG.addColorStop(1, C.bg0);
   g.fillStyle=bgG; g.fillRect(0, 0, W, H);
 
-  // บรรทัดปัจจุบัน + ตำแหน่งเลื่อน (ค่อย ๆ เลื่อนขึ้น 0.28 วิ คร่อมรอยต่อบรรทัด)
-  const nL=LY.lines.length;
+  const nL=LY.lines.length, n=o.lines;
   let ci=0; while(ci<nL-1 && song>=LY.lines[ci+1].tA-1e-6) ci++;
-  let scroll=0;
-  for(let i=1;i<nL;i++){ const tb=vxVidAt(T, o, LY.lines[i].tA); scroll+=vxEase((tv-(tb-0.12))/0.28); }
   const bi=clamp(barAtTk(secTk(Math.min(song, T.B-1e-6))), o.b0, o.b1), bar=S.bars[bi];
 
-  // หัวบน
-  const title=info.title||"", sub=info.sub||"";
+  /* ── หัวจอ ── */
   g.textBaseline="alphabetic"; g.textAlign="left";
-  g.fillStyle=C.ink; g.font="600 "+(42*s).toFixed(1)+"px "+F;
-  g.fillText(title, 60*s, 68*s, W*0.5);
-  if(sub){ g.fillStyle=C.dim; g.font="500 "+(21*s).toFixed(1)+"px "+F; g.fillText(sub, 60*s, 106*s, W*0.5); }
-  // ขวา: ห้อง n/N · จังหวะ · ♩ = ความเร็ว
+  // ชื่อยาวตัดท้ายด้วย … (ไม่บีบตัวอักษรให้แบน)
+  const fit=(t, max)=>{ t=String(t||""); if(g.measureText(t).width<=max) return t;
+    while(t.length>1 && g.measureText(t+"…").width>max) t=t.slice(0,-1); return t+"…"; };
+  g.fillStyle=C.ink; g.font="600 "+(40*s).toFixed(1)+"px "+F;
+  g.fillText(fit(info.title, W*0.34), 60*s, 66*s);
+  if(info.sub){ g.fillStyle=C.dim; g.font="500 "+(20*s).toFixed(1)+"px "+F; g.fillText(fit(info.sub, W*0.34), 60*s, 102*s); }
   let x=W-60*s;
-  // lead = ที่ว่างหน้าข้อความ (ใส่ตัวโน้ตตัวดำของป้ายความเร็ว)
   const pill=(txt, bold, fill, lead)=>{
-    g.font=(bold?"700 ":"600 ")+(25*s).toFixed(1)+"px "+F;
-    const tw=g.measureText(txt).width, w=tw+34*s+(lead||0), h=46*s, y=34*s;
+    g.font=(bold?"700 ":"600 ")+(24*s).toFixed(1)+"px "+F;
+    const w=g.measureText(txt).width+34*s+(lead||0), h=46*s, y=34*s;
     x-=w; vxRound(g, x, y, w, h, 23*s);
     g.fillStyle=fill||"rgba(255,255,255,.07)"; g.fill();
-    g.fillStyle=fill ? "#10201E" : C.ink; g.textAlign="left"; g.fillText(txt, x+17*s+(lead||0), y+h/2+9*s);
+    g.fillStyle=fill ? "#10201E" : C.ink; g.textAlign="left"; g.fillText(txt, x+17*s+(lead||0), y+h/2+8.5*s);
     const left=x; x-=12*s; return left;
   };
   pill("ห้อง "+(bi+1)+" / "+(o.b1+1), true, C.teal);
   pill(bar.num+"/"+bar.den, false);
   const bpm=Math.round(bpmAt(bi)*o.rate*10)/10;
   const tl=pill("= "+bpm+(o.rate!==1 ? "  ("+Math.round(o.rate*100)+"%)" : ""), false, null, 22*s);
-  { // ตัวโน้ตตัวดำของป้ายความเร็ว
-    g.save(); g.translate(tl+21*s, 57*s+9*s); g.scale(1.75*s, 1.75*s);
-    g.fillStyle=C.ink; g.strokeStyle=C.ink; g.lineWidth=1.2;
-    g.beginPath(); g.ellipse(0, 0, 3.6, 2.6, -0.35, 0, Math.PI*2); g.fill();
-    g.beginPath(); g.moveTo(3.2, -0.5); g.lineTo(3.2, -15); g.stroke(); g.restore();
-  }
-  // ไฟจังหวะ: จุดเท่าจำนวนจังหวะของห้อง จังหวะที่ 1 ใหญ่กว่า
+  g.save(); g.translate(tl+21*s, 57*s+8*s); g.scale(1.7*s, 1.7*s);
+  g.fillStyle=C.ink; g.strokeStyle=C.ink; g.lineWidth=1.2;
+  g.beginPath(); g.ellipse(0, 0, 3.6, 2.6, -0.35, 0, Math.PI*2); g.fill();
+  g.beginPath(); g.moveTo(3.2, -0.5); g.lineTo(3.2, -15); g.stroke(); g.restore();
+
+  // กลางหัวจอ: ไฟจังหวะ (จังหวะ 1 สีอำพัน) · นับเข้าเป็นตัวเลขใหญ่เหนือไฟ · จบเพลง
   let beatIx=-1, beatFrac=0, nDots=bar.num;
-  if(tv<T.t0){
-    if(tv>=T.pre){ const k=(tv-T.pre)/T.beat; beatIx=Math.floor(k)%T.num; beatFrac=k-Math.floor(k); nDots=T.num; }
-  } else if(playing){
-    const k=(song-barStarts[bi])/beatSec(bar.den, bi); beatIx=Math.min(bar.num-1, Math.floor(k)); beatFrac=k-Math.floor(k);
-  }
-  { const r=8*s, gap=30*s, y=112*s; let dx=W-60*s-r;
-    for(let j=nDots-1;j>=0;j--){
-      const on=j===beatIx, rr=(j===0 ? 1.3 : 1)*r*(on ? 1+0.35*(1-beatFrac) : 1);
-      g.beginPath(); g.arc(dx, y, rr, 0, Math.PI*2);
-      g.fillStyle = on ? (j===0 ? C.amber : C.teal) : "rgba(255,255,255,.16)"; g.fill();
-      dx-=gap;
+  if(tv<T.t0){ if(tv>=T.pre && T.cin>0){ const q=(tv-T.pre)/T.beat; beatIx=Math.floor(q)%T.num; beatFrac=q-Math.floor(q); nDots=T.num; } }
+  else if(playing){ const q=(song-barStarts[bi])/beatSec(bar.den, bi); beatIx=Math.min(bar.num-1, Math.floor(q)); beatFrac=q-Math.floor(q); }
+  const cxH=W/2;
+  { const r=9*s, gap=34*s, y=106*s, x1=cxH-(nDots-1)*gap/2;
+    for(let j=0;j<nDots;j++){
+      const on=j===beatIx, rr=r*(j===0 ? 1.25 : 1)*(on ? 1+0.3*(1-vxEase(beatFrac*2)) : 1);
+      g.beginPath(); g.arc(x1+j*gap, y, rr, 0, Math.PI*2);
+      g.fillStyle = on ? (j===0 ? C.amber : C.teal) : "rgba(255,255,255,.14)"; g.fill();
     }
   }
+  g.textAlign="center";
+  if(tv<T.t0){
+    if(beatIx<0){ g.fillStyle=C.ink; g.font="600 "+(30*s).toFixed(1)+"px "+F; g.fillText("เตรียมตัว", cxH, 72*s); }
+    else {
+      g.fillStyle = beatIx===0 ? C.amber : C.teal;
+      g.font="700 "+(62*s*(1+0.12*(1-vxEase(beatFrac*3)))).toFixed(1)+"px "+PR_NUM; g.fillText(String(beatIx+1), cxH, 78*s);
+    }
+  } else if(done && tv>T.end+0.15){
+    const a=vxEase((tv-T.end-0.15)/0.5), txt = o.b1===prBarCount()-1 && o.b0===0 ? "จบเพลง" : "จบช่วงห้อง "+(o.b0+1)+"–"+(o.b1+1);
+    g.save(); g.globalAlpha=a; g.font="600 "+(26*s).toFixed(1)+"px "+F;
+    const w=g.measureText(txt).width+52*s; vxRound(g, cxH-w/2, 30*s, w, 52*s, 26*s); g.fillStyle=C.tealD; g.fill();
+    g.fillStyle="#fff"; g.fillText(txt, cxH, 65*s); g.restore();
+  }
+  g.textAlign="left";
 
-  // กระดาษ
+  /* ── กระดาษ: ช่องบรรทัดอยู่กับที่ พลิกครึ่งหน้า ── */
   const cd=LY.card;
   g.save(); g.shadowColor="rgba(0,0,0,.45)"; g.shadowBlur=30*s; g.shadowOffsetY=8*s;
   vxRound(g, cd.x, cd.y, cd.w, cd.h, 16*s); g.fillStyle=C.paper; g.fill(); g.restore();
   g.save(); vxRound(g, cd.x, cd.y, cd.w, cd.h, 16*s); g.clip();
   const x0=cd.x+LY.padX, y0=cd.y+LY.padY;
-  const first=Math.max(0, Math.floor(scroll)-1), lastI=Math.min(nL-1, Math.floor(scroll)+o.lines);
-  for(let i=first;i<=lastI;i++){
-    const L=LY.lines[i], y=y0+(i-scroll)*LY.slotH;
-    if(y>cd.y+cd.h || y+LY.slotH<cd.y) continue;
-    const fade = i<scroll ? Math.max(0, 1-(scroll-i)*1.6) : (i>scroll+o.lines-1 ? Math.max(0, 1-(i-(scroll+o.lines-1))*1.6) : 1);
-    if(fade<=0) continue;
-    const cur = i===ci && tv<T.end+0.2;
-    g.globalAlpha=fade;
-    if(cur && playing){
-      // แถบบรรทัดปัจจุบัน + ห้องที่กำลังเล่น
-      const sy=y+L.yTop-30*LY.k, sh=(PR.staff+60)*LY.k;
-      g.fillStyle=C.band; vxRound(g, x0-14*s, sy, LY.innerW+28*s, sh, 10*s); g.fill();
-      const Bp=L.barsPx.find(b=>song>=b.tA-1e-6 && song<b.tB) || L.barsPx[L.barsPx.length-1];
-      g.fillStyle=C.bar; g.fillRect(x0+Bp.x0, sy, Bp.x1-Bp.x0, sh);
-      // แสงวาบตอนถึงจังหวะตี (0.22 วิ)
-      for(const h of L.hits){
-        const d=tv-vxVidAt(T, o, h.t); if(d<0) break; if(d>0.22) continue;
-        const a=Math.pow(1-d/0.22, 1.5);
-        g.fillStyle="rgba(242,165,65,"+(0.42*a).toFixed(3)+")";
-        const w=(14+10*(1-a))*LY.k; vxRound(g, x0+h.x-w/2, sy+6*LY.k, w, sh-12*LY.k, w/2); g.fill();
+  // พลิก: 0.15 วิหลังเข้าบรรทัดใหม่ บรรทัดเก่าจางออก 0.25 วิ แล้วบรรทัดใหม่จางเข้า 0.25 วิ (ไม่ซ้อนกันสองภาพ)
+  const tCi=vxVidAt(T, o, LY.lines[ci].tA), turn = ci>0 ? clamp((tv-tCi-0.15)/0.5, 0, 1) : 1;
+  const nextI = ci+1<nL ? ci+1 : -1;
+  const lastBar = playing && LY.lines[ci].barsPx.length && song>=LY.lines[ci].barsPx[LY.lines[ci].barsPx.length-1].tA;
+  for(let sl=0; sl<n; sl++){
+    const j=ci+((sl-ci%n)%n+n)%n, y=y0+sl*LY.slotH;
+    const items = (ci>0 && j===ci+n-1 && turn<1)
+      ? [[j-n, 1-vxEase(turn*2)], [j, vxEase(turn*2-1)]].filter(([i,a])=>i>=0 && i<nL && a>0.001)
+      : (j<nL ? [[j, 1]] : []);
+    for(const [i, a] of items){
+      const L=LY.lines[i], cur=i===ci && !done;
+      const sy=y+L.yTop-26*k, sh=(PR.staff+52)*k;
+      g.globalAlpha=a;
+      if(cur && (playing || tv>=T.pre)){
+        g.fillStyle=C.band; vxRound(g, x0-16*s, sy, LY.innerW+32*s, sh, 10*s); g.fill();
+        if(playing){
+          const Bp=L.barsPx.find(b=>song>=b.tA-1e-6 && song<b.tB) || L.barsPx[L.barsPx.length-1];
+          g.fillStyle=C.bar; g.fillRect(x0+Bp.x0, sy, Bp.x1-Bp.x0, sh);
+          for(const h of L.hits){                                         // แสงวาบตอนถึงจังหวะตี — อยู่หลังโน้ต
+            const d=tv-vxVidAt(T, o, h.t); if(d<0) break; if(d>0.25) continue;
+            const e=Math.pow(1-d/0.25, 1.6), w=(15+8*(1-e))*k;
+            g.fillStyle="rgba(242,165,65,"+(0.40*e).toFixed(3)+")";
+            vxRound(g, x0+h.x-w/2, sy+4*k, w, sh-8*k, w/2); g.fill();
+          }
+        }
+        // หัวอ่าน: แถบโปร่งหลังโน้ต + แกนกลางบาง ๆ (หลังโน้ตเหมือนกัน หัวโน้ตจึงเห็นครบเสมอ)
+        const cxp=x0+L.xOf(Math.max(L.tA, song)), cw=7*k;
+        g.fillStyle="rgba(63,184,172,"+(playing ? .26 : .16)+")"; vxRound(g, cxp-cw/2, sy, cw, sh, cw/2); g.fill();
+        g.fillStyle="rgba(31,143,132,"+(playing ? .70 : .40)+")"; g.fillRect(cxp-1.1*s, sy+3*k, 2.2*s, sh-6*k);
       }
+      g.drawImage(vxLineBmp(LY, i), x0, y);
+      if(cur && (playing || tv>=T.pre)){
+        // ขีดซ้ายบอกบรรทัดที่กำลังเล่น + สามเหลี่ยมหัวอ่านเหนือเนื้อโน้ต (ไม่ทับอะไร)
+        g.fillStyle=C.tealD; vxRound(g, cd.x+12*s, y+L.yTop-4*k, 6*s, (PR.staff+8)*k, 3*s); g.fill();
+        const cxp=x0+L.xOf(Math.max(L.tA, song)), ty=Math.max(y+4*s, y+L.yTop-L.ext.above*k-14*s);
+        g.beginPath(); g.moveTo(cxp-9*s, ty); g.lineTo(cxp+9*s, ty); g.lineTo(cxp, ty+11*s); g.closePath(); g.fill();
+      } else if(i===nextI && !done){
+        // บรรทัดถัดไป: ขีดซ้ายจาง ๆ — ห้องสุดท้ายของบรรทัดปัจจุบันกะพริบเตือนให้มองไปที่บรรทัดนี้
+        const pulse = lastBar ? 0.35+0.5*(1-vxEase(beatFrac*1.5)) : 0.28;
+        g.globalAlpha=a*pulse; g.fillStyle=C.tealD;
+        vxRound(g, cd.x+12*s, y+L.yTop-4*k, 6*s, (PR.staff+8)*k, 3*s); g.fill();
+      }
+      g.globalAlpha=1;
     }
-    g.drawImage(vxLineBmp(LY, i), x0, y);
-    if(cur && tv>=T.pre){
-      // หัวอ่าน: เส้นเขียวน้ำทะเล มีเงาเรือง + สามเหลี่ยมชี้ด้านบน
-      const cxp=x0+L.xOf(Math.max(L.tA, song)), top=y+L.yTop-24*LY.k, bot=y+L.yTop+(PR.staff+24)*LY.k;
-      g.save();
-      g.shadowColor="rgba(63,184,172,.85)"; g.shadowBlur=14*s;
-      g.fillStyle=C.tealD; g.globalAlpha=fade*(playing ? 0.9 : 0.55);
-      g.fillRect(cxp-2.2*s, top, 4.4*s, bot-top);
-      g.beginPath(); g.moveTo(cxp-9*s, top-12*s); g.lineTo(cxp+9*s, top-12*s); g.lineTo(cxp, top); g.closePath(); g.fill();
-      g.restore();
-    }
-    g.globalAlpha=1;
   }
   g.restore();
 
-  // นับเข้า: ตัวเลขใหญ่กลางกระดาษ
-  if(tv<T.t0){
-    const cxm=cd.x+cd.w/2, cym=cd.y+cd.h/2, R=118*s;
-    g.save();
-    g.fillStyle="rgba(26,20,17,.80)"; g.beginPath(); g.arc(cxm, cym, R, 0, Math.PI*2); g.fill();
-    g.textAlign="center";
-    if(beatIx<0 || T.cin===0){
-      g.fillStyle=C.ink; g.font="600 "+(30*s).toFixed(1)+"px "+F; g.fillText("เตรียมตัว", cxm, cym+10*s);
-    } else {
-      const sc=1+0.18*(1-vxEase(beatFrac*3));
-      g.fillStyle = beatIx===0 ? C.amber : C.teal;
-      g.font="700 "+(120*s*sc).toFixed(1)+"px "+PR_NUM; g.fillText(String(beatIx+1), cxm, cym+40*s*sc);
-      g.fillStyle=C.dim; g.font="500 "+(20*s).toFixed(1)+"px "+F;
-      g.fillText("นับเข้า", cxm, cym+R-26*s);
-    }
-    g.restore();
-  }
-
-  // จบ: ป้ายเล็ก ๆ ใต้บรรทัดสุดท้าย ค่อย ๆ ขึ้น
-  if(tv>T.end+0.15){
-    const a=vxEase((tv-T.end-0.15)/0.6), L=LY.lines[nL-1], yl=y0+(nL-1-scroll)*LY.slotH+LY.slotH;
-    const txt = o.b1===prBarCount()-1 && o.b0===0 ? "จบเพลง" : "จบช่วงห้อง "+(o.b0+1)+"–"+(o.b1+1);
-    g.save(); g.globalAlpha=a; g.textAlign="center"; g.font="600 "+(30*s).toFixed(1)+"px "+F;
-    const w=g.measureText(txt).width+56*s, yy=Math.min(cd.y+cd.h-80*s, yl+18*s);
-    vxRound(g, cd.x+cd.w/2-w/2, yy, w, 58*s, 29*s); g.fillStyle=C.tealD; g.fill();
-    g.fillStyle="#fff"; g.fillText(txt, cd.x+cd.w/2, yy+39*s); g.restore();
-  }
-
-  // แถบเวลาด้านล่าง
+  /* ── แถบเวลาด้านล่าง ── */
   const py=H-66*s, px0=60*s, px1=W-60*s, ph=10*s;
   const dur=(T.B-T.A)/o.rate, el=clamp(tv-T.t0, 0, dur);
   vxRound(g, px0, py, px1-px0, ph, ph/2); g.fillStyle="rgba(255,255,255,.12)"; g.fill();
   if(el>0){ vxRound(g, px0, py, Math.max(ph, (px1-px0)*el/dur), ph, ph/2); g.fillStyle=C.teal; g.fill(); }
-  // ขีดต้นบรรทัด (ดูว่าอีกกี่บรรทัดจบ)
   g.fillStyle="rgba(255,255,255,.28)";
   for(let i=1;i<nL;i++){ const xx=px0+(px1-px0)*((LY.lines[i].tA-T.A)/o.rate)/dur; g.fillRect(xx-1*s, py-5*s, 2*s, ph+10*s); }
   g.font="600 "+(20*s).toFixed(1)+"px 'IBM Plex Mono', monospace"; g.fillStyle=C.dim;
   g.textAlign="left"; g.fillText(vxClock(el), px0, py+40*s);
-  g.textAlign="right"; g.fillText(vxClock(dur), px1, py+40*s);
+  g.textAlign="right"; g.fillText("-"+vxClock(dur-el), px1, py+40*s);
   g.textAlign="center"; g.font="500 "+(17*s).toFixed(1)+"px "+F; g.fillStyle="rgba(244,234,219,.45)";
   g.fillText(info.foot||"Klong Pro", W/2, py+40*s);
   g.textAlign="left";
@@ -10004,6 +10043,29 @@ async function vxResample(buf, sr){
   return await oc.startRendering();
 }
 
+/* ── เสียง AAC จาก Safari: ตัวเข้ารหัสของ Safari (iPadOS 26) ส่ง description ผิด ──
+   สเปกให้เป็น AudioSpecificConfig 2 ไบต์ แต่ Safari ส่งเนื้อกล่อง esds ทั้งก้อน (WebKit bug 302253 แก้ 22 ต.ค. 2026)
+   ห่อลง MP4 แล้วเครื่องเล่นอ่านเป็น 22050 Hz 0 ช่อง = แทร็กเสียงเงียบ (ผู้ใช้เจอ: วิดีโอมีแต่ภาพ)
+   → สร้าง AudioSpecificConfig เองจากค่าที่สั่งเข้ารหัส (AAC-LC · อัตราตัวอย่าง · 2 ช่อง) แทนของที่ได้มาถ้าไม่ตรง
+   และถ้าเฟรมมีหัว ADTS ติดมา ตัดออก (MP4 เก็บเฟรม AAC เปล่า) */
+const VX_SRI=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+function vxAsc(sr, ch){
+  const fi=VX_SRI.indexOf(sr), v=(2<<11)|((fi<0 ? 4 : fi)<<7)|(ch<<3);
+  return new Uint8Array([v>>8, v&255]);
+}
+function vxAacMeta(m, sr, ch){
+  if(!m || !m.decoderConfig) return m;
+  const want=vxAsc(sr, ch), d=m.decoderConfig.description;
+  let got=null;
+  try{ if(d) got=ArrayBuffer.isView(d) ? new Uint8Array(d.buffer, d.byteOffset, d.byteLength) : new Uint8Array(d); }catch(e){}
+  if(got && got.length===2 && got[0]===want[0] && got[1]===want[1]) return m;
+  return Object.assign({}, m, {decoderConfig:Object.assign({}, m.decoderConfig, {description:want})});
+}
+function vxAacData(b){
+  if(b.length>7 && b[0]===0xFF && (b[1]&0xF6)===0xF0) return b.subarray((b[1]&1) ? 7 : 9);
+  return b;
+}
+
 /* ── ความคืบหน้า ── */
 function vxProgress(f, txt){
   const p=$("#vxProg"); if(!p) return;
@@ -10069,9 +10131,16 @@ async function vxMake(){
     const muxer=new Mp4Muxer.Muxer({target, fastStart:false, firstTimestampBehavior:"offset",
       video:{codec:vPick.mux, width:W, height:H, frameRate:o.fps},
       audio: aPick ? {codec:aPick.mux, numberOfChannels:2, sampleRate:aPick.sr} : undefined});
-    let encErr=null;
+    let encErr=null, aWarn="";
     if(aPick && mix){
-      aenc=new AudioEncoder({output:(c, m)=>muxer.addAudioChunk(c, m), error:e=>{ encErr=e; }});
+      const probe=[];                                        // เฟรมแรก ๆ เก็บไว้ลองถอดรหัสหลังเข้ารหัสเสร็จ
+      const aacOut=(c, m)=>{
+        const b=new Uint8Array(c.byteLength); c.copyTo(b);
+        const d=vxAacData(b), du=c.duration || Math.round(1024/aPick.sr*1e6);
+        if(probe.length<6) probe.push({d:d.slice(), t:c.timestamp, du});
+        muxer.addAudioChunkRaw(d, c.type, c.timestamp, du, vxAacMeta(m, aPick.sr, 2));
+      };
+      aenc=new AudioEncoder({output: aPick.mux==="aac" ? aacOut : (c, m)=>muxer.addAudioChunk(c, m), error:e=>{ encErr=e; }});
       aenc.configure(aPick.cfg);
       const L=mix.getChannelData(0), R=mix.getChannelData(1), n=mix.length, sr=mix.sampleRate, step=4096;
       for(let i=0;i<n;i+=step){
@@ -10081,6 +10150,17 @@ async function vxMake(){
       }
       await aenc.flush(); aenc.close(); aenc=null;
       if(encErr) throw encErr;
+      // ลองถอดรหัสเสียงด้วยค่าที่จะเขียนลงไฟล์จริง — ถอดไม่ได้ = ไฟล์จะเงียบ บอกผู้ใช้ตั้งแต่ตอนนี้
+      if(aPick.mux==="aac" && probe.length && typeof AudioDecoder!=="undefined"){
+        let ok=0, bad=null;
+        try{
+          const dec=new AudioDecoder({output:a=>{ ok++; a.close(); }, error:e=>{ bad=e; }});
+          dec.configure({codec:"mp4a.40.2", sampleRate:aPick.sr, numberOfChannels:2, description:vxAsc(aPick.sr, 2)});
+          for(const p of probe) dec.encode(new EncodedAudioChunk({type:"key", timestamp:p.t, duration:p.du, data:p.d}));
+          await dec.flush(); dec.close();
+        }catch(e){ bad=e; }
+        if(bad || !ok) aWarn="ถอดรหัสเสียงที่เข้ารหัสได้ไม่ผ่าน — เสียงในวิดีโออาจเงียบ ใช้ปุ่ม .wav แยก";
+      }
     }
     // 3) ภาพ: วาดทีละเฟรม → เข้ารหัส (รอคิวไม่ให้ค้างเกิน 6 เฟรม หน่วยความจำไม่บวม)
     venc=new VideoEncoder({output:(c, m)=>muxer.addVideoChunk(c, m), error:e=>{ encErr=e; }});
@@ -10114,7 +10194,7 @@ async function vxMake(){
     vxProgress(1, "เสร็จแล้ว");
     vxOffer(blob, vxName(o, "mp4"));
     setStatus("สร้างวิดีโอแล้ว "+W+"×"+H+" "+o.fps+" fps · "+vPick.name+(aPick ? " · เสียง "+aPick.name+" 320 kbps" : " · ไม่มีเสียง")+
-      " · ยาว "+vxClock(T.total)+" · "+Math.max(1, Math.round(blob.size/1048576))+" MB");
+      " · ยาว "+vxClock(T.total)+" · "+Math.max(1, Math.round(blob.size/1048576))+" MB"+(aWarn ? " · ⚠ "+aWarn : ""), !!aWarn);
   }catch(e){
     const stopped=VX.cancel || e.message==="ยกเลิก";
     if(!stopped) console.error(e);

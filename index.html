@@ -726,6 +726,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
 <script src="./theme/klong-theme.js"></script>
 <!-- เสียงกลองจริง: ชุดเสียงที่อัดจากกลองจริง เลือกได้ในแผงตั้งค่า ส่วน "การฟัง" (sounds/) -->
 <script src="./sounds/klong-sounds.js"></script>
+<script src="./sounds/klong-kitfx.js"></script>
 </head>
 <body class="shell">
 <div id="homeScreen">
@@ -1198,6 +1199,7 @@ body.athome #npPin, body.atexport #npPin, body.ataudio #npPin{display:none !impo
   </section></div>
   <div id="rowMore">
     <section class="isec"><h3>ไปที่</h3><div class="iwrap"><button class="btn sm" id="toAudio">จัดเสียง</button>
+      <button class="btn sm" id="toKfx">แต่งเสียงกลอง</button>
       <button class="btn sm" id="toHome">หน้าแรก</button>
       
       <label class="btn sm" style="cursor:pointer">นำเข้า .mid
@@ -4155,10 +4157,16 @@ function newSinks(){
   const t=S.ctx.currentTime;
   [dSink,cSink].forEach(g=>{ if(g){ try{ g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0,t); }catch(e){}
     setTimeout(()=>{ try{g.disconnect();}catch(e){} }, 60); } });
+  if(dSink && window.KlongFX) window.KlongFX.cut(dSink, t);      // ทางเข้าห้องของบัสเก่าปิดพร้อมกัน
   dSink=S.ctx.createGain(); dSink.connect(drumGain);
-  KIT.route(S.ctx, dSink, drumGain);           // ส่งเข้าห้องด้วย ตัดบัสเมื่อไรเสียงห้องก็หยุดตาม
+  drumRoute(S.ctx, dSink, drumGain);           // ส่งเข้าห้องด้วย ตัดบัสเมื่อไรเสียงห้องก็หยุดตาม
   cSink=S.ctx.createGain(); cSink.connect(clickGain);
   [duckL, duckR].forEach(d=>{ if(d){ try{ d.gain.cancelScheduledValues(t); d.gain.setValueAtTime(1, t); }catch(e){} } });
+}
+// บัสกลองชุดใหม่ → ห้อง: มีตัวแต่งเสียงรายใบ ห้องอยู่ในสายเสียงของแต่ละใบ (ส่งเข้าห้องรายใบได้) ไม่งั้นห้องของ KIT แบบเดิม
+function drumRoute(ctx, sink, dst){
+  if(window.KlongFX){ KIT.prime(ctx); window.KlongFX.route(ctx, sink, dst); }
+  else KIT.route(ctx, sink, dst);
 }
 function noise(){
   if(noiseBuf) return noiseBuf;
@@ -4501,10 +4509,15 @@ const KIT = (function(){
       reset(ctx);
       try{ if(!room) room = makeRoom(dst); sink.connect(room); }catch(e){}
     },
+    // เตรียมเสียงของบริบทนี้โดยไม่ต่อห้อง (ห้องย้ายไปอยู่ในสายเสียงรายใบของ sounds/klong-kitfx.js)
+    prime: function(ctx){ reset(ctx); },
     // คืน false เมื่อเสียงใบนี้ยังไม่พร้อม ให้ผู้เรียกใช้เสียงแบบเดิมแทน
-    play: function(ctx, sink, key, when, vel){
+    play: function(ctx, sink, key, when, vel, out){
       if(broken) return false;
       reset(ctx);
+      // ค่าที่แต่งไว้รายใบ (หน้าแต่งเสียงกลอง): โค้งน้ำหนัก · ช่วงไดนามิก · ชั้นเบา/เน้น · ระดับท่า · จูน · หัว/หางเสียง · แพน
+      const FXo = window.KlongFX, fx = FXo ? FXo.cur(key) : null;
+      if(fx) vel = FXo.curve(vel||100, fx);
       const v = Math.max(1, Math.min(127, vel||100))/127;
       let li = 0; while(li < LAYERS.length-1 && LAYERS[li] < v - 0.02) li++;
       const rr = Math.random() < 0.5 ? 0 : 1, c = cache[key] || [];
@@ -4519,12 +4532,20 @@ const KIT = (function(){
       }
       const src = ctx.createBufferSource();
       src.buffer = b;
-      src.playbackRate.value = 1 + (Math.random() - 0.5)*0.008;   // ต่างกันนิดเดียวเหมือนตีจริง
-      const g = ctx.createGain(); g.gain.value = Math.min(1.25, v/LAYERS[bl]);
+      const tr = fx && fx.cents ? Math.pow(2, fx.cents/1200) : 1;
+      src.playbackRate.value = tr*(1 + (Math.random() - 0.5)*0.008);   // ต่างกันนิดเดียวเหมือนตีจริง
+      const g = ctx.createGain();
+      let gv = Math.min(1.25, v/LAYERS[bl]);
+      if(fx){                                                    // ระดับตามน้ำหนัก ∝ v → ปรับช่วงไดนามิกเทียบน้ำหนัก 100
+        const vv = Math.max(1, vel||100), lay = vv<55 ? fx.ghost+8 : vv>=110 ? fx.accent-2 : 0;
+        gv *= Math.pow(vv/100, fx.dyn-1) * Math.pow(10, (lay*fx.dyn + (fx.artDb||0))/20);
+      }
+      const ev = fx && FXo.env(g.gain, when, gv, b.duration/tr, fx);
+      if(!ev) g.gain.value = gv;
       src.connect(g);
-      let out = g;
-      if(ctx.createStereoPanner){ const p = ctx.createStereoPanner(); p.pan.value = SPEC[key].pan; g.connect(p); out = p; }
-      out.connect(sink);
+      let o = g;
+      if(ctx.createStereoPanner){ const p = ctx.createStereoPanner(); p.pan.value = fx && fx.pan!=null ? fx.pan : SPEC[key].pan; g.connect(p); o = p; }
+      o.connect(out || sink);
       // ไฮแฮตปิดหรือเหยียบ ตัดเสียงไฮแฮตเปิดที่ยังดังอยู่
       if((key === "hihat" || key === "hhf") && openHH && openHH.end > when && openHH.sink === sink){
         try{ openHH.g.gain.setTargetAtTime(0, Math.max(when, openHH.t), 0.012); }catch(e){}
@@ -4532,6 +4553,7 @@ const KIT = (function(){
       }
       if(key === "hihat:open") openHH = {g, t: when, end: when + b.duration, sink};
       src.start(when);
+      if(ev && ev.stop) src.stop(ev.stop);                     // ตัดหางเสียงแล้ว หยุดตัวเล่นตามด้วย (ต้องหลัง start)
       return true;
     },
   };
@@ -4547,8 +4569,12 @@ function playVoice(id, when, vel, art){
   if(!dSink || isMuted(key)) return;
   /* เสียงกลองจริง: ถ้าเลือกชุดที่อัดจากกลองจริงและโหลดเสร็จแล้วใช้เสียงนั้น (sounds/klong-sounds.js)
      ไม่งั้น (เลือก "สังเคราะห์" · ยังโหลดไม่เสร็จ · ครอสสติ๊กที่ไม่มีไฟล์) ใช้ชุดสังเคราะห์ KIT ด้านล่าง */
-  if(window.KlongSounds && window.KlongSounds.play(S.ctx, dSink, pkey(inst,ar), when, vel)) return;
-  try{ if(KIT.play(S.ctx, dSink, key, when, vel)) return; }
+  /* แต่งเสียงรายใบ (sounds/klong-kitfx.js): เสียงทุกชั้นวิ่งผ่านสายเสียงของใบนั้น (EQ · คอมเพรสเซอร์ · แซต · ระดับ · ห้อง)
+     คอมเพรสเซอร์/แซตของเว็บหน่วงเวลา จึงเลื่อนการตีของใบนั้นขึ้นก่อนเท่าที่วัดได้ เสียงยังตรงกริด */
+  const FXo=window.KlongFX, out=FXo ? FXo.input(S.ctx, dSink, pkey(inst,ar)) : null;
+  if(FXo) when-=FXo.latency(S.ctx, pkey(inst,ar));
+  if(window.KlongSounds && window.KlongSounds.play(S.ctx, dSink, pkey(inst,ar), when, vel, out)) return;
+  try{ if(KIT.play(S.ctx, dSink, key, when, vel, out)) return; }
   catch(e){ console.warn("ชุดกลองใหม่เล่นไม่ได้ ใช้เสียงแบบเดิมแทน", e); }
   // เสียงแบบเดิม — ใช้ระหว่างชุดใหม่ยังสร้างใบนั้นไม่เสร็จ และในเบราว์เซอร์ที่ชุดใหม่ใช้ไม่ได้
   const v=clamp(vel,1,127)/127, br=0.45+0.55*v;
@@ -4596,6 +4622,10 @@ function playVoice(id, when, vel, art){
   }
 }
 let lastPrev = {id:"", t:0};
+// หน้าแต่งเสียงกลอง (sounds/klong-kitfx.js) ใช้ตีทดสอบ · ความเร็วเพลง · วาดกริดใหม่ตอนปิดหน้า
+window.previewHitKfx=(id, vel)=>previewHit(id, vel);
+window.KlongBpm=()=>{ try{ return bpmAt(Math.max(0, barAt(S.pos)))*(S.rate||1); }catch(e){ return S.bpm||100; } };
+window.KlongRedraw=()=>{ try{ draw(); }catch(e){} };
 function previewHit(id, vel){
   try{
     ensureCtx();
@@ -4694,11 +4724,33 @@ function metroVoice(ctx, dst, when, strong, kind, nb){
     const a=part(strong?0.5:0.28, 0.001, 0.035); osc("square", strong?1600:1050, a.g, a.end+0.01);
   }
 }
+/* คลิกที่ตั้งเวลาไว้ล่วงหน้า (ตัวตั้งเวลาจองไว้ ~0.3 วิ) แต่ละคลิกมีปุ่มเสียงของตัวเอง
+   ผู้ใช้เจอ "เปลี่ยนเสียงแล้วเบิ้ล": ปุ่มลองฟังตีคลิก 4 ทีที่ 120 BPM ทับเมโทรนอมที่กำลังเล่น (คนละจังหวะกับเพลง)
+   และคลิกที่จองไว้แล้วยังเป็นเสียงเก่า → ตอนเล่นอยู่ เปลี่ยนเสียงแล้วแปลงคลิกที่ยังไม่ดังเป็นเสียงใหม่ ณ เวลาเดิมแทน (metroRevoice) */
+let metroQ=[];
 function clickAt(when, strong, beat){
   if(!cSink) ensureCtx();
   if(!cSink) return;
-  metroVoice(S.ctx, cSink, when, strong, METRO.kind, noise());
+  const g=S.ctx.createGain(); g.connect(cSink);
+  metroVoice(S.ctx, g, when, strong, METRO.kind, noise());
+  const now=S.ctx.currentTime;
+  metroQ=metroQ.filter(q=>q.sink===cSink && q.when>now-0.05);
+  metroQ.push({when, strong, g, sink:cSink, kind:METRO.kind});
   if(METRO.duck && duckL && $("#click").checked) metroDuck(duckL.gain, duckR.gain, when, beat||0.5, metroDuckDb($("#cvol").value), METRO.pan);
+}
+/* เปลี่ยนเสียงคลิกที่จองไว้แต่ยังไม่ดังเป็นเสียงปัจจุบัน — เวลาเดิมทุกคลิก จึงตรงจังหวะและไม่มีคลิกซ้อน · คืนจำนวนที่เปลี่ยน */
+function metroRevoice(){
+  if(!S.ctx || !cSink) return 0;
+  const now=S.ctx.currentTime, nb=noise(); let n=0;
+  for(const q of metroQ){
+    if(q.sink!==cSink || q.kind===METRO.kind || q.when<=now+0.004) continue;   // คลิกที่ดังไปแล้วปล่อยไว้
+    const old=q.g;
+    try{ old.gain.setValueAtTime(0, now); }catch(e){}                           // ยังไม่ถึงเวลาดัง → ปิดได้เงียบสนิท
+    setTimeout(()=>{ try{ old.disconnect(); }catch(e){} }, 500);
+    q.g=S.ctx.createGain(); q.g.connect(cSink); q.kind=METRO.kind;
+    metroVoice(S.ctx, q.g, q.when, q.strong, METRO.kind, nb); n++;
+  }
+  return n;
 }
 
 /* ============================================================
@@ -6420,7 +6472,7 @@ const NP=(function(){
 
   function active(){
     return tp.classList.contains("min") && !tp.classList.contains("hidden")
-      && !/\b(athome|atexport|ataudio)\b/.test(document.body.className);
+      && !/\b(athome|atexport|ataudio|atkfx)\b/.test(document.body.className);
   }
   // มือถือ (data-kphone จาก theme/klong-theme.js): แผงเกาะขอบจอ — ใต้กริดตอนแนวตั้ง ขวาจอตอนแนวนอน
   // กริดหดหลบให้ ไม่ลอยทับ จึงไม่ซ่อนเอง ไม่มีหัวลาก · ห้อง (คัดลอก/วาง/ซ้ำ) เป็นหมวดที่ห้าแทนแถบท้ายแผง
@@ -6634,13 +6686,41 @@ $("#cvol").oninput=()=>{
   try{ localStorage.setItem("klongpro.cvol", $("#cvol").value); }catch(e){}
 };
 /* เมโทรนอม: เสียง · แพน · หลบเสียง (ค่าเก็บใน METRO และจำไว้ในเครื่อง) */
+/* ลองฟังเสียงเมโทรนอม — ดังทันทีและตรงจังหวะเพลง ไม่ซ้อนกัน
+   · กำลังเล่นและเปิดเมโทรนอมอยู่: ไม่ตีเพิ่ม แค่เปลี่ยนคลิกที่จองไว้เป็นเสียงใหม่ (ได้ยินที่จังหวะถัดไปเลย)
+   · กำลังเล่นแต่ปิดเมโทรนอม: ตีหนึ่งห้องลงบนจังหวะถัดไปของเพลงที่กำลังเล่น
+   · หยุดอยู่: ตีหนึ่งห้องตามความเร็ว/อัตราจังหวะของห้องที่หัวอ่านอยู่ คลิกแรกดังทันที
+   กดซ้ำเร็ว ๆ (เลื่อนดูทีละเสียง) ชุดเก่าถูกตัดทิ้งก่อนเสมอ จึงไม่เบิ้ล */
+let metroTryG=null;
 function metroTry(){
   ensureCtx();
-  const t=S.ctx.currentTime+0.06, g=S.ctx.createGain();
+  if(S.ctx.state!=="running"){ try{ S.ctx.resume(); }catch(e){} }
+  const now=S.ctx.currentTime;
+  if(metroTryG){
+    const o=metroTryG; metroTryG=null;
+    try{ o.gain.cancelScheduledValues(now); o.gain.setValueAtTime(o.gain.value, now); o.gain.linearRampToValueAtTime(0, now+0.008); }catch(e){}
+    setTimeout(()=>{ try{ o.disconnect(); }catch(e){} }, 300);
+  }
+  if(S.playing && $("#click").checked){ metroRevoice(); return; }
+  const g=S.ctx.createGain(); metroTryG=g;
   g.gain.value=0.35*metroRel(Math.max(+$("#cvol").value, 30));
   g.connect(clickPan || S.ctx.destination);
-  const nb=noise(); for(let i=0;i<4;i++) metroVoice(S.ctx, g, t+i*0.5, i===0, METRO.kind, nb);
-  setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 2600);
+  const nb=noise(), times=[];
+  if(S.playing){
+    // จังหวะถัดไปของเพลงที่กำลังเล่น (ไม่ข้ามรอยต่อของช่วงวนซ้ำ)
+    const el=Math.max(0, (now-startedAt)*playRate), t=el<headLen ? playFrom+el : regA+((el-headLen)%regL);
+    const end=playLoop ? regA+regL : Infinity;
+    for(let bi=Math.max(0, barAt(t)); bi<S.bars.length && times.length<=S.bars[Math.max(0, barAt(t))].num; bi++)
+      for(let j=0;j<S.bars[bi].num;j++){ const bt=beatStart(bi,j); if(bt>t+0.01 && bt<end) times.push([now+(bt-t)/playRate, j===0]); }
+    times.splice(S.bars[Math.max(0, barAt(t))].num);
+  } else {
+    const bi=Math.max(0, Math.min(S.bars.length-1, barAt(S.pos))), bar=S.bars[bi] || {num:4, den:4};
+    const beat=beatSec(bar.den||4, S.bars.length ? bi : null)/(S.rate||1);
+    for(let j=0;j<(bar.num||4);j++) times.push([now+0.015+j*beat, j===0]);
+  }
+  for(const [w, strong] of times) metroVoice(S.ctx, g, w, strong, METRO.kind, nb);
+  const last=times.length ? times[times.length-1][0] : now;
+  setTimeout(()=>{ if(metroTryG===g) metroTryG=null; try{ g.disconnect(); }catch(e){} }, (last-now+0.6)*1000);
 }
 (function(){
   const k=$("#metroKind"); if(!k) return;
@@ -10454,10 +10534,12 @@ async function vxCheck(){
 async function vxWaitKits(){
   for(let i=0;i<200;i++){
     const k=KIT.ready(), ks=window.KlongSounds ? window.KlongSounds.state() : {ready:true};
-    if((k.broken || k.done>=k.total) && (ks.ready || ks.error || ks.failed)) return;
+    if((k.broken || k.done>=k.total) && (ks.ready || ks.error || ks.failed)) break;
     if(i===0) vxProgress(0, "กำลังเตรียมเสียงกลอง …");
     await new Promise(r=>setTimeout(r, 100));
   }
+  // ชิ้นที่เปลี่ยนแหล่งเสียง + เสียงที่จูนไว้ (คำนวณคุณภาพสูง) + ความหน่วงของคอมเพรสเซอร์ ต้องพร้อมก่อนมิกซ์ออฟไลน์
+  if(window.KlongFX) try{ await window.KlongFX.prepare(S.ctx.sampleRate); }catch(e){}
 }
 async function vxMix(o, T, onProg){
   ensureCtx(); stop();
@@ -10471,7 +10553,7 @@ async function vxMix(o, T, onProg){
   // กลอง
   if(o.dr.on && o.dr.vol>0){
     const gD=oc.createGain(); gD.gain.value=o.dr.vol; gD.connect(bed);
-    const dBus=oc.createGain(); dBus.connect(gD); KIT.route(oc, dBus, gD);
+    const dBus=oc.createGain(); dBus.connect(gD); drumRoute(oc, dBus, gD);
     const keep={ctx:S.ctx, d:dSink, a:regA, l:regL};
     regA=T.A; regL=Math.max(0.05, T.B-T.A);
     let ev; try{ ev=buildEvents(); } finally { regA=keep.a; regL=keep.l; }

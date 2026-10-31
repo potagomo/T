@@ -206,7 +206,7 @@ html[data-kmode] body.shell #tp{bottom:calc(-1 * var(--kt-gap, 0px))}
 html[data-kmode] body.shell main.wrap{bottom:calc(-1 * var(--kt-gap, 0px))}
 /* จอแคบ: แผงตั้งค่าลอยทับกริด ให้จบที่ขอบบนของแถบล่าง (แถบล่างยื่นลงใต้จอ --kt-gap) ไม่งั้นท้ายแผงโดนบัง */
 @media (max-width:900px){ html[data-kmode] body.shell #insp{bottom:calc(var(--kt-tp, 0px) - var(--kt-gap, 0px))} }
-html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio)){background:var(--k-wood-b)}
+html[data-kmode]:has(> body.shell:not(.athome):not(.atexport):not(.ataudio):not(.atkfx)){background:var(--k-wood-b)}
 
 @media (min-width:600px) and (max-width:1189px){
   html[data-kmode] body.shell #topbar{height:auto; flex-wrap:wrap; row-gap:6px;

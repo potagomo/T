@@ -43,6 +43,9 @@ LAYER_MARKS = [
     (u"ธีม (สคริปต์)",          r'theme/klong-theme.js'),
     (u"เสียงกลองจริง (สคริปต์)",  r'sounds/klong-sounds.js'),
     (u"เสียงกลองจริง (ทางเข้าใน playVoice)", r'KlongSounds.play('),
+    (u"แต่งเสียงกลองรายใบ (สคริปต์)", r'sounds/klong-kitfx.js'),
+    (u"แต่งเสียงกลองรายใบ (สายเสียงใน playVoice)", r'FXo.input(S.ctx, dSink'),
+    (u"แต่งเสียงกลองรายใบ (บัสกลอง → ห้อง)", r'drumRoute(S.ctx, dSink'),
 ]
 
 

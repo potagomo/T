@@ -24,6 +24,24 @@ Sound sources used in this folder
 03_hiphop toms (T1, T2, FT)
   Synthesized 808-style toms made for the กลองนำทาง app (no third-party samples).
 
+06_extra_pieces/XS_cross_stick (cross-stick, 8 hits ghost/normal/accent)
+  "Risen 6 x 14 wood Side stick (414)" - studio501, Freesound sound #339806
+  (pack "Risen Wood 6 x 14 Snare"), https://freesound.org/people/studio501/sounds/339806/
+  Licence: CC0 1.0 Universal
+
+06_extra_pieces/XS2_cross_stick_ludwig, 06_extra_pieces/RS_rimshot_ludwig
+  "Ludwig Black Beauty Snare Drum Closed Rimshot / Open Rimshot Unprocessed" - pjcohen,
+  Freesound sounds #46564 and #46565, https://freesound.org/people/pjcohen/
+  Licence: CC0 1.0 Universal
+
+06_extra_pieces/RS2_rimshot_concert (rimshot mf / f / f / ff)
+  VSCO 2: Community Edition snare2 rimshots (Versilian Studios) uploaded by sgossner,
+  Freesound sounds #375431-375434, https://freesound.org/people/sgossner/
+  Licence: CC0 1.0 Universal
+
+  Made from Freesound HQ previews: onset trim (1 ms pre-roll), 0.5 ms fade-in, cosine fade-out,
+  stereo summed to mono, one gain per set (peak -1 dBFS), 16-bit WAV with TPDF dither.
+
 05_acoustic
   Salamander Drumkit - Alexander Holm
   Licence: Creative Commons Attribution-ShareAlike 3.0 (CC BY-SA 3.0)

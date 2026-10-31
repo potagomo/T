@@ -22,7 +22,7 @@ const fail = [];
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8", ".webmanifest":"application/manifest+json",
   ".json":"application/json", ".png":"image/png", ".woff2":"font/woff2", ".svg":"image/svg+xml",
-  ".mp3":"audio/mpeg", ".jpg":"image/jpeg" };
+  ".mp3":"audio/mpeg", ".wav":"audio/wav", ".jpg":"image/jpeg" };
 
 /* หา Chromium ที่ติดตั้งไว้แล้วในเครื่อง (sandbox ของ Claude Code มีให้อยู่แล้ว
    ที่ PLAYWRIGHT_BROWSERS_PATH) ถ้าไม่เจอก็คืน undefined ให้ playwright หาเอง */
@@ -457,14 +457,14 @@ async function suite(label, ctxOpts, exe) {
   }
 
   /* ---- เสียงกลองจริง (sounds/) ----
-     ชุดอะคูสติกต้องโหลดครบ ทุกเสียงของโปรแกรมต้องได้เสียงจริง (ยกเว้นครอสสติ๊กที่ไม่มีไฟล์)
+     ชุดอะคูสติกต้องโหลดครบ ทุกเสียงของโปรแกรมต้องได้เสียงจริง (ครอสสติ๊ก/ริมช็อตเป็นไฟล์อัดจริงแล้ว — เดิมครอสสติ๊กเป็นเสียงสังเคราะห์)
      เสียงต้องเริ่มตรงเวลาที่ตั้ง (ไฟล์ MP3 มีช่วงเงียบหัวไฟล์ 7-25 ms ตัวเล่นต้องตัดให้)
      ไฮแฮตเปิดต้องถูกตัดเมื่อเหยียบ และปุ่มทดสอบเสียงของโปรแกรมต้องวิ่งผ่านทางเข้าใน playVoice */
   const snd = await page.evaluate(async () => {
     const K = window.KlongSounds; if (!K) return null;
     await K.setKit("acoustic");
     const st = K.state();
-    const keys = ["kick","snare","snare:rim","hihat","hihat:open","hhf","tom1","tom2","floor",
+    const keys = ["kick","snare","snare:rim","snare:cross","hihat","hihat:open","hhf","tom1","tom2","floor",
                   "crash","crash2","ride","bell","china","splash","cow"];
     const bad = [], late = [];
     const render = async (fn, sec) => {
@@ -505,7 +505,7 @@ async function suite(label, ctxOpts, exe) {
     if (snd.bad.length) fail.push(`${label}: เสียงเหล่านี้ไม่ได้เสียงจริง ${snd.bad.join(", ")}`);
     if (snd.late.length) fail.push(`${label}: เสียงจริงเริ่มไม่ตรงเวลา ${snd.late.join(", ")}`);
     if (!(snd.chokeDb < -20)) fail.push(`${label}: เหยียบไฮแฮตแล้วไฮแฮตเปิดไม่ถูกตัด (${snd.chokeDb} dB)`);
-    if (snd.cross !== false) fail.push(`${label}: ครอสสติ๊กควรเล่นเสียงสังเคราะห์ (ไม่มีไฟล์)`);
+    if (snd.cross !== true) fail.push(`${label}: ครอสสติ๊กไม่ได้เล่นเสียงอัดจริง (ไฟล์ XS ใน 06_extra_pieces)`);
     if (snd.viaApp < 4) fail.push(`${label}: ปุ่มทดสอบเสียงไม่ได้ผ่านเสียงจริง (${snd.viaApp}/4) ทางเข้าใน playVoice หาย?`);
     if (snd.btns !== 6 || !/Alexander Holm/.test(snd.credit)) fail.push(`${label}: ปุ่มเลือกชุดเสียงหรือเครดิตชุดอะคูสติกไม่ครบ`);
   }
@@ -962,6 +962,196 @@ async function phoneSuite(label, exe) {
   await browser.close();
 }
 
+/* ---- แต่งเสียงกลองรายใบ + ครอสสติ๊ก/ริมช็อตจริง + เปลี่ยนเสียงเมโทรนอม ----
+   ผู้ใช้: "เปลี่ยนเสียงเมโทรนอมแล้วเบิ้ล อยากให้ใช้ได้เลย ตรงจังหวะ" · "ปรับแต่งกลองแต่ละใบ จูน เอฟเฟกต์ ละเอียดมาก คุณภาพคงเดิม"
+   · "ครอสสติ๊กบางชุดไม่ตรงเสียงจริง"
+   · เมโทรนอม: อัดเสียงที่ออกจริง (MediaRecorder ที่จุดแตะสัญญาณของธีม) เปลี่ยนเสียงกลางเพลง → คลิกต้องห่างเท่ากันทุกครั้ง ไม่มีคลิกแทรก
+     และเสียงใหม่มาที่จังหวะถัดไป · หยุดอยู่: ลองฟังแล้วคลิกแรกดังทันที
+   · ตัวจูน: สุ่มอัตราใหม่คุณภาพสูง (ไซน์ 5 kHz คลาด ≤ −80 dB · 18 kHz ที่เกิน Nyquist หลังจูนถูกตัด ≤ −30 dB)
+   · คอมเพรสเซอร์/แซต: จุดเริ่มเสียงยังตรงเวลา (ชดเชยความหน่วง) · EQ/ห้อง/ความยาว/ไดนามิก/แหล่งเสียง มีผลจริง
+   · ครอสสติ๊ก/ริมช็อต: ความดังเทียบสแนร์ของทุกชุดตรงตามที่ตั้ง (±1.5 dB)
+   · หน้าแต่งเสียง: เปิดได้ 12 ใบ ปุ่มแตะ ≥ 44px ไม่มีสีหลุดธีม (กลางวัน/กลางคืน) จอมือถือไม่ล้นแนวนอน */
+async function kfxSuite(label, exe) {
+  const browser = await chromium.launch({ executablePath: exe, args: ["--autoplay-policy=no-user-gesture-required"] });
+  const ctx = await browser.newContext({ ...devices["iPad Pro 11 landscape"], hasTouch: true, isMobile: false, acceptDownloads: true });
+  await ctx.addInitScript(() => {
+    try { localStorage.setItem("klongpro.tpmin", "1"); localStorage.setItem("klongpro.insp", "0"); localStorage.removeItem("klongpro.kitfx.v1"); } catch (e) {}
+    const O = window.AudioContext; window.AudioContext = function (o) { const c = new O(o); window.__ac = c; return c; }; window.AudioContext.prototype = O.prototype;
+  });
+  const page = await ctx.newPage(); const errs = [];
+  page.on("pageerror", (e) => errs.push("PAGEERROR " + e.message));
+  const say = (t) => console.log(`[${label}] ${t}`);
+  await page.goto(BASE, { waitUntil: "load" }); await page.waitForTimeout(500);
+  await page.click("#homeBlank"); await page.waitForTimeout(600);
+  await page.click('#tool button[data-v="draw"]');
+  const g = await page.evaluate(() => { const lw = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--labelw"));
+    const c = document.getElementById("grid").getBoundingClientRect();
+    const row = (re) => { const r = [...document.querySelectorAll("#labels .r")].find((x) => re.test(x.textContent)).getBoundingClientRect(); return r.top + r.height / 2; };
+    return { first: c.left + lw + 28, hh: row(/ไฮแฮต/) }; });
+  await page.touchscreen.tap(g.first + 400, g.hh); await page.waitForTimeout(200);
+  await page.waitForFunction(() => window.KlongSounds && window.KlongSounds.state().ready, null, { timeout: 30000 }).catch(() => {});
+
+  /* เมโทรนอม: อัดเสียงจริงระหว่างเปลี่ยนเสียง */
+  const rec = (mode) => page.evaluate(async (mode) => {
+    const v = document.getElementById("dvol"); v.value = "0"; v.dispatchEvent(new Event("input", { bubbles: true }));
+    const c = document.getElementById("click"); if (!c.checked) { c.checked = true; c.onchange && c.onchange(); }
+    const k = document.getElementById("metroKind"); k.value = "click"; k.onchange();
+    await new Promise((r) => setTimeout(r, 2300));
+    const ac = window.__ac, md = ac.createMediaStreamDestination(); ac.__kTap.connect(md);
+    const mr = new MediaRecorder(md.stream, { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 256000 }), parts = [];
+    mr.ondataavailable = (e) => parts.push(e.data); mr.start();
+    const T0 = ac.currentTime;
+    if (mode === "play") document.getElementById("play").click();
+    await new Promise((r) => setTimeout(r, 1300));
+    const playing = /พัก/.test(document.getElementById("play").textContent), tc = ac.currentTime - T0;
+    k.value = "beep"; k.onchange();
+    await new Promise((r) => setTimeout(r, 2400));
+    if (mode === "play") document.getElementById("play").click();
+    mr.stop(); await new Promise((r) => (mr.onstop = r)); ac.__kTap.disconnect(md);
+    const buf = await ac.decodeAudioData(await new Blob(parts).arrayBuffer()), d = buf.getChannelData(0), sr = buf.sampleRate;
+    let pk = 0; for (const x of d) pk = Math.max(pk, Math.abs(x));
+    const on = []; let last = -1e9;
+    for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > pk * 0.15) { if (i - last > sr * 0.08) on.push(i); last = i; }
+    const fq = on.map((i) => { let z = 0; for (let j = i + 20; j < i + sr * 0.025 && j < d.length; j++) if ((d[j - 1] < 0) !== (d[j] < 0)) z++; return Math.round(z / 2 / 0.0245); });
+    return { playing, tc, t: on.map((i) => i / sr), fq, beat: 60 / +document.getElementById("bpm").value };
+  }, mode);
+  const m1 = await rec("play");
+  const iv = m1.t.slice(1).map((t, i) => t - m1.t[i]), devMs = Math.max(...iv.map((x) => Math.abs(x - m1.beat))) * 1000;
+  const firstNew = m1.t.findIndex((t, i) => t > m1.tc && m1.fq[i] > 1150 && m1.fq[i] < 1500 || t > m1.tc && m1.fq[i] > 1700 && m1.fq[i] < 1850);
+  const lagBeats = firstNew >= 0 ? (m1.t[firstNew] - m1.tc) / m1.beat : 99;
+  say(`เมโทรนอมเปลี่ยนเสียงระหว่างเล่น: คลิก ${m1.t.length} ครั้ง ห่างคลาดสูงสุด ${devMs.toFixed(1)} ms · เสียงใหม่มาหลังเปลี่ยน ${lagBeats.toFixed(2)} จังหวะ`);
+  if (!m1.playing) fail.push(`${label}: เล่นเพลงเพื่อทดสอบเมโทรนอมไม่ได้`);
+  else if (devMs > 15 || m1.t.length < 6) fail.push(`${label}: เปลี่ยนเสียงเมโทรนอมระหว่างเล่นแล้วคลิกเบิ้ล/ไม่ตรงจังหวะ (คลาด ${devMs.toFixed(1)} ms)`);
+  else if (!(lagBeats <= 1.05)) fail.push(`${label}: เปลี่ยนเสียงเมโทรนอมแล้วเสียงใหม่ไม่มาที่จังหวะถัดไป (${lagBeats.toFixed(2)} จังหวะ)`);
+  const m2 = await rec("stop");
+  const after = m2.t.filter((t) => t > m2.tc), iv2 = after.slice(1).map((t, i) => t - after[i]);
+  say(`ลองฟังตอนหยุด: คลิกแรกหลังเปลี่ยน ${after.length ? ((after[0] - m2.tc) * 1000).toFixed(0) : "-"} ms · ${after.length} คลิก ห่าง ${iv2.map((x) => x.toFixed(3)).join("/")}`);
+  if (!after.length || after[0] - m2.tc > 0.09 || iv2.some((x) => Math.abs(x - m2.beat) > 0.015)) fail.push(`${label}: ลองฟังเมโทรนอมตอนหยุดไม่ดังทันที/ไม่ตรงจังหวะเพลง`);
+
+  /* เครื่องเสียงรายใบ (ออฟไลน์ — เส้นทางเดียวกับ playVoice: route → สายของใบ → เลื่อนตามความหน่วง) */
+  const en = await page.evaluate(async () => {
+    const K = window.KlongSounds, F = window.KlongFX, SR = 44100, out = {};
+    await K.setKit("acoustic");
+    const hitR = async (key, vel = 100, sec = 1.2, when = 0.1) => {
+      const oc = new OfflineAudioContext(2, Math.round(SR * sec), SR), dst = oc.createGain(); dst.connect(oc.destination);
+      const sink = oc.createGain(); sink.connect(dst); F.route(oc, sink, dst);
+      return K.play(oc, sink, key, when - F.latency(oc, key), vel, F.input(oc, sink, key)) ? oc.startRendering() : null;
+    };
+    const st = (bf, when = 0.1) => { const L = bf.getChannelData(0), R = bf.getChannelData(1); let pk = 0; for (let i = 0; i < L.length; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
+      let on = 0; for (let i = 0; i < L.length; i++) if (Math.max(Math.abs(L[i]), Math.abs(R[i])) > pk * 0.05) { on = i; break; }
+      const e = (a, b) => { let s = 0; for (let i = Math.round(a * SR); i < Math.min(L.length, Math.round(b * SR)); i++) s += (L[i] * L[i] + R[i] * R[i]) / 2; return 10 * Math.log10(s / Math.max(1, (b - a) * SR) + 1e-15); };
+      return { onMs: (on / SR - when) * 1000, rms: e(on / SR, on / SR + 0.06), tail: e(0.4, 1.1) };
+    };
+    const sine = (f, n) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = Math.sin(2 * Math.PI * f * i / SR) * 0.5; return a; };
+    const rr = Math.pow(2, 500 / 1200), hi = F._resample(sine(18000, 44100), rr), mid = F._resample(sine(5000, 44100), rr);
+    const rmsA = (a) => { let t = 0; for (let i = 2000; i < a.length - 2000; i++) t += a[i] * a[i]; return Math.sqrt(t / (a.length - 4000)); };
+    let s_ = 0, c_ = 0; const f = 5000 * rr, n = mid.length;
+    for (let i = 2000; i < n - 2000; i++) { s_ += mid[i] * Math.sin(2 * Math.PI * f * i / SR); c_ += mid[i] * Math.cos(2 * Math.PI * f * i / SR); } s_ *= 2 / (n - 4000); c_ *= 2 / (n - 4000);
+    let er = 0, tt = 0; for (let i = 2000; i < n - 2000; i++) { const y = s_ * Math.sin(2 * Math.PI * f * i / SR) + c_ * Math.cos(2 * Math.PI * f * i / SR); er += (mid[i] - y) ** 2; tt += mid[i] ** 2; }
+    out.resid = 10 * Math.log10(er / tt); out.alias = 20 * Math.log10(rmsA(hi) / 0.3536);
+    F.set("tom1", "tune", 700); await F.prepare(SR); const tb = await hitR("tom1"); out.tuneOn = st(tb).onMs; out.tuned = !!F.tuned(K.buffers("acoustic", "tom1")[0], 700); F.reset("tom1");
+    const lowE = (bf) => { const L = bf.getChannelData(0); let lp = 0, e = 0; for (let i = 0; i < L.length; i++) { lp += (L[i] - lp) * 0.02; e += lp * lp; } return 10 * Math.log10(e + 1e-15); };
+    const k0 = lowE(await hitR("kick")); F.set("kick", "hp", 1000); out.hpf = k0 - lowE(await hitR("kick")); F.reset("kick");
+    out.on0 = st(await hitR("snare")).onMs;
+    F.set("snare", "cmp", 1); F.set("snare", "cThr", -30); F.set("snare", "sat", 60); out.onFx = st(await hitR("snare")).onMs; F.reset("snare");
+    const rt = async (v) => { F.set("snare", "room", v); const bf = await hitR("snare:cross"), L = bf.getChannelData(0); let e = 0; for (let i = Math.round(SR * 0.35); i < Math.round(SR * 0.9); i++) e += L[i] * L[i]; return 10 * Math.log10(e + 1e-15); };
+    out.room = [await rt(0), await rt(100), await rt(200)]; F.reset("snare");
+    out.lenFull = st(await hitR("floor")).tail; F.set("floor", "len", 20); out.len20 = st(await hitR("floor")).tail; F.reset("floor");
+    const g0 = st(await hitR("snare", 42)).rms, n0 = st(await hitR("snare", 100)).rms; F.set("snare", "dyn", 0);
+    out.dyn = [n0 - g0, st(await hitR("snare", 100)).rms - st(await hitR("snare", 42)).rms]; F.reset("snare");
+    F.set("snare", "src", "kit:rock"); await F.prepare(SR); out.swap = !!K._slots["rock|SN"] && K._slots["rock|SN"].st === "ok"; F.reset("snare");
+    F.setArt("snare", "snare:cross", "src", "synth"); out.synthCross = (await hitR("snare:cross")) === null; F.reset("snare");
+    // ระดับครอสสติ๊ก/ริมช็อตเทียบสแนร์ ทุกชุด
+    const lv = async (key, vel, n) => { let t = 0; for (let j = 0; j < n; j++) { const oc = new OfflineAudioContext(2, SR * 0.4, SR), sk = oc.createGain(); sk.connect(oc.destination);
+      K.play(oc, sk, key, 0.01, vel); const b = await oc.startRendering(), L = b.getChannelData(0), R = b.getChannelData(1); let pk = 0; for (let i = 0; i < L.length; i++) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
+      let on = 0; for (let i = 0; i < L.length; i++) if (Math.max(Math.abs(L[i]), Math.abs(R[i])) > pk * 0.02) { on = i; break; }
+      let e = 0; for (let i = on; i < on + 2646; i++) e += (L[i] * L[i] + R[i] * R[i]) / 2; t += e / 2646; } return 10 * Math.log10(t / n); };
+    out.cal = {};
+    for (const kit of ["acoustic", "rock", "pop", "jazz", "hiphop"]) { await K.setKit(kit);
+      const sn = await lv("snare", 100, 10), sa = await lv("snare", 118, 10);
+      out.cal[kit] = [(await lv("snare:cross", 100, 10)) - (sn - 6), (await lv("snare:rim", 100, 6)) - (sa + 2)]; }
+    await K.setKit("acoustic");
+    return out;
+  });
+  const r1 = (x) => (+x).toFixed(1);
+  say(`ตัวจูน: ไซน์ 5 kHz คลาด ${r1(en.resid)} dB · 18 kHz เกิน Nyquist เหลือ ${r1(en.alias)} dB · ทอมจูน +7 เริ่ม ${r1(en.tuneOn)} ms (คุณภาพสูงพร้อม=${en.tuned})`);
+  if (!(en.resid < -80) || !(en.alias < -30) || Math.abs(en.tuneOn) > 3 || !en.tuned) fail.push(`${label}: ตัวจูนคุณภาพไม่ถึง/เสียงเริ่มไม่ตรง (${r1(en.resid)} / ${r1(en.alias)} dB)`);
+  say(`EQ ตัดทุ้ม 1 kHz: ทุ้มลด ${r1(en.hpf)} dB · จุดเริ่มสแนร์ ปกติ ${r1(en.on0)} ms / คอมเพรสเซอร์+แซต ${r1(en.onFx)} ms`);
+  if (!(en.hpf > 20)) fail.push(`${label}: EQ ตัดทุ้มไม่มีผล`);
+  if (Math.abs(en.onFx - en.on0) > 1.5) fail.push(`${label}: เปิดคอมเพรสเซอร์/แซตแล้วเสียงเลื่อนจากกริด (${r1(en.onFx - en.on0)} ms)`);
+  say(`ห้อง 0/100/200%: หาง ${en.room.map(r1).join(" / ")} dB · ความยาว 20%: หาง ${r1(en.lenFull)} → ${r1(en.len20)} dB · ไดนามิก ปกติ ${r1(en.dyn[0])} dB → 0% ${r1(en.dyn[1])} dB · เปลี่ยนแหล่ง=${en.swap} · ครอสสติ๊กสังเคราะห์=${en.synthCross}`);
+  if (!(en.room[1] > en.room[0] + 4 && en.room[2] > en.room[1] + 3)) fail.push(`${label}: ส่งเข้าห้องรายใบไม่มีผล`);
+  if (!(en.len20 < en.lenFull - 10)) fail.push(`${label}: ตัดความยาวเสียงไม่มีผล`);
+  if (!(en.dyn[0] > 8 && Math.abs(en.dyn[1]) < 1.5)) fail.push(`${label}: ช่วงไดนามิก 0% ไม่ได้ทำให้ดังเท่ากัน (${r1(en.dyn[1])} dB)`);
+  if (!en.swap || !en.synthCross) fail.push(`${label}: เปลี่ยนแหล่งเสียงรายใบไม่ทำงาน`);
+  say(`ครอสสติ๊ก/ริมช็อต คลาดจากเป้า (dB): ${Object.entries(en.cal).map(([k, v]) => k + " " + v.map(r1).join("/")).join(" · ")}`);
+  for (const [k, v] of Object.entries(en.cal)) if (v.some((x) => Math.abs(x) > 1.5)) fail.push(`${label}: ความดังครอสสติ๊ก/ริมช็อตชุด ${k} คลาดเกิน 1.5 dB (${v.map(r1).join("/")})`);
+
+  /* ส่งออก .wav: สแนร์ที่เปิดคอมเพรสเซอร์+แซต+จูน ต้องลงเวลาเดียวกับตอนไม่แต่ง (มิกซ์ออฟไลน์ต้องรอวัดความหน่วง/เตรียมเสียงจูนก่อน) */
+  const Q = 5040, vxNotes = [1, 3, 5].map((i) => ({ tk: i * Q, dk: Q, v: "snare", art: "", orn: "", trem: 0, dyn: "", vel: 100, bm: 0, tp: 0, dot: false }));
+  const vxFile = path.join(require("os").tmpdir(), "smoke-kfx.klong");
+  fs.writeFileSync(vxFile, JSON.stringify({ app: "klong-pro", data: { v: 1, name: "kfx", bpm: 120, offset: 0, swing: 50, dur: 8, genre: "rock", rate: 1,
+    bars: [{ num: 4, den: 4 }, { num: 4, den: 4 }], notes: vxNotes, view: { valId: "e" } } }));
+  await page.setInputFiles("#file", vxFile); await page.waitForTimeout(1200);
+  const wavHits = async () => {
+    await page.evaluate(() => document.getElementById("toExport").click()); await page.waitForTimeout(800);
+    await page.evaluate(() => { const set = (id, v) => { const e = document.getElementById(id); if (e.type === "checkbox") e.checked = v; else e.value = v; e.dispatchEvent(new Event("change", { bubbles: true })); };
+      set("vxFrom", "1"); set("vxTo", "2"); set("vxCount", "0"); set("vxDrOn", true); set("vxMuOn", false); set("vxClOn", false); set("vxDr", "80"); });
+    const dl = page.waitForEvent("download", { timeout: 60000 }); await page.evaluate(() => document.getElementById("vxWav").click());
+    const d = await dl.catch(() => null), b = d ? fs.readFileSync(await d.path()) : Buffer.alloc(44);
+    await page.evaluate(() => document.getElementById("exBack").click()); await page.waitForTimeout(300);
+    const n = (b.length - 44) / 6, sr = b.readUInt32LE(24) || 44100, on = []; let last = -1e9, pk = 0;
+    for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(b.readIntLE(44 + i * 6, 3)));
+    for (let i = 0; i < n; i++) if (Math.abs(b.readIntLE(44 + i * 6, 3)) > pk * 0.05) { if (i - last > sr * 0.2) on.push(i / sr * 1000); last = i; }
+    return on;
+  };
+  const vOff = await wavHits();
+  await page.evaluate(() => { const F = window.KlongFX; F.set("snare", "cmp", 1); F.set("snare", "cThr", -30); F.set("snare", "sat", 50); F.set("snare", "tune", -300); });
+  const vFx = await wavHits();
+  await page.evaluate(() => window.KlongFX.reset("snare"));
+  const vDev = vOff.length === 3 && vFx.length === 3 ? Math.max(...vFx.map((t, i) => Math.abs(t - vOff[i]))) : 99;
+  say(`ส่งออก .wav สแนร์แต่ง (คอมเพรสเซอร์+แซต+จูน −3): จุดตีคลาดจากไม่แต่ง ${vDev.toFixed(2)} ms`);
+  if (vDev > 1.5) fail.push(`${label}: ส่งออกวิดีโอ/เสียงที่แต่งกลองแล้วจังหวะเลื่อน (${vDev.toFixed(2)} ms)`);
+
+  /* หน้าแต่งเสียง */
+  const ui = async () => page.evaluate(() => {
+    const el = document.getElementById("kfx"), r = el.getBoundingClientRect();
+    const small = [...el.querySelectorAll("button, select, .kfx-v")].filter((b) => b.offsetParent && b.getBoundingClientRect().height < 43.5).map((b) => b.id || b.textContent.trim().slice(0, 12));
+    return { open: !el.hidden && document.body.classList.contains("atkfx"), pads: el.querySelectorAll(".kfx-pad").length, cards: el.querySelectorAll(".kfx-card").length,
+      rows: el.querySelectorAll(".kfx-row").length, small, overflow: document.documentElement.scrollWidth > innerWidth + 1 || el.scrollWidth > el.clientWidth + 1, unmapped: [...window.KlongTheme.unmapped] };
+  });
+  await page.evaluate(() => document.getElementById("toKfx").click()); await page.waitForTimeout(700);
+  const u1 = await ui();
+  await page.click('.kfx-pad[data-p="tom2"]'); await page.waitForTimeout(300);
+  await page.$eval('.kfx-row[data-k="tune"] input', (e) => { e.value = "250"; e.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.click('.kfx-row[data-k="vol"] .kfx-nud button[data-d="1"]'); await page.waitForTimeout(150);
+  const shown = await page.evaluate(() => ({ tune: document.querySelector('.kfx-row[data-k="tune"] .kfx-v').textContent, vol: document.querySelector('.kfx-row[data-k="vol"] .kfx-v').textContent,
+    stored: JSON.parse(localStorage.getItem("klongpro.kitfx.v1") || "{}"), ed: document.querySelector('.kfx-pad[data-p="tom2"] .ed').textContent }));
+  await page.dblclick('.kfx-row[data-k="tune"] .kfx-v'); await page.waitForTimeout(450);
+  const reset = await page.evaluate(() => document.querySelector('.kfx-row[data-k="tune"] .kfx-v').textContent);
+  await page.click("#kMode button[data-mode=\"night\"]").catch(() => {});
+  await page.evaluate(() => window.KlongFX.open(true)); await page.waitForTimeout(300);
+  const u2 = await ui();
+  say(`หน้าแต่งเสียง: เปิด=${u1.open} ใบ ${u1.pads} การ์ด ${u1.cards} ช่องปรับ ${u1.rows} · จูน ${shown.tune} ระดับ ${shown.vol} ป้าย "${shown.ed}" · แตะสองครั้งคืนค่า → ${reset} · ปุ่มเล็กกว่า 44px: ${u1.small.join(",") || "ไม่มี"} · สีหลุดธีม: ${u2.unmapped.join(",") || "ไม่มี"}`);
+  const t2 = shown.stored && shown.stored.kits && shown.stored.kits.acoustic && shown.stored.kits.acoustic.tom2;
+  if (!u1.open || u1.pads !== 12 || u1.cards < 7) fail.push(`${label}: หน้าแต่งเสียงกลองเปิดไม่ครบ`);
+  if (shown.tune !== "+2.50" || !/\+0\.1 dB/.test(shown.vol) || !t2 || t2.tune !== 250 || shown.ed !== "แก้แล้ว") fail.push(`${label}: ปรับค่าในหน้าแต่งเสียงแล้วไม่จำ/ไม่แสดง (${shown.tune}, ${shown.vol})`);
+  if (reset !== "0.00") fail.push(`${label}: แตะค่าสองครั้งแล้วไม่คืนค่าเดิม (${reset})`);
+  if (u1.small.length) fail.push(`${label}: ปุ่มในหน้าแต่งเสียงเล็กกว่าเป้านิ้ว 44px: ${u1.small.join(", ")}`);
+  if (u1.overflow || u2.unmapped.length) fail.push(`${label}: หน้าแต่งเสียงล้นจอหรือมีสีหลุดธีม ${u2.unmapped.join(",")}`);
+  await page.click("#kMode button[data-mode=\"auto\"]").catch(() => {});
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(400);
+  const u3 = await ui();
+  say(`หน้าแต่งเสียงจอมือถือ 390px: ล้นแนวนอน=${u3.overflow}`);
+  if (u3.overflow) fail.push(`${label}: หน้าแต่งเสียงล้นจอมือถือแนวนอน`);
+  await page.evaluate(() => document.getElementById("kfxBack").click()); await page.waitForTimeout(200);
+  const closed = await page.evaluate(() => !document.body.classList.contains("atkfx") && document.getElementById("kfx").hidden);
+  if (!closed) fail.push(`${label}: ปิดหน้าแต่งเสียงไม่ได้`);
+  say(`errors=${errs.join(" | ") || "ไม่มี"}`);
+  if (errs.length) fail.push(`${label}: ${errs[0]}`);
+  await browser.close();
+}
+
 (async () => {
   const exe = findChromium();
   const server = serve();
@@ -969,14 +1159,19 @@ async function phoneSuite(label, exe) {
   await new Promise((ok, no) => { server.once("error", no); server.listen(0, "127.0.0.1", ok); });
   BASE = `http://127.0.0.1:${server.address().port}${PREFIX}`;
   console.log(`เสิร์ฟที่ ${BASE}\n`);
+  // ONLY=คำ → รันเฉพาะชุดที่ชื่อมีคำนั้น (เช่น ONLY=แต่งเสียง) ไว้ใช้ตอนแก้งาน · ก่อนขึ้นเว็บต้องรันทั้งหมด
+  const only = process.env.ONLY || "";
+  const pick = (name, fn) => (!only || name.includes(only) ? fn() : null);
   try {
-    await suite("iPad", { ...devices["iPad Pro 11"], hasTouch: true, isMobile: false }, exe);
-    await suite("iPhone", { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3,
-      hasTouch: true, isMobile: true, userAgent: devices["iPhone 13"].userAgent }, exe);
-    await editSuite("iPad-แก้ระหว่างเล่น", exe);
-    await mediaSuite("iPad-เสียงและวิดีโอ", exe);
-    await tempoSuite("iPad-เพลงแกว่ง", exe);
-    await phoneSuite("Android", exe);
+    if (only) console.log(`(รันเฉพาะชุดที่มีคำว่า "${only}")`);
+    await pick("iPad", () => suite("iPad", { ...devices["iPad Pro 11"], hasTouch: true, isMobile: false }, exe));
+    await pick("iPhone", () => suite("iPhone", { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3,
+      hasTouch: true, isMobile: true, userAgent: devices["iPhone 13"].userAgent }, exe));
+    await pick("iPad-แก้ระหว่างเล่น", () => editSuite("iPad-แก้ระหว่างเล่น", exe));
+    await pick("iPad-เสียงและวิดีโอ", () => mediaSuite("iPad-เสียงและวิดีโอ", exe));
+    await pick("iPad-เพลงแกว่ง", () => tempoSuite("iPad-เพลงแกว่ง", exe));
+    await pick("iPad-แต่งเสียงกลอง", () => kfxSuite("iPad-แต่งเสียงกลอง", exe));
+    await pick("Android", () => phoneSuite("Android", exe));
   } finally { server.close(); }
   console.log("\n================ RESULT ================");
   if (fail.length) { console.log("ไม่ผ่าน:\n - " + fail.join("\n - ")); process.exit(1); }

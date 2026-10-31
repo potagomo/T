@@ -52,6 +52,7 @@ const PRECACHE = [
   "./theme/klong-theme.css",
   "./theme/klong-theme.js",
   "./sounds/klong-sounds.js",
+  "./sounds/klong-kitfx.js",
   "./sounds/kits.json",
   // ไลบรารีที่โหลดเฉพาะตอนใช้ (ยืดเสียงแบบเรียลไทม์ · ส่งออกวิดีโอ) — เก็บไว้ด้วยเพื่อให้ใช้ได้ตอนไม่มีเน็ต
   "./lib/signalsmith-stretch-1.3.2.js",
@@ -59,7 +60,7 @@ const PRECACHE = [
   "./lib/mp4-muxer-5.2.2.js"
 ];
 
-/* ไฟล์เสียงกลองจริง (.mp3 ใต้ sounds/) เก็บแยกในแคชถาวร ไม่ผูกกับรุ่นของโปรแกรม
+/* ไฟล์เสียงกลองจริง (.mp3/.wav ใต้ sounds/) เก็บแยกในแคชถาวร ไม่ผูกกับรุ่นของโปรแกรม
    แคชรุ่นโปรแกรมถูกล้างทุกครั้งที่อัปเดต ถ้าเก็บเสียงไว้ในนั้น ผู้ใช้ต้องโหลดใหม่ 1-4 MB ทุกรอบ
    ไฟล์เสียงไม่เคยเปลี่ยนเนื้อหา ถ้าวันหนึ่งเปลี่ยนไฟล์เสียง ให้เปลี่ยนชื่อแคชนี้ (v1 → v2)
    ชื่อต้องไม่ขึ้นต้นด้วย "klong-" ไม่งั้นขั้น activate จะลบทิ้ง
@@ -116,7 +117,8 @@ self.addEventListener("fetch", (e) => {
     if (url.pathname === ROOT + app || url.pathname.startsWith(ROOT + app + "/")) return;
   }
 
-  if (url.pathname.startsWith(ROOT + "sounds/") && url.pathname.endsWith(".mp3")) {
+  // ไฟล์เสียง .mp3 และ .wav (ครอสสติ๊ก/ริมช็อตเป็น WAV ไม่บีบอัด — ไม่เสียคุณภาพซ้ำจากต้นฉบับที่เป็น MP3 อยู่แล้ว)
+  if (url.pathname.startsWith(ROOT + "sounds/") && (url.pathname.endsWith(".mp3") || url.pathname.endsWith(".wav"))) {
     e.respondWith((async () => {
       const c = await caches.open(SOUNDS);
       const hit = await c.match(req, { ignoreSearch: true });

@@ -1552,6 +1552,76 @@
        "accent_1.mp3"
       ]
      }
+    },
+    {
+     "code": "XS",
+     "name": "cross_stick",
+     "name_th": "สแนร์ไม้ Risen 6×14 · อัดจริง",
+     "folder": "06_extra_pieces/XS_cross_stick",
+     "playGain": 1.004,
+     "layers": {
+      "ghost": [
+       "ghost_1.wav",
+       "ghost_2.wav"
+      ],
+      "normal": [
+       "normal_1.wav",
+       "normal_2.wav",
+       "normal_3.wav"
+      ],
+      "accent": [
+       "accent_1.wav",
+       "accent_2.wav",
+       "accent_3.wav"
+      ]
+     },
+     "source": "Freesound #339806 by studio501 (Risen Wood 6 x 14 Snare, AKG414) — CC0"
+    },
+    {
+     "code": "XS2",
+     "name": "cross_stick_ludwig",
+     "name_th": "Ludwig Black Beauty · อัดจริง",
+     "folder": "06_extra_pieces/XS2_cross_stick_ludwig",
+     "playGain": 1.031,
+     "layers": {
+      "normal": [
+       "normal_1.wav"
+      ]
+     },
+     "source": "Freesound #46564 by pjcohen (Ludwig Black Beauty Snare Drum Closed Rimshot) — CC0"
+    },
+    {
+     "code": "RS",
+     "name": "rimshot_ludwig",
+     "name_th": "Ludwig Black Beauty · อัดจริง",
+     "folder": "06_extra_pieces/RS_rimshot_ludwig",
+     "playGain": 3.912,
+     "layers": {
+      "normal": [
+       "normal_1.wav"
+      ]
+     },
+     "source": "Freesound #46565 by pjcohen (Ludwig Black Beauty Snare Drum Open Rimshot) — CC0"
+    },
+    {
+     "code": "RS2",
+     "name": "rimshot_concert",
+     "name_th": "สแนร์คอนเสิร์ต VSCO · อัดจริง",
+     "folder": "06_extra_pieces/RS2_rimshot_concert",
+     "playGain": 5.656,
+     "layers": {
+      "ghost": [
+       "ghost_1.wav"
+      ],
+      "normal": [
+       "normal_1.wav",
+       "normal_2.wav"
+      ],
+      "accent": [
+       "accent_1.wav"
+      ]
+     },
+     "source": "Freesound #375431-375434 by sgossner (VSCO 2 CE snare2 rimshot mf/f/f/ff, Versilian Studios) — CC0"
     }
    ],
    "format": "MP3, 44100 Hz, mono"

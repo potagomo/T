@@ -380,6 +380,130 @@ function prepare(sr){
   return Promise.all([44100, 48000, sr||44100].map(measure)).then(function(){ return warm(curKit()); }).then(tunedIdle);
 }
 
+/* ---------- ชุดของฉัน: บันทึกค่าที่แต่งทั้งชุดเป็น preset ส่วนตัว 5 ช่อง อยู่ถาวรจนกว่าผู้ใช้ลบเอง ----------
+   ผู้ใช้ขอ: "Save ค่าที่ปรับทั้งหมดเป็น Preset ส่วนตัวได้สูงสุด 5 ชุดกลอง คงอยู่ตลอดไม่หายไปไหนจนกว่าจะกดลบเอง"
+   หนึ่งชุด = ชุดเสียงพื้นฐาน + ค่าทุกใบของชุดนั้น (จูน EQ แหล่งเสียง …) + ห้องทั้งชุด
+   เก็บสองที่: localStorage (อ่านทันทีตอนเปิด) + IndexedDB (สำเนา — localStorage เต็ม/หายเมื่อไร กู้จากตรงนี้)
+   และขอสิทธิ์ "เก็บถาวร" จากเบราว์เซอร์ (ไม่ถูกล้างเองตอนที่เก็บในเครื่องเหลือน้อย) · สำรองเป็นไฟล์ / นำเข้าไฟล์ได้ (ย้ายเครื่องได้) */
+var PKEY="klongpro.kitfx.presets.v1", PMAX=5;
+var pre={v:1, list:[], active:-1}, preWarn="";
+function preFix(o){
+  var out={v:1, list:[], active:-1};
+  if(o && Array.isArray(o.list)) for(var i=0;i<PMAX;i++) out.list.push(clean(o.list[i]));
+  while(out.list.length<PMAX) out.list.push(null);
+  out.active = o && typeof o.active==="number" && out.list[o.active] ? o.active : -1;
+  return out;
+}
+/* รับเฉพาะค่าที่รู้จัก (ไฟล์นำเข้าอาจมาจากรุ่นอื่น/แก้มือ) */
+function clean(p){
+  if(!p || typeof p!=="object" || typeof p.kit!=="string") return null;
+  var kits=(SND() ? SND().kits : []).map(function(k){ return k.id; });
+  if(kits.length && kits.indexOf(p.kit)<0) return null;
+  var o={name:String(p.name||"ชุดของฉัน").slice(0, 40), kit:p.kit, pieces:{}, g:{}, at:+p.at||Date.now()};
+  PIECES.forEach(function(pc){
+    var r=p.pieces && p.pieces[pc.id]; if(!r || typeof r!=="object") return;
+    var x={};
+    for(var k in DEF) if(typeof r[k]==="number" && isFinite(r[k])) x[k]=r[k];
+    if(typeof r.src==="string" && r.src) x.src=r.src;
+    if(r.art && typeof r.art==="object"){ var a={}; pc.keys.forEach(function(key){ var v=r.art[key]; if(!v) return; var y={};
+      if(typeof v.db==="number" && isFinite(v.db) && v.db) y.db=v.db; if(typeof v.src==="string" && v.src) y.src=v.src; if(y.db!=null || y.src) a[key]=y; });
+      if(Object.keys(a).length) x.art=a; }
+    if(Object.keys(x).length) o.pieces[pc.id]=x;
+  });
+  if(p.g) for(var k in GDEF) if(typeof p.g[k]==="number" && isFinite(p.g[k])) o.g[k]=p.g[k];
+  return o;
+}
+try{ pre=preFix(JSON.parse(localStorage.getItem(PKEY))); }catch(e){ pre=preFix(null); }
+var IDBN="klongpro-kitfx";
+function idb(fn){
+  return new Promise(function(ok){
+    try{
+      if(!window.indexedDB) return ok(null);
+      var rq=indexedDB.open(IDBN, 1);
+      rq.onupgradeneeded=function(){ rq.result.createObjectStore("kv"); };
+      rq.onsuccess=function(){ var db=rq.result; try{ fn(db.transaction("kv", "readwrite").objectStore("kv"), function(v){ ok(v); db.close(); }); }catch(e){ ok(null); db.close(); } };
+      rq.onerror=function(){ ok(null); };
+    }catch(e){ ok(null); }
+  });
+}
+function savePre(){
+  var s=JSON.stringify(pre); preWarn="";
+  try{ localStorage.setItem(PKEY, s); }catch(e){ preWarn="บันทึกในเครื่อง (ที่เก็บหลัก) ไม่สำเร็จ — เก็บสำเนาไว้แล้ว แนะนำกด \"สำรองเป็นไฟล์\""; }
+  idb(function(st, done){ var r=st.put(s, "presets"); r.onsuccess=function(){ done(true); }; r.onerror=function(){ done(false); }; });
+}
+/* เปิดแอปแล้ว localStorage ไม่มีชุดของฉัน (ถูกล้าง/เต็ม) แต่สำเนาใน IndexedDB ยังอยู่ → กู้คืน */
+function restorePre(){
+  return idb(function(st, done){ var r=st.get("presets"); r.onsuccess=function(){ done(r.result||null); }; r.onerror=function(){ done(null); }; }).then(function(v){
+    if(!v) { if(pre.list.some(Boolean)) savePre(); return; }
+    var have=pre.list.some(Boolean);
+    if(!have){ try{ pre=preFix(JSON.parse(v)); if(pre.list.some(Boolean)){ try{ localStorage.setItem(PKEY, v); }catch(e){} emitP(); } }catch(e){} }
+  });
+}
+var persisted=null;
+function askPersist(){
+  try{
+    if(!navigator.storage || !navigator.storage.persist) return;
+    navigator.storage.persist().then(function(ok){ persisted=!!ok; emitP(); }, function(){});
+  }catch(e){}
+}
+function clone(o){ return JSON.parse(JSON.stringify(o||{})); }
+/* รูปแบบเทียบ: ตัดช่องว่าง (ใบที่ถูกรีเซ็ตเหลือ {} ) เรียงคีย์ */
+function canon(o){
+  if(o===null || typeof o!=="object") return JSON.stringify(o);
+  var ks=Object.keys(o).sort(), parts=[];
+  ks.forEach(function(k){ var v=o[k]; if(v && typeof v==="object" && !Object.keys(v).length) return; if(v===undefined) return; parts.push(JSON.stringify(k)+":"+canon(v)); });
+  return "{"+parts.join(",")+"}";
+}
+function snapNow(){ var k=curKit(); return {kit:k, pieces:clone(store.kits[k]), g:clone(store.g)}; }
+function activeIdx(){ var i=pre.active; return i>=0 && pre.list[i] && pre.list[i].kit===curKit() ? i : -1; }
+function sameAs(p){ var s=snapNow(); return !!p && p.kit===s.kit && canon(p.pieces)===canon(s.pieces) && canon(p.g)===canon(s.g); }
+function snapOf(k){ return {kit:k, pieces:clone(store.kits[k]), g:clone(store.g)}; }
+/* ค่าที่แต่งไว้ของชุดเสียง k ยังไม่อยู่ในชุดของฉันชุดไหนเลย (และไม่ใช่ค่าเริ่มต้น) */
+function unsavedOf(k){
+  var s=snapOf(k); if(canon(s.pieces)==="{}" && canon(s.g)==="{}") return false;
+  return !pre.list.some(function(p){ return p && p.kit===k && canon(p.pieces)===canon(s.pieces) && canon(p.g)===canon(s.g); });
+}
+/* เรียกชุด p แล้วจะทับค่าที่ยังไม่บันทึกไหม — ทั้งชุดเสียงที่ใช้อยู่ และชุดเสียงของ p (อาจแต่งค้างไว้แล้วสลับไปชุดอื่น) */
+function loses(p){ return unsavedOf(curKit()) || (p.kit!==curKit() && unsavedOf(p.kit)); }
+function presetSave(i, name){
+  var s=snapNow();
+  pre.list[i]={name:String(name||"").trim().slice(0, 40) || ("ชุดที่ "+(i+1)), kit:s.kit, pieces:s.pieces, g:s.g, at:Date.now()};
+  pre.active=i; savePre(); askPersist(); emitP();
+}
+function presetLoad(i){
+  var p=pre.list[i]; if(!p) return false;
+  var s=SND(); if(s && s.kit()!==p.kit) s.setKit(p.kit);
+  store.kits[p.kit]=clone(p.pieces); store.g=clone(p.g);
+  pre.active=i; savePre();
+  vcache={}; applyRooms(); applyAll(); save(); warm(p.kit);
+  subs.forEach(function(f){ try{ f(null); }catch(e){} });
+  emitP(); return true;
+}
+function presetDel(i){ pre.list[i]=null; if(pre.active===i) pre.active=-1; savePre(); emitP(); }
+function presetRename(i, name){ var p=pre.list[i]; if(!p) return; p.name=String(name||"").trim().slice(0, 40) || p.name; savePre(); emitP(); }
+function presetFile(){
+  return new Blob([JSON.stringify({app:"klong-pro-drumkits", v:1, at:new Date().toISOString(), presets:pre.list}, null, 1)], {type:"application/json"});
+}
+/* นำเข้า: ใส่ช่องว่างก่อน ถ้าไม่พอถามก่อนแทนที่ทั้งหมด → คืนจำนวนที่นำเข้า */
+function presetImport(text, replaceAll){
+  var j=JSON.parse(text), list=(j && (j.presets || (j.list))) || [];
+  var key=function(p){ return p.name+"|"+p.kit+"|"+canon(p.pieces)+"|"+canon(p.g); };
+  var have=pre.list.filter(Boolean).map(key), all=list.map(clean).filter(Boolean);
+  var items=all.filter(function(p){ return have.indexOf(key(p))<0; });             // ชุดที่มีอยู่แล้วเหมือนกันทุกค่า ไม่ใส่ซ้ำ
+  if(!all.length) throw new Error("ไม่พบชุดกลองในไฟล์นี้");
+  if(!items.length) return 0;
+  var empty=[]; pre.list.forEach(function(p, i){ if(!p) empty.push(i); });
+  if(items.length>empty.length){
+    if(!replaceAll) return -items.length;
+    pre.list=[]; for(var i=0;i<PMAX;i++) pre.list.push(items[i]||null); pre.active=-1;
+  } else items.forEach(function(it, k){ pre.list[empty[k]]=it; });
+  savePre(); askPersist(); emitP();
+  return Math.min(items.length, PMAX);
+}
+var psubs=[];
+function emitP(){ psubs.forEach(function(f){ try{ f(); }catch(e){} }); }
+function kitTh(id){ var s=SND(), k=s && s.kits.filter(function(x){ return x.id===id; })[0]; return k ? k.th : id; }
+
 /* ---------- หน้าแต่งเสียงกลอง ---------- */
 var UI=null, sel="snare", testVel=100;
 /* ไฟกะพริบที่ปุ่มใบกลอง ตรงเวลาที่เสียงดังจริง (เล่นเพลงอยู่ก็เห็นว่าใบไหนตี) */
@@ -435,6 +559,33 @@ var CSS=
 "#kfx .kfx-sub{font-size:12px;color:var(--dimmer);margin:4px 0 0}"+
 "#kfx .kfx-cr{font-size:11.5px;color:var(--dimmer);line-height:1.5}"+
 "@media (pointer:coarse){#kfx .kfx-v,#kfx .kfx-nud button,#kfx .kfx-sel select,#kfx .btn,#kfx .seg button{min-height:44px}#kfx .kfx-row{min-height:48px}}"+
+"#kfx .kfx-pre{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}"+
+"#kfx .kfx-pre-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}"+
+"#kfx .kfx-pre-h b{font-size:15px}"+
+"#kfx label.btn{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}"+
+"#kfx .kfx-pre-h .sub{font-size:12.5px;color:var(--dim);line-height:1.45}"+
+"#kfx .kfx-pre-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}"+
+"#kfx .kfx-slot{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:58px;padding:7px 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-width:0}"+
+"#kfx .kfx-slot .n{font-size:11px;color:var(--dim)}"+
+"#kfx .kfx-slot .t{font-size:14.5px;font-weight:600;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+"#kfx .kfx-slot .k{font-size:11.5px;color:var(--dim);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+"#kfx .kfx-slot.empty{border-style:dashed;background:transparent}"+
+"#kfx .kfx-slot.empty .t{font-weight:400;color:var(--dim)}"+
+"#kfx .kfx-slot[aria-pressed=true]{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}"+
+"#kfx .kfx-slot .k.dirty{color:var(--soft,#E0A64A)}"+
+"#kfx .kfx-pre-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:44px}"+
+"#kfx .kfx-pre-act .msg{font-size:12.5px;color:var(--dim);line-height:1.45;flex:1 1 220px}"+
+"#kfx .kfx-pre-act .msg.warn{color:var(--warn)}"+
+"#kfx .kfx-pre-act input{font:inherit;font-size:16px;min-height:44px;box-sizing:border-box;border-radius:8px;border:1px solid var(--ok);background:var(--panel2);color:var(--ink);padding:0 10px;flex:1 1 180px;min-width:0}"+
+".kfx-q{display:flex;flex-direction:column;gap:4px;margin-top:2px}"+
+".kfx-q[hidden]{display:none}"+
+".kfx-q .h{font-size:12px;color:var(--dim)}"+
+".kfx-q .seg{flex-wrap:wrap}"+
+".kfx-q .seg button{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
+"@media (pointer:coarse){.kfx-q .seg button{min-height:44px}}"+
+"@media (max-width:760px){#kfx .kfx-kits{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}#kfx .kfx-kits button{flex:none}"+
+"#kfx .kfx-pre-slots{display:flex;overflow-x:auto;scrollbar-width:none}#kfx .kfx-slot{flex:none;width:136px}}"+
+"@media (max-width:560px){#kfx .kfx-sel{grid-template-columns:1fr;gap:2px}#kfx .kfx-sel label{font-size:12.5px}}"+
 "@media (max-width:760px){#kfx .kfx-body{grid-template-columns:1fr}#kfx .kfx-pads{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}#kfx .kfx-pad{flex:none}#kfx .kfx-cards{grid-template-columns:1fr}}"+
 "@media (max-width:420px){#kfx .kfx-row{grid-template-columns:78px minmax(0,1fr) 70px 66px}#kfx .kfx-sel{grid-template-columns:78px minmax(0,1fr)}}";
 
@@ -484,8 +635,10 @@ function row(id, d, aria){
     '<button type="button" class="kfx-v" title="แตะเพื่อพิมพ์ค่า · แตะสองครั้งคืนค่าเดิม"></button>'+
     '<span class="kfx-nud"><button type="button" data-d="-1" aria-label="ลด '+esc(d.th)+'">−</button><button type="button" data-d="1" aria-label="เพิ่ม '+esc(d.th)+'">+</button></span></div>';
 }
+var cssDone=false;
+function ensureCss(){ if(cssDone) return; cssDone=true; var st=document.createElement("style"); st.textContent=CSS; document.head.appendChild(st); }
 function build(){
-  var st=document.createElement("style"); st.textContent=CSS; document.head.appendChild(st);
+  ensureCss();
   var el=document.createElement("div"); el.id="kfx"; el.hidden=true; el.setAttribute("role","dialog"); el.setAttribute("aria-label","แต่งเสียงกลองรายใบ");
   var kits=(SND() ? SND().kits : []).map(function(k){ return '<button type="button" data-kit="'+k.id+'" aria-pressed="false">'+esc(k.th)+'</button>'; }).join("");
   el.innerHTML=
@@ -494,6 +647,7 @@ function build(){
      '<div class="seg kfx-kits" id="kfxKits" role="group" aria-label="ชุดเสียงกลอง">'+kits+'</div><span class="kfx-sp"></span>'+
      '<button class="btn primary" id="kfxPlay" type="button">เล่นเพลง</button><button class="btn" id="kfxResetAll" type="button">รีเซ็ตทั้งชุด</button></div>'+
     '<p class="hint" style="margin:0;font-size:12.5px;color:var(--dim)" id="kfxKitNote"></p>'+
+    '<section class="kfx-pre" id="kfxPre" aria-label="ชุดของฉัน"></section>'+
     '<div class="kfx-body"><div class="kfx-pads" id="kfxPads" role="group" aria-label="เลือกใบกลอง">'+
      PIECES.map(function(p){ return '<button type="button" class="kfx-pad" data-p="'+p.id+'" aria-pressed="false"><span class="dot" style="background:'+p.color+'"></span><span class="nm">'+esc(p.th)+'</span><span class="ed"></span></button>'; }).join("")+
     '</div><div class="kfx-ed" id="kfxEd"></div></div></div>';
@@ -514,7 +668,9 @@ function build(){
     sel=b.dataset.p; render(); audition(pieceInfo(sel).keys[0]);
   });
   document.addEventListener("keydown", function(e){ if(e.key==="Escape" && !el.hidden) open(false); });
-  if(SND()) SND().onChange(function(){ if(!el.hidden){ vcache={}; applyAll(); renderHead(); } });
+  if(SND()) SND().onChange(function(){ if(!el.hidden){ vcache={}; applyAll(); renderHead(); renderPre(); } });
+  psubs.push(function(){ if(!el.hidden) renderPre(); });
+  subs.push(function(){ if(!el.hidden) renderPreStatus(); });
   var pb=document.getElementById("play");
   if(pb && window.MutationObserver) new MutationObserver(syncPlay).observe(pb, {childList:true, characterData:true, subtree:true});
 }
@@ -541,9 +697,102 @@ function renderHead(){
   UI.el.querySelector("#kfxKitNote").textContent=note;
   syncPlay();
 }
+/* ---------- แถบชุดของฉัน (หน้าแต่งเสียง) ---------- */
+var preEdit=null;                        // {i, rename} ระหว่างพิมพ์ชื่อ
+function renderPre(){
+  var el=UI && UI.el.querySelector("#kfxPre"); if(!el) return;
+  var h='<div class="kfx-pre-h"><b>ชุดของฉัน</b><span class="sub" id="kfxPreSub"></span><span class="kfx-sp" style="flex:1"></span>'+
+    '<button type="button" class="btn sm" id="kfxPreExp">สำรองเป็นไฟล์</button>'+
+    '<label class="btn sm" style="cursor:pointer">นำเข้าไฟล์<input type="file" id="kfxPreImp" accept=".json,application/json" hidden></label></div>'+
+    '<div class="kfx-pre-slots" role="group" aria-label="ชุดของฉัน 5 ช่อง">';
+  pre.list.forEach(function(p, i){
+    h += p ? '<button type="button" class="kfx-slot" data-i="'+i+'" aria-pressed="false"><span class="n">ชุดที่ '+(i+1)+'</span><span class="t">'+esc(p.name)+'</span><span class="k">'+esc(kitTh(p.kit))+'</span></button>'
+           : '<button type="button" class="kfx-slot empty" data-i="'+i+'" aria-pressed="false"><span class="n">ชุดที่ '+(i+1)+'</span><span class="t">+ บันทึกที่นี่</span><span class="k">ว่าง</span></button>';
+  });
+  h+='</div><div class="kfx-pre-act" id="kfxPreAct"></div>';
+  el.innerHTML=h;
+  el.querySelectorAll(".kfx-slot").forEach(function(b){ b.onclick=function(){ slotTap(+b.dataset.i); }; });
+  el.querySelector("#kfxPreExp").onclick=function(){
+    var a=document.createElement("a"); a.href=URL.createObjectURL(presetFile());
+    a.download="ชุดกลองของฉัน-"+new Date().toISOString().slice(0,10)+".json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 30000);
+  };
+  var imp=el.querySelector("#kfxPreImp");
+  imp.onchange=function(){
+    var f=imp.files && imp.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var n=presetImport(String(rd.result), false);
+        if(n<0 && confirm("ไฟล์นี้มี "+(-n)+" ชุด แต่ช่องว่างไม่พอ — แทนที่ชุดของฉันทั้ง 5 ช่องด้วยชุดในไฟล์?")) n=presetImport(String(rd.result), true);
+        if(n>0) flashMsg("นำเข้า "+n+" ชุดแล้ว"); else if(n===0) flashMsg("ชุดในไฟล์มีอยู่แล้วทุกชุด ไม่ได้เพิ่มซ้ำ");
+      }catch(e){ flashMsg("นำเข้าไม่ได้: "+(e && e.message || "ไฟล์ไม่ถูกต้อง"), true); }
+    };
+    rd.readAsText(f); imp.value="";
+  };
+  renderPreStatus();
+}
+var flashT=0, flash=null;
+function flashMsg(t, warn){ flash={t:t, warn:!!warn}; clearTimeout(flashT); flashT=setTimeout(function(){ flash=null; renderPreStatus(); }, 4000); renderPreStatus(); }
+/* สถานะ + ปุ่มของช่องที่ใช้อยู่ — อัปเดตทุกครั้งที่ค่าเปลี่ยน (ไม่สร้างทั้งแถบใหม่ ช่องพิมพ์ชื่อจะได้ไม่หลุด) */
+function renderPreStatus(){
+  var el=UI && UI.el.querySelector("#kfxPre"); if(!el || !el.firstChild) return;
+  var a=activeIdx(), dirty=a>=0 && !sameAs(pre.list[a]), full=pre.list.every(Boolean);
+  el.querySelectorAll(".kfx-slot").forEach(function(b){
+    var i=+b.dataset.i; b.setAttribute("aria-pressed", String(i===a || (preEdit && preEdit.i===i)));
+    var k=b.querySelector(".k"), p=pre.list[i];
+    if(p){ k.textContent=kitTh(p.kit)+(i===a && dirty ? " · แก้แล้วยังไม่บันทึก" : ""); k.classList.toggle("dirty", i===a && dirty); }
+  });
+  var sub=el.querySelector("#kfxPreSub");
+  sub.textContent = persisted===true ? "บันทึกค่าที่แต่งทั้งชุดได้ 5 ชุด · เก็บถาวรในเครื่องแล้ว อยู่จนกว่าจะลบเอง"
+    : "บันทึกค่าที่แต่งทั้งชุดได้ 5 ชุด · อยู่จนกว่าจะลบเอง (สำรองเป็นไฟล์ไว้ด้วยก็ได้ ย้ายเครื่องได้)";
+  var act=el.querySelector("#kfxPreAct"), h="";
+  if(preEdit){
+    var dv = preEdit.rename ? pre.list[preEdit.i].name : "ชุดที่ "+(preEdit.i+1)+" · "+kitTh(curKit());
+    if(!act.querySelector("#kfxPreName")){
+      act.innerHTML='<input type="text" id="kfxPreName" maxlength="40" aria-label="ชื่อชุด" value="'+esc(dv)+'">'+
+        '<button type="button" class="btn primary" id="kfxPreOk">'+(preEdit.rename ? "เปลี่ยนชื่อ" : "บันทึกชุดนี้")+'</button><button type="button" class="btn" id="kfxPreNo">ยกเลิก</button>';
+      var inp=act.querySelector("#kfxPreName"), ok=function(){
+        var e=preEdit; preEdit=null;
+        if(e.rename) presetRename(e.i, inp.value); else { presetSave(e.i, inp.value); flashMsg("บันทึกเป็น \""+pre.list[e.i].name+"\" แล้ว"); }
+        renderPre();
+      };
+      act.querySelector("#kfxPreOk").onclick=ok;
+      act.querySelector("#kfxPreNo").onclick=function(){ preEdit=null; renderPre(); };
+      inp.addEventListener("keydown", function(e){ if(e.key==="Enter") ok(); else if(e.key==="Escape"){ preEdit=null; renderPre(); } });
+      setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(e){} }, 30);
+    }
+    return;
+  }
+  if(flash) h+='<span class="msg'+(flash.warn?" warn":"")+'">'+esc(flash.t)+'</span>';
+  else if(preWarn) h+='<span class="msg warn">'+esc(preWarn)+'</span>';
+  else if(a>=0) h+='<span class="msg">ใช้ "'+esc(pre.list[a].name)+'" อยู่'+(dirty ? ' · มีค่าที่แก้หลังบันทึก' : ' · ตรงกับที่บันทึกไว้')+'</span>';
+  else h+='<span class="msg">'+(full ? "ครบ 5 ชุดแล้ว — แตะชุดเพื่อเรียกใช้ แล้วบันทึกทับ หรือลบชุดที่ไม่ใช้" : "แตะช่องว่างเพื่อบันทึกค่าที่แต่งตอนนี้ · แตะชุดที่บันทึกไว้เพื่อเรียกใช้")+'</span>';
+  if(a>=0) h+='<button type="button" class="btn'+(dirty?" primary":"")+'" id="kfxPreSave"'+(dirty?"":" disabled")+'>บันทึกทับ</button>'+
+    '<button type="button" class="btn" id="kfxPreRen">เปลี่ยนชื่อ</button><button type="button" class="btn" id="kfxPreDel">ลบชุดนี้</button>';
+  act.innerHTML=h;
+  if(a>=0){
+    act.querySelector("#kfxPreSave").onclick=function(){ presetSave(a, pre.list[a].name); flashMsg("บันทึกทับ \""+pre.list[a].name+"\" แล้ว"); };
+    act.querySelector("#kfxPreRen").onclick=function(){ preEdit={i:a, rename:true}; renderPreStatus(); };
+    act.querySelector("#kfxPreDel").onclick=function(){
+      if(!confirm("ลบชุด \""+pre.list[a].name+"\" ถาวร? (ค่าที่แต่งอยู่ตอนนี้ยังอยู่ ไม่ถูกลบ)")) return;
+      presetDel(a); renderPre();
+    };
+  }
+}
+function slotTap(i){
+  var p=pre.list[i];
+  if(!p){ preEdit={i:i, rename:false}; renderPre(); return; }
+  if(i===activeIdx()) return;
+  if(loses(p) && !confirm('ค่าที่แต่งอยู่ตอนนี้ยังไม่ได้บันทึก — เรียกชุด "'+p.name+'" แทนเลยไหม?\n(ถ้าอยากเก็บไว้ ยกเลิกแล้วบันทึกลงช่องว่างหรือบันทึกทับก่อน)')) return;
+  preEdit=null;
+  presetLoad(i); render();
+  setTimeout(function(){ audition(pieceInfo(sel).keys[0]); }, 200);
+}
 function render(){
   if(!UI) return;
   renderHead();
+  renderPre();
   var k=curKit(), p=P(k, sel), pi=pieceInfo(sel), s=SND(), synth=k==="synth" || !s;
   var h='<div class="kfx-top"><span class="dot" style="width:14px;height:14px;border-radius:50%;background:'+pi.color+'"></span><h2>'+esc(pi.th)+'</h2>'+
     '<span class="kfx-sp" style="flex:1"></span>'+
@@ -788,6 +1037,7 @@ window.addEventListener("resize", function(){ if(UI && !UI.el.hidden) draw(); })
 
 /* ปุ่มเปิดหน้านี้ใต้ตัวเลือกชุดเสียง (แผงตั้งค่า ส่วนการฟัง — สร้างโดย klong-sounds.js) */
 function inject(){
+  ensureCss();
   var cr=document.getElementById("kKitCr");
   if(cr && !document.getElementById("kfxOpen")){
     var b=document.createElement("button"); b.type="button"; b.className="btn sm"; b.id="kfxOpen"; b.textContent="แต่งเสียงกลองรายใบ…";
@@ -795,8 +1045,32 @@ function inject(){
     cr.after(b);
   }
   var to=document.getElementById("toKfx"); if(to) to.onclick=function(){ open(true); };
+  var ob=document.getElementById("kfxOpen");
+  if(ob && !document.getElementById("kfxQ")){
+    var w=document.createElement("div"); w.className="kfx-q"; w.id="kfxQW";
+    w.innerHTML='<span class="h">ชุดของฉัน</span><div class="seg" id="kfxQ" role="group" aria-label="เรียกชุดของฉัน"></div>';
+    ob.after(w);
+    w.addEventListener("click", function(e){
+      var b=e.target.closest("button[data-i]"); if(!b) return;
+      var i=+b.dataset.i, p=pre.list[i]; if(!p || i===activeIdx()) return;
+      if(loses(p) && !confirm('ค่าที่แต่งอยู่ตอนนี้ยังไม่ได้บันทึก — เรียกชุด "'+p.name+'" แทนเลยไหม?')) return;
+      presetLoad(i);
+      var t=document.getElementById("testSnd"), pb=document.getElementById("play");
+      if(t && !(pb && /พัก/.test(pb.textContent))) setTimeout(function(){ t.click(); }, 250);
+    });
+    psubs.push(quick); subs.push(quick); if(SND()) SND().onChange(quick);
+  }
+  quick();
 }
-function boot(){ inject(); setTimeout(function(){ inject(); measure(44100); measure(48000); }, 600); }   // วัดความหน่วงไว้ก่อนเล่นครั้งแรก
+/* ปุ่มเรียกชุดของฉันในแผงตั้งค่า (ส่วนการฟัง) — สลับชุดได้ระหว่างถอดเพลงโดยไม่ต้องเปิดหน้าแต่งเสียง */
+function quick(){
+  var w=document.getElementById("kfxQW"), q=document.getElementById("kfxQ"); if(!w || !q) return;
+  var a=activeIdx(), any=false, h="";
+  pre.list.forEach(function(p, i){ if(!p) return; any=true;
+    h+='<button type="button" data-i="'+i+'" aria-pressed="'+(i===a)+'" title="'+esc(p.name)+' · '+esc(kitTh(p.kit))+'">'+esc(p.name)+'</button>'; });
+  w.hidden=!any; q.innerHTML=h;
+}
+function boot(){ inject(); restorePre().then(quick); setTimeout(function(){ inject(); measure(44100); measure(48000); }, 600); }   // วัดความหน่วงไว้ก่อนเล่นครั้งแรก
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", boot);
 else boot();
 
@@ -806,6 +1080,8 @@ window.KlongFX={
   open:open, onChange:function(f){ subs.push(f); },
   get:function(pid){ return P(curKit(), pid); }, set:function(pid, k, v){ setP(pid, k, v); if(UI && !UI.el.hidden) render(); },
   setArt:function(pid, key, k, v){ setArt(pid, key, k, v); }, reset:function(pid){ pid ? resetPiece(pid) : resetKit(); },
+  presets:{list:function(){ return clone(pre.list); }, active:activeIdx, save:presetSave, load:presetLoad, del:presetDel, rename:presetRename,
+    file:presetFile, import:presetImport, onChange:function(f){ psubs.push(f); }},
   _groups:groups, _lat:LAT, _resample:resample
 };
 })();

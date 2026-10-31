@@ -1147,6 +1147,46 @@ async function kfxSuite(label, exe) {
   await page.evaluate(() => document.getElementById("kfxBack").click()); await page.waitForTimeout(200);
   const closed = await page.evaluate(() => !document.body.classList.contains("atkfx") && document.getElementById("kfx").hidden);
   if (!closed) fail.push(`${label}: ปิดหน้าแต่งเสียงไม่ได้`);
+
+  /* ชุดของฉัน (ผู้ใช้: "Save เป็น Preset ส่วนตัวได้ 5 ชุด คงอยู่ตลอดจนกว่าจะกดลบเอง")
+     บันทึกผ่านหน้าจอ · แก้แล้วขึ้นป้ายยังไม่บันทึก · เรียกใช้แล้วค่ากลับมา (ถามก่อนทับค่าที่ยังไม่บันทึก) · เปิดแอปใหม่ยังอยู่
+     · ล้าง localStorage แล้วกู้จากสำเนาใน IndexedDB · ลบได้ · สำรองเป็นไฟล์แล้วนำเข้ากลับได้ (ไม่ใส่ซ้ำ) */
+  const PK = "klongpro.kitfx.presets.v1"; let asked = 0;
+  page.on("dialog", (d) => { asked++; d.accept(); });
+  await page.setViewportSize({ width: 1194, height: 834 });
+  await page.evaluate((PK) => { localStorage.removeItem(PK); window.KlongFX.open(true); }, PK); await page.waitForTimeout(400);
+  await page.click('.kfx-pad[data-p="tom1"]');
+  const tune = (v) => page.$eval('.kfx-row[data-k="tune"] input', (e, v) => { e.value = String(v); e.dispatchEvent(new Event("input", { bubbles: true })); }, v);
+  await tune(-400);
+  await page.click('.kfx-slot[data-i="0"]'); await page.fill("#kfxPreName", "ชุดทดสอบ"); await page.click("#kfxPreOk"); await page.waitForTimeout(150);
+  await tune(500); await page.waitForTimeout(100);
+  const dirty = await page.evaluate(() => document.querySelector('.kfx-slot[data-i="0"] .k').classList.contains("dirty"));
+  await page.evaluate(() => { for (let i = 1; i < 5; i++) window.KlongFX.presets.save(i, "ช่อง " + (i + 1)); });
+  await page.click('.kfx-slot[data-i="0"]'); await page.waitForTimeout(400);
+  const loaded = await page.evaluate(() => ({ tune: window.KlongFX.get("tom1").tune, act: window.KlongFX.presets.active() }));
+  await page.reload({ waitUntil: "load" }); await page.waitForTimeout(1000);
+  const afterReload = await page.evaluate(() => ({ names: window.KlongFX.presets.list().map((x) => x && x.name), quick: document.querySelectorAll("#kfxQ button").length }));
+  await page.evaluate((PK) => localStorage.removeItem(PK), PK);
+  await page.reload({ waitUntil: "load" }); await page.waitForTimeout(1500);
+  await page.click("#homeBlank").catch(() => {}); await page.waitForTimeout(400);
+  const fromIdb = await page.evaluate((PK) => ({ names: window.KlongFX.presets.list().filter(Boolean).length, ls: !!localStorage.getItem(PK) }), PK);
+  await page.evaluate(() => window.KlongFX.open(true)); await page.waitForTimeout(400);
+  const dlp = page.waitForEvent("download", { timeout: 20000 }); await page.click("#kfxPreExp");
+  const pf = await dlp.catch(() => null), ptxt = pf ? fs.readFileSync(await pf.path(), "utf8") : "{}";
+  let inFile = 0; try { inFile = JSON.parse(ptxt).presets.filter(Boolean).length; } catch (e) {}
+  await page.click('.kfx-slot[data-i="4"]'); await page.waitForTimeout(300); await page.click("#kfxPreDel"); await page.waitForTimeout(200);
+  const afterDel = await page.evaluate(() => window.KlongFX.presets.list()[4]);
+  const pfile = path.join(require("os").tmpdir(), "smoke-presets.json"); fs.writeFileSync(pfile, ptxt);
+  await page.setInputFiles("#kfxPreImp", pfile); await page.waitForTimeout(500);
+  const afterImp = await page.evaluate(() => window.KlongFX.presets.list().map((x) => x && x.name));
+  const slotSmall = await page.evaluate(() => [...document.querySelectorAll("#kfx .kfx-slot, #kfx .kfx-pre .btn")].filter((b) => b.getBoundingClientRect().height < 43.5).length);
+  say(`ชุดของฉัน: บันทึกแล้วแก้ → ป้ายยังไม่บันทึก=${dirty} · เรียกชุด 1 → จูน ${loaded.tune} (ถาม ${asked} ครั้ง) · เปิดใหม่ ${afterReload.names.filter(Boolean).length}/5 ชุด ปุ่มในแผงตั้งค่า ${afterReload.quick} · ล้าง localStorage แล้วกู้จาก IndexedDB ${fromIdb.names} ชุด · ไฟล์สำรอง ${inFile} ชุด · ลบช่อง 5 → ${afterDel === null ? "ว่าง" : "ยังอยู่"} · นำเข้ากลับ → ${afterImp.filter(Boolean).length}/5 (${afterImp.join(", ")})`);
+  if (!dirty) fail.push(`${label}: ชุดของฉันไม่บอกว่ามีค่าที่แก้หลังบันทึก`);
+  if (loaded.tune !== -400 || loaded.act !== 0 || asked < 1) fail.push(`${label}: เรียกชุดของฉันแล้วค่าไม่กลับ/ไม่ถามก่อนทับค่าที่ยังไม่บันทึก (${loaded.tune})`);
+  if (afterReload.names.filter(Boolean).length !== 5 || afterReload.names[0] !== "ชุดทดสอบ" || afterReload.quick !== 5) fail.push(`${label}: เปิดแอปใหม่แล้วชุดของฉันหาย/ไม่ครบ`);
+  if (fromIdb.names !== 5 || !fromIdb.ls) fail.push(`${label}: localStorage ถูกล้างแล้วกู้ชุดของฉันจาก IndexedDB ไม่ได้`);
+  if (inFile !== 5 || afterDel !== null || afterImp.filter(Boolean).length !== 5 || new Set(afterImp).size !== 5) fail.push(`${label}: สำรอง/ลบ/นำเข้าชุดของฉันไม่ถูก (${afterImp.join(",")})`);
+  if (slotSmall) fail.push(`${label}: ปุ่มชุดของฉันเล็กกว่าเป้านิ้ว 44px (${slotSmall})`);
   say(`errors=${errs.join(" | ") || "ไม่มี"}`);
   if (errs.length) fail.push(`${label}: ${errs[0]}`);
   await browser.close();
